@@ -1,7 +1,15 @@
 import express from 'express'
 import type { Request, Response } from 'express'
 import { config } from '../config'
-import { dailyUsage, usageSummary, allMemories, deleteMemory } from '../services/storage'
+import {
+  dailyUsage,
+  usageSummary,
+  allMemories,
+  deleteMemory,
+  recentConversations,
+  listConversations,
+  usageByContact,
+} from '../services/storage'
 
 export function startWebServer(): void {
   const app = express()
@@ -17,6 +25,26 @@ export function startWebServer(): void {
   app.get('/api/usage/daily', (req: Request, res: Response) => {
     const days = Number.parseInt(String(req.query.days ?? '7'), 10)
     res.json({ days, data: dailyUsage(Number.isNaN(days) ? 7 : days) })
+  })
+
+  // 每用户用量排行（按 token 降序）
+  app.get('/api/usage/by-contact', (_req: Request, res: Response) => {
+    res.json(usageByContact(20))
+  })
+
+  // 最近对话流（跨会话）
+  app.get('/api/conversations/recent', (_req: Request, res: Response) => {
+    res.json(recentConversations(50))
+  })
+
+  // 某段会话完整历史（contactId + 可选 roomId）
+  app.get('/api/conversations', (req: Request, res: Response) => {
+    const contactId = String(req.query.contactId ?? '')
+    const roomId =
+      typeof req.query.roomId === 'string' && req.query.roomId
+        ? (req.query.roomId as string)
+        : null
+    res.json(listConversations(contactId, roomId, 20))
   })
 
   // 记忆列表（可按用户过滤）
@@ -76,6 +104,11 @@ const DASHBOARD_HTML = `<!doctype html>
   .tag { display:inline-block; background:#eef2ff; color:#4f46e5; border-radius:6px;
     padding:2px 8px; font-size:12px; margin-right:6px; }
   .empty { color:var(--muted); font-size:14px; text-align:center; padding:24px 0; }
+  .msg { padding:8px 10px; border-radius:8px; margin:6px 0; font-size:14px; }
+  .msg .who { font-size:12px; color:var(--muted); margin-right:8px; }
+  .msg.user { background:#eef6ff; }
+  .msg.assistant { background:#f4f6fa; }
+  .msg .time { float:right; color:var(--muted); font-size:12px; }
   #trend { width:100%; height:200px; }
 </style>
 </head>
@@ -96,6 +129,21 @@ const DASHBOARD_HTML = `<!doctype html>
     <h2>近 7 天用量趋势</h2>
     <canvas id="trend"></canvas>
     <div class="empty" id="trendEmpty" hidden>暂无数据</div>
+  </section>
+
+  <section class="panel">
+    <h2>每用户用量排行</h2>
+    <table id="rankTable">
+      <thead><tr><th>用户</th><th>调用次数</th><th>总 Token</th></tr></thead>
+      <tbody id="rankBody"></tbody>
+    </table>
+    <div class="empty" id="rankEmpty">暂无数据</div>
+  </section>
+
+  <section class="panel">
+    <h2>最近对话</h2>
+    <div id="convBody"></div>
+    <div class="empty" id="convEmpty">暂无对话</div>
   </section>
 
   <section class="panel">
@@ -171,9 +219,38 @@ async function loadMemories() {
     loadMemories();
   });
 }
+async function loadRanking() {
+  const r = await fetch('/api/usage/by-contact');
+  const list = await r.json();
+  const body = $('#rankBody'); body.innerHTML = '';
+  $('#rankEmpty').hidden = list.length > 0;
+  list.forEach((u, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td>'+(i+1)+'. '+esc(u.contact_id||u.contactId)+'</td>'
+      + '<td>'+esc(u.calls)+'</td><td>'+fmt(u.total_tokens ?? u.totalTokens)+'</td>';
+    body.appendChild(tr);
+  });
+}
+
+async function loadConversations() {
+  const r = await fetch('/api/conversations/recent');
+  const list = await r.json();
+  const conv = $('#convBody'); conv.innerHTML = '';
+  $('#convEmpty').hidden = list.length > 0;
+  const roleLabel = { user:'问', assistant:'答' };
+  list.slice().reverse().forEach(m => {
+    const who = (m.contact_id||m.contactId) + (m.room_id ? ' [群]' : '');
+    const div = document.createElement('div');
+    div.className = 'msg ' + m.role;
+    const t = new Date(m.created_at).toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
+    div.innerHTML = '<span class="who">'+esc(who)+' · '+roleLabel[m.role]+'</span>'
+      + '<span class="time">'+t+'</span><div>'+esc(m.content)+'</div>';
+    conv.appendChild(div);
+  });
+}
 const esc = (s) => String(s).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
 
-loadSummary(); loadTrend(); loadMemories();
+loadSummary(); loadTrend(); loadMemories(); loadRanking(); loadConversations();
 </script>
 </body>
 </html>`

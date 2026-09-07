@@ -8,6 +8,7 @@ export interface LlmConfig {
   apiBase: string
   apiKey: string
   model: string
+  embeddingModel: string
   systemPrompt: string
 }
 
@@ -65,6 +66,7 @@ export const config: AppConfig = (() => {
           apiBase: llmApiBase,
           apiKey: llmApiKey,
           model: b('LLM_MODEL') || 'gpt-4o-mini',
+          embeddingModel: b('LLM_EMBEDDING_MODEL') || 'text-embedding-3-small',
           systemPrompt:
             b('LLM_SYSTEM_PROMPT') ||
             `你是「${b('WECHATY_NAME') || 'PadLocalDemo'}」机器人，用简洁、口语化的中文回复微信消息。`,
