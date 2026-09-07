@@ -2,25 +2,29 @@ import { log, ScanStatus, WechatyBuilder } from 'wechaty'
 import { config } from './config'
 import { puppet } from './services/puppet'
 import { handleMessage, LOGPRE } from './handlers/message'
+import type { StatusHub } from './services/status'
 
 // 二维码渲染按需加载，避免无扫码场景下的无谓依赖
 import * as qrTerminal from 'qrcode-terminal'
 
-export function createBot() {
+export function createBot(status: StatusHub) {
   const bot = WechatyBuilder.build({
     name: config.name,
     puppet,
   })
 
   bot
-    .on('scan', (qrcode, status) => {
-      if (status === ScanStatus.Waiting && qrcode) {
+    .on('scan', (qrcode, status_) => {
+      if (status_ === ScanStatus.Waiting && qrcode) {
         const qrcodeImageUrl = [
           'https://wechaty.js.org/qrcode/',
           encodeURIComponent(qrcode),
         ].join('')
 
-        log.info(LOGPRE, `onScan: ${ScanStatus[status]}(${status})`)
+        // 同步扫码状态到 WebUI（异步生成二维码图片，失败不影响终端展示）
+        void status.asyncSetScan(qrcode)
+
+        log.info(LOGPRE, `onScan: ${ScanStatus[status_]}(${status_})`)
 
         console.log('\n==================================================================')
         console.log('\n* Two ways to sign on with qr code')
@@ -31,15 +35,17 @@ export function createBot() {
         console.log(`\n2. Or open the link in your browser: ${qrcodeImageUrl}`)
         console.log('\n==================================================================\n')
       } else {
-        log.info(LOGPRE, `onScan: ${ScanStatus[status]}(${status})`)
+        log.info(LOGPRE, `onScan: ${ScanStatus[status_]}(${status_})`)
       }
     })
 
     .on('login', (user) => {
+      status.setConnected(user.name())
       log.info(LOGPRE, `${user} login`)
     })
 
     .on('logout', (user, reason) => {
+      status.setLoggedOut()
       log.info(LOGPRE, `${user} logout, reason: ${reason}`)
     })
 

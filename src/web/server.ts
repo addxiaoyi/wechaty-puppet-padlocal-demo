@@ -1,6 +1,8 @@
 import express from 'express'
 import type { Request, Response } from 'express'
+import type { Server } from 'http'
 import { config } from '../config'
+import type { StatusHub } from '../services/status'
 import {
   dailyUsage,
   usageSummary,
@@ -11,11 +13,15 @@ import {
   usageByContact,
 } from '../services/storage'
 
-export function startWebServer(): void {
+export function startWebServer(status: StatusHub): Server {
   const app = express()
   app.use(express.json())
 
   // ===== REST API =====
+  // 机器人登录状态（供前端状态条/二维码）
+  app.get('/api/bot/status', (_req: Request, res: Response) => {
+    res.json(status.getStatus())
+  })
   // 用量总览
   app.get('/api/usage/summary', (_req: Request, res: Response) => {
     res.json(usageSummary())
@@ -69,9 +75,11 @@ export function startWebServer(): void {
     res.type('html').send(DASHBOARD_HTML)
   })
 
-  app.listen(config.webPort, () => {
+  const server = app.listen(config.webPort, () => {
     console.log(`[WebUI] 管理面板已启动: http://localhost:${config.webPort}`)
   })
+
+  return server
 }
 
 const DASHBOARD_HTML = `<!doctype html>
@@ -85,9 +93,36 @@ const DASHBOARD_HTML = `<!doctype html>
   * { box-sizing:border-box }
   body { margin:0; font-family:-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
     background:var(--bg); color:var(--fg); }
-  header { padding:20px 28px; background:#fff; border-bottom:1px solid #e6e8ee; }
+  header { padding:20px 28px; background:#fff; border-bottom:1px solid #e6e8ee;
+    display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
   header h1 { margin:0; font-size:20px; }
   header p { margin:4px 0 0; color:var(--muted); font-size:13px; }
+  .hdr-right { display:flex; align-items:center; gap:10px; }
+  .badge { display:inline-flex; align-items:center; gap:6px; border-radius:999px;
+    padding:6px 12px; font-size:13px; font-weight:600; }
+  .badge .dot { width:8px; height:8px; border-radius:50%; background:#cbd2df; }
+  .badge.online { background:#ecfdf3; color:#067647; }
+  .badge.online .dot { background:#12b76a; }
+  .badge.offline { background:#fef3f2; color:#b42318; }
+  .badge.offline .dot { background:#f04438; }
+  .badge.scanning { background:#fff7e6; color:#b54708; }
+  .badge.scanning .dot { background:#f79009; animation:pulse 1.2s infinite; }
+  @keyframes pulse { 50% { opacity:.4 } }
+  .icon-btn { border:1px solid #e6e8ee; background:#fff; color:var(--fg); border-radius:8px;
+    padding:6px 10px; cursor:pointer; font-size:13px; }
+  .icon-btn:hover { background:#f6f7f9 }
+  .banner { display:none; border-radius:12px; padding:16px 20px; }
+  .banner.show { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  .banner.scan { background:#fff7e6; border:1px solid #fde68a; }
+  .banner.ok { background:#ecfdf3; border:1px solid #a6f4c5; color:#067647; }
+  .banner img { width:132px; height:132px; image-rendering:pixelated; border-radius:8px; }
+  .banner .txt { font-size:14px; line-height:1.7; }
+  .loading { opacity:.5; animation:blink 1s infinite; }
+  @keyframes blink { 50% { opacity:.3 } }
+  #toast { position:fixed; top:16px; left:50%; transform:translateX(-50%);
+    background:#1f2430; color:#fff; padding:10px 18px; border-radius:8px; font-size:13px;
+    opacity:0; transition:opacity .3s; pointer-events:none; z-index:10; }
+  #toast.show { opacity:1; transform:translateX(-50%) translateY(4px); }
   main { max-width:960px; margin:24px auto; padding:0 16px; display:grid; gap:20px; }
   .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; }
   .card { background:#fff; border:1px solid #e6e8ee; border-radius:12px; padding:18px 20px; }
@@ -114,10 +149,30 @@ const DASHBOARD_HTML = `<!doctype html>
 </head>
 <body>
 <header>
-  <h1>🤖 机器人管理面板</h1>
-  <p>Token 用量统计 · 记忆管理 · 机器人状态</p>
+  <div>
+    <h1>🤖 机器人管理面板</h1>
+    <p>Token 用量统计 · 记忆管理 · 机器人状态</p>
+  </div>
+  <div class="hdr-right">
+    <button class="icon-btn" id="refreshBtn">⟳ 刷新</button>
+    <span class="badge offline" id="statusBadge"><span class="dot"></span><span id="statusText">连接中…</span></span>
+  </div>
 </header>
+<div id="toast"></div>
 <main>
+  <section class="banner" id="scanBanner">
+    <img id="scanImg" alt="扫码登录二维码" />
+    <div class="txt">
+      <strong>请使用微信「扫一扫」登录机器人</strong><br />
+      二维码自动刷新，扫码后将在本页实时更新状态。
+    </div>
+  </section>
+  <section class="banner ok" id="okBanner">
+    <div class="txt">
+      <strong>机器人已在线</strong>：<span id="botName">–</span>
+    </div>
+  </section>
+
   <section class="cards">
     <div class="card"><div class="label">累计调用次数</div><div class="value" id="calls">–</div></div>
     <div class="card"><div class="label">输入 Token</div><div class="value" id="inTok">–</div></div>
@@ -159,6 +214,26 @@ const DASHBOARD_HTML = `<!doctype html>
 <script>
 const $ = (s) => document.querySelector(s);
 const fmt = (n) => (n ?? 0).toLocaleString();
+const esc = (s) => String(s).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+let toastTimer;
+
+function toast(msg) {
+  const el = $('#toast'); el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+async function loadStatus() {
+  try {
+    const d = await (await fetch('/api/bot/status')).json();
+    const badge = $('#statusBadge'); const text = $('#statusText');
+    badge.className = 'badge ' + ({ 'idle':'offline', 'scanning':'scanning', 'logged-out':'offline', 'logged-in':'online' }[d.state] || 'offline');
+    $('#scanBanner').classList.toggle('show', d.state === 'scanning');
+    $('#okBanner').classList.toggle('show', d.state === 'logged-in');
+    $('#botName').textContent = d.userName || '–';
+    if (d.state === 'scanning' && d.qrcodeUrl) $('#scanImg').src = d.qrcodeUrl;
+    text.textContent = { idle:'初始化中', scanning:'等待扫码', 'logged-out':'已登出', 'logged-in':'在线 · ' + (d.userName || '') }[d.state] || '连接中…';
+  } catch { toast('状态获取失败，请稍后重试'); }
+}
 
 async function loadSummary() {
   const r = await fetch('/api/usage/summary');
@@ -250,7 +325,13 @@ async function loadConversations() {
 }
 const esc = (s) => String(s).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
 
-loadSummary(); loadTrend(); loadMemories(); loadRanking(); loadConversations();
+function refreshAll() {
+  loadSummary(); loadTrend(); loadMemories(); loadRanking(); loadConversations();
+}
+loadStatus(); refreshAll();
+$('#refreshBtn').addEventListener('click', refreshAll);
+setInterval(loadStatus, 5000);       // 状态/二维码 5s 轮询
+setInterval(refreshAll, 30000);      // 数据 30s 轮询
 </script>
 </body>
 </html>`
