@@ -1,6 +1,6 @@
 # wechaty-puppet-padlocal-demo
 
-基于 Wechaty 的微信机器人，支持**可插拔 Puppet 通道**、**LLM 智能回复**、**长期记忆**、**Token 用量统计**与 **WebUI 管理面板**。
+基于 Wechaty 的微信机器人，支持**可插拔 Puppet 通道**、**LLM 智能回复**、**矢量记忆检索**、**Token 用量统计**与 **WebUI 管理面板**。
 
 ## 快速开始
 
@@ -56,6 +56,24 @@ npm run build && npm start
 - 每次对话先用 `Embedding` 计算当前消息向量，对该会话全部记忆做余弦相似度排序，取 top-3 注入
 - Embedding 服务不可用时自动降级为最近几条记忆，流程不中断
 
+### 群聊策略
+- 私聊：直接回复
+- 群聊：仅当机器人被 @ 时回复（使用 wechaty 官方 `mentionSelf()` 判断），避免刷屏
+
+## WebUI 与 REST API
+
+管理面板运行在 `http://localhost:<WEB_PORT>`，页面包含：用量趋势图、Token 汇总、每用户用量排行、最近对话、记忆管理。
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/usage/summary` | 累计调用次数与 Token 汇总 |
+| GET | `/api/usage/daily?days=7` | 近 N 天用量趋势 |
+| GET | `/api/usage/by-contact` | 每用户用量排行（按 token 降序） |
+| GET | `/api/conversations/recent` | 最近对话流（跨会话） |
+| GET | `/api/conversations?contactId=` | 某段会话完整历史 |
+| GET | `/api/memories?contactId=` | 记忆列表（可按用户过滤） |
+| DELETE | `/api/memories/:id` | 删除指定记忆 |
+
 ## 常用脚本
 ```bash
 npm run build      # 编译到 dist/
@@ -75,9 +93,9 @@ npm run format     # Prettier 格式化
 │   ├── handlers/message.ts # 消息处理（@ 判断、回复）
 │   └── services/
 │       ├── puppet.ts       # 可插拔通道封装（padlocal/service）
-│       ├── storage.ts      # SQLite：记忆 / 用量 / 对话历史
-│       ├── llm.ts          # OpenAI 兼容 LLM 客户端
-│       ├── agent.ts        # 对话编排：记忆注入 + 用量记录
+│       ├── storage.ts      # SQLite：记忆(含向量)/用量/对话历史
+│       ├── llm.ts          # OpenAI 兼容 LLM + Embedding 客户端
+│       ├── agent.ts        # 对话编排：矢量检索 + 用量记录
 │       └── web/server.ts   # Express WebUI + REST API
 ├── .env.example            # 配置模板（不提交 .env）
 └── package.json
