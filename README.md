@@ -84,6 +84,28 @@ npm run lint       # ESLint 检查
 npm run format     # Prettier 格式化
 ```
 
+## Docker 部署
+
+项目内置 `Dockerfile` 与 `.dockerignore`，可使用以下方式构建部署：
+
+```bash
+# 构建镜像（多阶段：编译 TS → 精简运行时）
+docker build -t wechaty-bot .
+
+# 运行：通过 --env-file 注入配置，挂载数据卷持久化
+docker run -d --name wechaty-bot \
+  --env-file .env \
+  -v "$PWD/bot-data:/app/bot-data" \
+  -p 8765:8765 \
+  wechaty-bot
+```
+
+Docker 说明：
+- 基础镜像 `node:20-slim`（Debian 系）。`better-sqlite3` 为原生模块需用 glibc 镜像才能复用预编译包，故不使用 Alpine。
+- `.env` 通过 `--env-file` 运行时注入，不打包进镜像，避免密钥泄露。
+- `bot-data/` 挂载 volume 持久化数据库，重建容器不丢数据。
+- 容器启动命令为 `node dist/main.js`，同时拉起机器人与 WebUI。
+
 ## 项目结构
 ```
 ├── main.ts                 # 入口：启动 WebUI + 机器人
@@ -98,6 +120,8 @@ npm run format     # Prettier 格式化
 │       ├── agent.ts        # 对话编排：矢量检索 + 用量记录
 │       └── web/server.ts   # Express WebUI + REST API
 ├── .env.example            # 配置模板（不提交 .env）
+├── Dockerfile              # 多阶段构建：compile + slim 运行时
+├── .dockerignore           # 排除依赖/数据/密钥进镜像
 └── package.json
 ```
 
