@@ -855,84 +855,97 @@ function renderInsight(){
 
 /* ---------- BOT VIEW (微信机器人：走同源 /api，不落本地存储) ---------- */
 const ROLE_LABEL = { user:'我', assistant:'机器人' };
-function renderBot(m){
-  const base = m.api || "/api";
-  const suffix = (txt, cls)=>{ const stateClass = { ok:'ok', off:'off', scan:'scan' }[cls]||'off'; return `<div class="lineq"><div class="mstate ${stateClass}"></div><span>${txt}</span></div>`; };
+const CAP = [
+  { i:"bolt",   t:"AI 智能回复",  d:"连续上下文对话，私聊直接应答",       page:"conv" },
+  { i:"user",   t:"群聊 @ 应答",  d:"群里 @机器人 才响应，不打扰",        page:"conv" },
+  { i:"leaf",   t:"记忆学习",     d:"发『记住 事项』即写入长期记忆",      page:"mem" },
+  { i:"target", t:"向量召回",     d:"提问时自动检索相关记忆注入上下文",  page:"mem" },
+  { i:"camera", t:"多类型消息",   d:"识别文本/图片/语音/视频/表情/链接/小程序", page:"conv" },
+  { i:"chart",  t:"Token 用量",   d:"记录每轮输入/输出 Token 并统计",    page:"usage" },
+];
+function botSuffix(txt, cls){ const s={ ok:'ok', off:'off', scan:'scan' }[cls]||'off'; return `<div class="lineq"><div class="mstate ${s}"></div><span>${txt}</span></div>`; }
+function botApi(){ return (CONFIG.modules.find(x=>x.key==="bot")||{}).api||"/api"; }
+async function botJ(url, opts){ const r = await fetch(botApi()+url, opts||{}); if(!r.ok) throw new Error(String(r.status)); return r.json(); }
+const botFail = (el)=>{ if(el) el.innerHTML = `<div class="empty">机器人服务未连接</div>`; };
+// 子页统一页头：标题 + 返回按钮
+function botPageHead(title, sub, backTo){
+  return `<div class="greet"><div><h1>${title}</h1><p>${sub}</p></div>
+    <button class="add" id="bot-back">${icon("chevron",15,2)} 返回</button></div>`;
+}
 
-  // 机器人全部能力（对齐 README / src/handlers、services），go 为点击后滚动的区块锚点
-  const CAP = [
-    { i:"bolt",   t:"AI 智能回复",  d:"连续上下文对话，私聊直接应答",       go:"conv" },
-    { i:"user",   t:"群聊 @ 应答",  d:"群里 @机器人 才响应，不打扰",        go:"conv" },
-    { i:"leaf",   t:"记忆学习",     d:"发『记住 事项』即写入长期记忆",      go:"mem" },
-    { i:"target", t:"向量召回",     d:"提问时自动检索相关记忆注入上下文",  go:"mem" },
-    { i:"camera", t:"多类型消息",   d:"识别文本/图片/语音/视频/表情/链接/小程序", go:"conv" },
-    { i:"chart",  t:"Token 用量",   d:"记录每轮输入/输出 Token 并统计",    go:"usage" },
-  ];
-
+/* 首页：运行状态 + 机器人能力卡片 */
+function renderBotHome(m){
   $("#screen").innerHTML = `
     <div class="greet"><div><h1>${m.name}</h1><p>${m.desc}</p></div>
       <button class="add" id="bot-refresh">${icon("bolt",16,2)}刷新</button></div>
     <div style="margin-top:16px">
-      <div class="sec-title">机器人能力 <span class="stip">点卡片直达对应数据</span></div>
+      <div class="sec-title">运行状态</div>
+      <div class="panel" id="bot-status">${botSuffix("加载中…",'off')}</div>
+      <div class="sec-title">机器人能力 <span class="stip">点卡片进入对应功能页</span></div>
       <div class="mr-grid">
-        ${CAP.map(c=>`<div class="mr-card cap-link" data-go="${c.go}"><div class="cap" style="color:${m.color}">${icon(c.i,18,1.8)}</div><div class="capi">${c.t}</div><div class="capd">${c.d}</div></div>`).join("")}
+        ${CAP.map(c=>`<div class="mr-card cap-link" data-page="${c.page}"><div class="cap" style="color:${m.color}">${icon(c.i,18,1.8)}</div><div class="capi">${c.t}</div><div class="capd">${c.d}</div></div>`).join("")}
       </div>
-      <div class="sec-title">状态</div>
-      <div class="panel" id="bot-status" data-cap-target="status">${suffix("加载中…",'off')}</div>
-      <div class="sec-title">用量总览</div>
-      <div class="mr-grid" data-cap-target="usage">
+    </div>`;
+
+  const run = async ()=>{
+    const el=$("#bot-status");
+    try{ const d = await botJ("/bot/status");
+      const map = { idle:['初始化中','off'], scanning:['等待扫码','scan'], 'logged-in':['在线 · '+(d.userName||'—'),'ok'], 'logged-out':['已登出','off'] };
+      const [txt,cls] = map[d.state] || ['连接中…','off'];
+      const qr = d.state==='scanning' && d.qrcodeUrl ? `<img class="bot-qr" src="${d.qrcodeUrl}" alt="扫码登录二维码"/>` : '';
+      el.innerHTML = botSuffix(txt, cls) + qr;
+    }catch(e){ botFail(el); }
+  };
+  run();
+  $("#bot-refresh").onclick = run;
+  $("#screen").querySelectorAll(".cap-link").forEach(card=>{ card.onclick = ()=>go('bot-'+card.dataset.page); });
+}
+
+/* 用量页：总览 + 近7天趋势 + 每用户排行 */
+function renderBotUsage(){
+  $("#screen").innerHTML = botPageHead("Token 用量","用量总览 · 近7天趋势 · 每用户排行")
+    + `<div style="margin-top:16px">
+      <div class="mr-grid">
         ${[["v-calls","累计调用"],["v-in","输入 Token"],["v-out","输出 Token"],["v-total","总 Token"]]
           .map(x=>`<div class="mr-card"><div class="lab">${x[1]}</div><div class="val" id="${x[0]}">–</div></div>`).join("")}
       </div>
       <div class="sec-title">近 7 天趋势</div>
-      <div class="panel" id="w-trend" data-cap-target="trend">${suffix("加载中…",'off')}</div>
+      <div class="panel" id="w-trend">${botSuffix("加载中…",'off')}</div>
       <div class="sec-title">每用户排行</div>
-      <div class="panel" id="w-rank" data-cap-target="rank">${suffix("加载中…",'off')}</div>
-      <div class="sec-title">最近对话 <span class="stip">点任一条查看完整记录</span></div>
-      <div class="panel" id="w-conv" data-cap-target="conv">${suffix("加载中…",'off')}</div>
-      <div class="sec-title">记忆管理 <span class="stip">向机器人发送「记住 事项」即可添加</span></div>
-      <div class="panel" id="w-mem" data-cap-target="mem">${suffix("加载中…",'off')}</div>
+      <div class="panel" id="w-rank">${botSuffix("加载中…",'off')}</div>
     </div>`;
 
-  const $s = (s)=>$("#screen").querySelector(s);
-  async function j(url, opts){ const r = await fetch(base+url, opts||{}); if(!r.ok) throw new Error(String(r.status)); return r.json(); }
-  const fail = (el)=> { if(el) el.innerHTML = `<div class="empty">机器人服务未连接</div>`; };
-
-  async function loadStatus(){
-    try{ const d = await j("/bot/status");
-      const map = { idle:['初始化中','off'], scanning:['等待扫码','scan'], 'logged-in':['在线 · '+(d.userName||'—'),'ok'], 'logged-out':['已登出','off'] };
-      const [txt,cls] = map[d.state] || ['连接中…','off'];
-      const qr = d.state==='scanning' && d.qrcodeUrl ? `<img class="bot-qr" src="${d.qrcodeUrl}" alt="扫码登录二维码"/>` : '';
-      $s("#bot-status").innerHTML = suffix(txt, cls) + qr;
-    }catch(e){ fail($s("#bot-status")); }
-  }
-  async function loadSummary(){
-    try{ const d = await j("/usage/summary");
-      $s("#v-calls").textContent=(d.totalCalls??0).toLocaleString();
-      $s("#v-in").textContent=(d.totalIn??0).toLocaleString();
-      $s("#v-out").textContent=(d.totalOut??0).toLocaleString();
-      $s("#v-total").textContent=((d.totalIn??0)+(d.totalOut??0)).toLocaleString();
-    }catch(e){ fail($s("#v-calls").parentElement); }
-  }
-  async function loadTrend(){
-    const el=$s("#w-trend");
-    try{ const d = await j("/usage/daily?days=7"); const arr=(d.data||[]);
-      el.innerHTML = arr.length ? botTrendSVG(arr) : `<div class="empty">暂无用量数据</div>`;
-    }catch(e){ fail(el); }
-  }
-  async function loadRank(){
-    const el=$s("#w-rank");
-    try{ const list = await j("/usage/by-contact");
-      if(!list.length){ el.innerHTML=`<div class="empty">暂无用户用量</div>`; return; }
-      el.innerHTML = list.map((u,i)=>`<div class="mrow mrow-link" data-c="${esc(u.contactId||'')}">
+  (async ()=>{
+    try{ const d = await botJ("/usage/summary");
+      $("#v-calls").textContent=(d.totalCalls??0).toLocaleString();
+      $("#v-in").textContent=(d.totalIn??0).toLocaleString();
+      $("#v-out").textContent=(d.totalOut??0).toLocaleString();
+      $("#v-total").textContent=((d.totalIn??0)+(d.totalOut??0)).toLocaleString();
+    }catch(e){ botFail($("#v-calls").parentElement); }
+    const tel=$("#w-trend");
+    try{ const d = await botJ("/usage/daily?days=7"); const arr=(d.data||[]);
+      tel.innerHTML = arr.length ? botTrendSVG(arr) : `<div class="empty">暂无用量数据</div>`;
+    }catch(e){ botFail(tel); }
+    const rel=$("#w-rank");
+    try{ const list = await botJ("/usage/by-contact");
+      if(!list.length){ rel.innerHTML=`<div class="empty">暂无用户用量</div>`; return; }
+      rel.innerHTML = list.map((u,i)=>`<div class="mrow mrow-link" data-c="${esc(u.contactId||'')}">
         <span class="idx">${i+1}</span><span class="who">${esc(u.contactId||'匿名')}</span>
         <span class="muted">${u.calls} 次</span><b class="tk">${(u.totalTokens||0).toLocaleString()}</b></div>`).join("");
-      el.querySelectorAll(".mrow-link").forEach(row=>{ row.onclick=()=>openConv(row.dataset.c, null); });
-    }catch(e){ fail(el); }
-  }
-  async function loadConv(){
-    const el=$s("#w-conv");
-    try{ const list = await j("/conversations/recent"); const arr=list.slice().reverse();
+      rel.querySelectorAll(".mrow-link").forEach(row=>{ row.onclick=()=>openConv(row.dataset.c, null); });
+    }catch(e){ botFail(rel); }
+  })();
+  $("#bot-back").onclick = ()=>go('bot');
+}
+
+/* 对话页：最近对话流 */
+function renderBotConv(){
+  $("#screen").innerHTML = botPageHead("对话记录","最近对话流 · 点任一条查看完整记录")
+    + `<div style="margin-top:16px"><div class="panel" id="w-conv">${botSuffix("加载中…",'off')}</div></div>`;
+
+  (async ()=>{
+    const el=$("#w-conv");
+    try{ const list = await botJ("/conversations/recent"); const arr=list.slice().reverse();
       if(!arr.length){ el.innerHTML=`<div class="empty">暂无对话</div>`; return; }
       el.innerHTML = arr.map(mm=>`<div class="mrow mrow-msg mrow-link" data-c="${esc(mm.contactId||'')}" data-r="${esc(mm.roomId||'')}" data-role="${mm.role}">
         <span class="role ${mm.role}">${ROLE_LABEL[mm.role]||mm.role}</span>
@@ -940,31 +953,37 @@ function renderBot(m){
         <span class="txt">${esc(mm.content)}</span>
         <span class="muted">${new Date(mm.created_at).toLocaleString("zh-CN",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</span></div>`).join("");
       el.querySelectorAll(".mrow-link").forEach(row=>{ row.onclick=()=>openConv(row.dataset.c, row.dataset.r||null); });
-    }catch(e){ fail(el); }
-  }
-  async function loadMem(){
-    const el=$s("#w-mem");
-    try{ const list = await j("/memories");
+    }catch(e){ botFail(el); }
+  })();
+  $("#bot-back").onclick = ()=>go('bot');
+}
+
+/* 记忆页：记忆管理列表 */
+function renderBotMem(){
+  $("#screen").innerHTML = botPageHead("记忆管理","向机器人发送「记住 事项」即可添加")
+    + `<div style="margin-top:16px"><div class="panel" id="w-mem">${botSuffix("加载中…",'off')}</div></div>`;
+
+  const load = async ()=>{
+    const el=$("#w-mem");
+    try{ const list = await botJ("/memories");
       if(!list.length){ el.innerHTML=`<div class="empty">暂无记忆</div>`; return; }
       el.innerHTML = list.map(mm=>`<div class="mrow mrow-mem"><div class="who">${esc(mm.contactId||'匿名')}</div>
         <div class="txt">${esc(mm.content)}</div>
         <span class="muted">${new Date(mm.created_at).toLocaleDateString("zh-CN")}</span>
         <button class="btn-del js-mem-del" data-id="${mm.id}">${icon("trash",14)}</button></div>`).join("");
-      el.querySelectorAll(".js-mem-del").forEach(b=>{ b.onclick=async(e)=>{ e.stopPropagation(); b.disabled=true; await j("/memories/"+b.dataset.id,{method:"DELETE"}); loadMem(); }; });
-    }catch(e){ fail(el); }
-  }
+      el.querySelectorAll(".js-mem-del").forEach(b=>{ b.onclick=async(e)=>{ e.stopPropagation(); b.disabled=true; await botJ("/memories/"+b.dataset.id,{method:"DELETE"}); load(); }; });
+    }catch(e){ botFail(el); }
+  };
+  load();
+  $("#bot-back").onclick = ()=>go('bot');
+}
 
-  const run = ()=>{ loadStatus(); loadSummary(); loadTrend(); loadRank(); loadConv(); loadMem(); };
-  run();
-  $("#bot-refresh").onclick = run;
-
-  // 能力卡点击 → 平滑滚动到对应数据区块
-  $("#screen").querySelectorAll(".cap-link").forEach(card=>{
-    card.onclick = (e)=>{
-      const t = document.querySelector('[data-cap-target="'+(card.dataset.go||"")+'"]');
-      if(t) t.scrollIntoView({ behavior:"smooth", block:"start" });
-    };
-  });
+function renderBot(view){
+  const m = CONFIG.modules.find(x=>x.key==="bot");
+  if(view==='usage') return renderBotUsage(m);
+  if(view==='conv')  return renderBotConv(m);
+  if(view==='mem')   return renderBotMem(m);
+  renderBotHome(m);
 }
 
 function botTrendSVG(data){
@@ -1253,13 +1272,22 @@ function confirmDelete(key,id){
 }
 
 /* ---------- router / nav ---------- */
-function go(v){ closeDrawer(); render(); window.scrollTo({top:0}); }
+let botView = 'home';
+function go(v){
+  closeDrawer();
+  if(typeof v==='string' && v.indexOf('bot-')===0) botView = v.slice(4);   // 能力卡 → 子页
+  else if(v==='bot') botView = 'home';                                     // 底部机器人 → 首页
+  render();
+  window.scrollTo({top:0});
+}
 function render(){
-  // 工作台整体为微信机器人服务：唯一内容页 = 机器人仪表盘
-  $("#topTitle").firstChild.textContent="微信机器人";
-  $("#topSub").textContent=CONFIG.slogan;
+  // 工作台整体为微信机器人服务：子页标题随能力卡切换，首页显示模块标题
+  const subTitles = { usage:['Token 用量','用量 · 趋势 · 排行'], conv:['对话记录','最近对话流'], mem:['记忆管理','长期记忆库'] };
+  const [t,s] = subTitles[botView] || ['微信机器人', CONFIG.slogan];
+  $("#topTitle").firstChild.textContent = t;
+  $("#topSub").textContent = s;
   $("#nav").querySelector('[data-nav="bot"]').classList.add("active");
-  renderBot(CONFIG.modules.find(m=>m.key==="bot"));
+  renderBot(botView);
 }
 
 /* ---------- drawer ---------- */
