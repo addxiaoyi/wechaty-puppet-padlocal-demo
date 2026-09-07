@@ -180,16 +180,31 @@ export function addMemory(m: MemoryPayload): void {
   )
 }
 
-// 返回指定用户/群的全部记忆，含向量（JSON 文本），供调用方做相似度检索
+// 返回指定用户/群的全部记忆，含向量（JSON 解析为数组），供调用方做相似度检索
 export function listMemoryRows(contactId: string, roomId: string | null): MemoryRow[] {
-  return db
+  const rows = db
     .prepare(
       `SELECT id, contact_id as contactId, room_id as roomId, content, content_vector as vector, created_at
        FROM memories
        WHERE contact_id = ? AND room_id IS ?
        ORDER BY id ASC`
     )
-    .all(contactId, roomId) as unknown as MemoryRow[]
+    .all(contactId, roomId) as unknown as Array<Omit<MemoryRow, 'vector'> & { vector: string | null }>
+  return rows.map((r) => ({
+    ...r,
+    // 落库时 vector 经 JSON.stringify 写入，读取时反向解析为数组；
+    // JSON.parse 失败（脏数据）时回退为 null，不阻塞后续检索
+    vector: r.vector ? safeParseVector(r.vector) : null,
+  }))
+}
+
+function safeParseVector(raw: string): number[] | null {
+  try {
+    const v = JSON.parse(raw)
+    return Array.isArray(v) ? v : null
+  } catch {
+    return null
+  }
 }
 
 export function listMemories(contactId: string, roomId: string | null): string[] {
