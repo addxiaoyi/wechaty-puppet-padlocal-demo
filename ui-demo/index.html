@@ -421,6 +421,11 @@
   .mrow .grp { font-style:normal; font-size:10px; color:#fff; background:var(--module-3); border-radius:4px; padding:1px 5px; margin-left:4px; }
   .mrow .tk { color:var(--text); font-variant-numeric:tabular-nums; }
   .mrow-mem .txt { white-space:normal; line-height:1.5; }
+  .mrow-inf { color:var(--text-secondary); font-size:13px; line-height:1.6; }
+  .mrow-inf svg { flex:0 0 auto; color:var(--module-3); }
+  .msg-types { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+  .msg-types span { font-size:12px; color:var(--text-secondary); background:var(--surface-nested);
+    border:1px solid var(--border); border-radius:999px; padding:5px 12px; }
   .btn-del { border:none; background:var(--danger-muted); color:var(--danger); border-radius:8px; padding:6px; cursor:pointer;
     display:grid; place-items:center; flex:0 0 auto; }
   .btn-del:disabled { opacity:.5; }
@@ -856,11 +861,11 @@ function renderInsight(){
 /* ---------- BOT VIEW (微信机器人：走同源 /api，不落本地存储) ---------- */
 const ROLE_LABEL = { user:'我', assistant:'机器人' };
 const CAP = [
-  { i:"bolt",   t:"AI 智能回复",  d:"连续上下文对话，私聊直接应答",       page:"conv" },
-  { i:"user",   t:"群聊 @ 应答",  d:"群里 @机器人 才响应，不打扰",        page:"conv" },
+  { i:"bolt",   t:"AI 智能回复",  d:"连续上下文对话，私聊直接应答",       page:"ai" },
+  { i:"user",   t:"群聊 @ 应答",  d:"群里 @机器人 才响应，不打扰",        page:"group" },
   { i:"leaf",   t:"记忆学习",     d:"发『记住 事项』即写入长期记忆",      page:"mem" },
-  { i:"target", t:"向量召回",     d:"提问时自动检索相关记忆注入上下文",  page:"mem" },
-  { i:"camera", t:"多类型消息",   d:"识别文本/图片/语音/视频/表情/链接/小程序", page:"conv" },
+  { i:"target", t:"向量召回",     d:"提问时自动检索相关记忆注入上下文",  page:"recall" },
+  { i:"camera", t:"多类型消息",   d:"识别文本/图片/语音/视频/表情/链接/小程序", page:"msg" },
   { i:"chart",  t:"Token 用量",   d:"记录每轮输入/输出 Token 并统计",    page:"usage" },
 ];
 function botSuffix(txt, cls){ const s={ ok:'ok', off:'off', scan:'scan' }[cls]||'off'; return `<div class="lineq"><div class="mstate ${s}"></div><span>${txt}</span></div>`; }
@@ -938,14 +943,17 @@ function renderBotUsage(){
   $("#bot-back").onclick = ()=>go('bot');
 }
 
-/* 对话页：最近对话流 */
-function renderBotConv(){
-  $("#screen").innerHTML = botPageHead("对话记录","最近对话流 · 点任一条查看完整记录")
-    + `<div style="margin-top:16px"><div class="panel" id="w-conv">${botSuffix("加载中…",'off')}</div></div>`;
+/* 对话类独立页：filter = 'p'私聊 / 'g'群聊 / null全部，每张能力卡一个页面 */
+function renderBotConvs(title, sub, filter, extra){
+  $("#screen").innerHTML = botPageHead(title, sub)
+    + `<div style="margin-top:16px">${extra||""}<div class="panel" id="w-conv">${botSuffix("加载中…",'off')}</div></div>`;
 
   (async ()=>{
     const el=$("#w-conv");
-    try{ const list = await botJ("/conversations/recent"); const arr=list.slice().reverse();
+    try{ const list = await botJ("/conversations/recent");
+      let arr=list.slice().reverse();
+      if(filter==='p') arr=arr.filter(mm=>!mm.roomId);       // 私聊
+      else if(filter==='g') arr=arr.filter(mm=>!!mm.roomId); // 群聊
       if(!arr.length){ el.innerHTML=`<div class="empty">暂无对话</div>`; return; }
       el.innerHTML = arr.map(mm=>`<div class="mrow mrow-msg mrow-link" data-c="${esc(mm.contactId||'')}" data-r="${esc(mm.roomId||'')}" data-role="${mm.role}">
         <span class="role ${mm.role}">${ROLE_LABEL[mm.role]||mm.role}</span>
@@ -957,10 +965,14 @@ function renderBotConv(){
   })();
   $("#bot-back").onclick = ()=>go('bot');
 }
+function renderBotAi(){     renderBotConvs("AI 智能回复","连续上下文对话 · 私聊直接应答", 'p'); }
+function renderBotGroup(){  renderBotConvs("群聊 @ 应答","群里 @机器人 才响应，不打扰", 'g'); }
+function renderBotMsg(){    renderBotConvs("多类型消息","识别文本/图片/语音/视频/表情/链接/小程序", null,
+  `<div class="msg-types">${["文本","图片","语音","视频","表情","链接","小程序"].map(t=>`<span>${t}</span>`).join("")}</div>`); }
 
-/* 记忆页：记忆管理列表 */
+/* 记忆学习页：长期记忆库列表 */
 function renderBotMem(){
-  $("#screen").innerHTML = botPageHead("记忆管理","向机器人发送「记住 事项」即可添加")
+  $("#screen").innerHTML = botPageHead("记忆学习","发『记住 事项』即写入长期记忆")
     + `<div style="margin-top:16px"><div class="panel" id="w-mem">${botSuffix("加载中…",'off')}</div></div>`;
 
   const load = async ()=>{
@@ -978,11 +990,36 @@ function renderBotMem(){
   $("#bot-back").onclick = ()=>go('bot');
 }
 
+/* 向量召回页：记忆检索命中，注入上下文 */
+function renderBotRecall(){
+  $("#screen").innerHTML = botPageHead("向量召回","提问时自动检索相关记忆注入上下文")
+    + `<div style="margin-top:16px">
+      <div class="panel"><div class="mrow mrow-inf">${icon("target",15)} 机器人提问时会把临近相关记忆当作上下文一并交给模型，让回答「记得你」。</div></div>
+      <div class="sec-title">记忆库（召回来源）</div>
+      <div class="panel" id="w-recall">${botSuffix("加载中…",'off')}</div>
+    </div>`;
+
+  const load = async ()=>{
+    const el=$("#w-recall");
+    try{ const list = await botJ("/memories");
+      if(!list.length){ el.innerHTML=`<div class="empty">暂无记忆</div>`; return; }
+      el.innerHTML = list.map(mm=>`<div class="mrow mrow-mem"><div class="who">${esc(mm.contactId||'匿名')}</div>
+        <div class="txt">${esc(mm.content)}</div>
+        <span class="muted">${new Date(mm.created_at).toLocaleDateString("zh-CN")}</span></div>`).join("");
+    }catch(e){ botFail(el); }
+  };
+  load();
+  $("#bot-back").onclick = ()=>go('bot');
+}
+
 function renderBot(view){
   const m = CONFIG.modules.find(x=>x.key==="bot");
   if(view==='usage') return renderBotUsage(m);
-  if(view==='conv')  return renderBotConv(m);
+  if(view==='ai')    return renderBotAi(m);
+  if(view==='group') return renderBotGroup(m);
+  if(view==='msg')   return renderBotMsg(m);
   if(view==='mem')   return renderBotMem(m);
+  if(view==='recall')return renderBotRecall(m);
   renderBotHome(m);
 }
 
@@ -1282,7 +1319,14 @@ function go(v){
 }
 function render(){
   // 工作台整体为微信机器人服务：子页标题随能力卡切换，首页显示模块标题
-  const subTitles = { usage:['Token 用量','用量 · 趋势 · 排行'], conv:['对话记录','最近对话流'], mem:['记忆管理','长期记忆库'] };
+  const subTitles = {
+    usage:['Token 用量','用量 · 趋势 · 排行'],
+    ai:['AI 智能回复','连续上下文 · 私聊'],
+    group:['群聊 @ 应答','进群才会响应'],
+    msg:['多类型消息','文本 · 图片 · 语音 …'],
+    mem:['记忆学习','长期记忆库'],
+    recall:['向量召回','相关记忆 · 注入上下文'],
+  };
   const [t,s] = subTitles[botView] || ['微信机器人', CONFIG.slogan];
   $("#topTitle").firstChild.textContent = t;
   $("#topSub").textContent = s;
