@@ -616,9 +616,9 @@ $("#drawerClose").innerHTML = icon("close", 16);
 })();
 document.querySelectorAll('#nav .n').forEach(n=>{
   const t=n.dataset.nav;
-  if(t==="bot") n.innerHTML = icon("bolt",21)+"<span>机器人</span>";
-  else if(t==="refresh") n.innerHTML = icon("refresh",21)+"<span>刷新</span>";
-  else n.innerHTML = icon("grid",21)+"<span>菜单</span>";
+  const map = { bot:'机器人', drawer:'菜单', refresh:'刷新' };
+  const iconMap = { bot:'bolt', drawer:'grid', refresh:'refresh' };
+  n.innerHTML = `<span>${icon(iconMap[t]||'grid',18)}</span><span>${map[t]||t}</span>`;
 });
 
 /* ---------- ring svg ---------- */
@@ -1338,7 +1338,15 @@ function render(){
 function buildDrawer(){
   $("#drawerName").textContent=CONFIG.owner;
   $("#drawerSlogan").textContent=CONFIG.slogan;
-  const items=[`<div class="ditem" data-go="bot">${icon("bolt",20)}微信机器人</div>`];
+  const items=[
+    `<div class="ditem" data-go="bot">${icon("bolt",20)}微信机器人</div>`,
+    `<div class="ditem" data-go="bot-usage">${icon("chart",20)}Token 用量</div>`,
+    `<div class="ditem" data-go="bot-ai">${icon("user",20)}AI 智能回复</div>`,
+    `<div class="ditem" data-go="bot-group">${icon("user",20)}群聊 @ 应答</div>`,
+    `<div class="ditem" data-go="bot-mem">${icon("leaf",20)}记忆学习</div>`,
+    `<div class="ditem" data-go="bot-recall">${icon("target",20)}向量召回</div>`,
+    `<div class="ditem" data-go="bot-msg">${icon("camera",20)}多类型消息</div>`,
+  ];
   $("#drawerList").innerHTML=items.join("");
   $("#drawerList").querySelectorAll("[data-go]").forEach(el=>el.onclick=()=>go(el.dataset.go));
 }
