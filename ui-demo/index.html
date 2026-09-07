@@ -10,17 +10,18 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,340;0,9..144,500;0,9..144,600;1,9..144,400&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
 <style>
   :root{
-    /* Warm, editorial palette — traced toward olive, deliberately not AI-purple */
-    --paper:      oklch(96.5% 0.012 85);
-    --paper-2:    oklch(94.5% 0.016 88);
-    --ink:        oklch(24% 0.022 45);
-    --ink-soft:   oklch(45% 0.02 55);
-    --line:       oklch(82% 0.018 80);
-    --glass:      color-mix(in oklab, white 66%, transparent);
-    --accent:     oklch(48% 0.085 152);   /* eucalyptus */
-    --accent-soft:oklch(90% 0.04 150);
-    --terracotta: oklch(58% 0.11 42);
-    --plum:       oklch(44% 0.07 300);
+    /* 暖调编辑部配色：纸白打底，鼠尾草绿 + 陶土为双强调，隐去紫色 AI 味 */
+    --paper:      oklch(97% 0.012 80);
+    --paper-2:    oklch(94.5% 0.015 84);
+    --ink:        oklch(21% 0.024 42);
+    --ink-soft:   oklch(43% 0.024 50);
+    --line:       oklch(84% 0.016 76);
+    --glass:      color-mix(in oklab, white 68%, transparent);
+    --accent:     oklch(48% 0.078 158);   /* 鼠尾草绿 */
+    --accent-soft:oklch(91% 0.03 150);
+    --terracotta: oklch(57% 0.11 40);
+    --moss:       oklch(40% 0.075 116);   /* 深苔绿 */
+    --clay:       oklch(58% 0.09 55);     /* 砖土 */
     --shadow: 0 1px 1px oklab(0.3 0 0 / 0.04), 0 18px 50px -24px oklab(0.3 0 0 / 0.22);
     --ease: cubic-bezier(0.16, 1, 0.3, 1);
     --radius-lg: 26px;
@@ -40,7 +41,7 @@
   .blob{position:absolute;border-radius:999px;will-change:transform;filter:blur(60px);opacity:.85;mix-blend-mode:multiply}
   .b1{width:56vmax;height:56vmax;left:-16vmax;top:-18vmax;background:radial-gradient(circle at 32% 30%,var(--accent-soft),color-mix(in oklab,var(--accent-soft) 40%,transparent))}
   .b2{width:44vmax;height:44vmax;right:-14vmax;top:6vmax;background:radial-gradient(circle at 60% 40%,oklch(94% 0.04 55),transparent 68%)}
-  .b3{width:38vmax;height:38vmax;left:-8vmax;bottom:-16vmax;background:radial-gradient(circle at 50% 50%,oklch(91% 0.045 300),transparent 66%)}
+  .b3{width:38vmax;height:38vmax;left:-8vmax;bottom:-16vmax;background:radial-gradient(circle at 50% 50%,oklch(91% 0.06 135),transparent 66%)}
   .grain{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.5;background-image:radial-gradient(oklch(0.5 0 0/0.045) 0.7px,transparent 0.7px);background-size:7px 7px}
 
   .wrap{max-width:1180px;margin:0 auto;padding:0 var(--gutter)}
@@ -111,7 +112,7 @@
   .sil{position:relative;width:150px;height:150px;cursor:grab;will-change:transform}
   .sil-b1,.sil-b2,.sil-b3{position:absolute;will-change:transform,opacity}
   .sil-b1{inset:14% 26% 20% 20%;background:linear-gradient(140deg,var(--accent),var(--terracotta))}
-  .sil-b2{inset:30% 14% 14% 28%;background:linear-gradient(140deg,var(--plum),var(--accent));opacity:.9}
+  .sil-b2{inset:30% 14% 14% 28%;background:linear-gradient(140deg,var(--moss),var(--accent));opacity:.9}
   .sil-b3{inset:18% 20% 24% 28%;background:linear-gradient(140deg,var(--terracotta),oklch(70% 0.1 60));opacity:.85}
   .sil-shine{position:absolute;inset:22%;border-radius:50%;background:radial-gradient(circle at 34% 30%,white 0%,transparent 55%);opacity:.7;filter:blur(4px);pointer-events:none}
   .lab-hint{text-align:center;font-size:12.5px;color:var(--ink-soft);margin-top:16px}
@@ -166,8 +167,8 @@
 
   <header class="hero on-enter">
     <span class="eyebrow">实时信号观测台</span>
-    <h1>让数据像流体一样<em>呼吸</em></h1>
-    <p class="lede">一座为沉默的度量而建的玻璃工作台。曲线由弹簧归位，数值在阻尼中安落。我们拒绝机器的俗套，把图表做成一株有生命的植物。</p>
+    <h1>让数据像植物一样<em>呼吸</em></h1>
+    <p class="lede">一座为安静度量而生的玻璃工作台。曲线由弹簧牵回原位，数值在阻尼里落定。我们不做机器的俗套，只把图表养成一株有生命的东西。</p>
     <div class="hero-actions">
       <button class="mag-cta" data-magnet><span>进入工作台</span></button>
       <a class="link-quiet" href="#specimen">查看交互样本<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
@@ -206,7 +207,7 @@
       <div class="panel-head">
         <div>
           <h2 class="panel-title">信号流向</h2>
-          <p class="panel-sub">最近 30 天 · 悬停读取，十字线随弹簧拖拽</p>
+          <p class="panel-sub">最近 30 天 · 悬停读取，十字线跟着手走</p>
         </div>
         <div class="legend"><span><i style="background:var(--accent)"></i>入站</span><span><i style="background:var(--terracotta)"></i>出站</span></div>
       </div>
@@ -289,7 +290,7 @@
 
     <article class="glass panel">
       <h2 class="panel-title">关于</h2>
-      <p style="font-size:14px;color:var(--ink-soft);line-height:1.65;margin:6px 0 0">本页不含任何机器味。玻璃是虚拟的，硅胶是假的，但每一处归位都遵循真实的弹簧阻尼方程。</p>
+      <p style="font-size:14px;color:var(--ink-soft);line-height:1.65;margin:6px 0 0">这里没有机器味。玻璃是虚拟的，硅胶是假的，可每一处归位，依的是实打实的弹簧阻尼方程。</p>
       <p style="font-size:13px;color:var(--accent);font-family:var(--serif);font-style:italic;margin-top:12px">阻尼比 0.72 · 刚度依场合而定。</p>
     </article>
   </section>
@@ -298,26 +299,26 @@
     <article class="glass story">
       <div class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 17l6-6 4 4 8-8M21 7v6M21 13h-6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <h3>趋势被看见</h3>
-      <p>曲线在悬停下展开，十字线被弹簧拖拽，读到的每一个点都以阻尼安落。</p>
+      <p>悬停时曲线展开，十字线被弹簧拽住，每读一个点都稳稳落定。</p>
       <span class="more">探索信号 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
     </article>
     <article class="glass story">
       <div class="icon" style="background:color-mix(in oklab,var(--terracotta) 15%,var(--accent-soft));color:var(--terracotta)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <h3>分布会呼吸</h3>
-      <p>柱状图高度由刚度决定，切换「日 / 周 / 月」，每一根都像植物一样伸展。</p>
+      <p>柱子的高度由刚度决定，切到「日 / 周 / 月」，每一根都舒展成一株植物。</p>
       <span class="more">查看容量 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
     </article>
     <article class="glass story">
       <div class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
-      <h3>交互无延迟</h3>
-      <p>开关、滑块、按钮，全部以 80ms 内的即时反馈回应，弹簧只处理位移，不增加负担。</p>
+      <h3>交互不眨眼</h3>
+      <p>开关、滑块、按钮都在 80ms 内作答，弹簧只管位移，从不添乱。</p>
       <span class="more">触摸样本 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
     </article>
   </section>
 
   <footer class="foot">
     <span>© 2026 Meridian Observatory</span>
-    <span class="serif">让数据像流体一样呼吸</span>
+    <span class="serif">让数据像植物一样呼吸</span>
   </footer>
 </div>
 
