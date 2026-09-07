@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="color-scheme" content="light" />
 <title>Meridian — 流动的观测台</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -53,6 +53,15 @@
   .nav-links{display:flex;gap:26px;align-items:center;font-size:14px;color:var(--ink-soft)}
   .nav-links a{transition:color .25s var(--ease)}.nav-links a:hover{color:var(--ink)}
   .nav-cta{background:var(--ink);color:var(--paper);border:0;border-radius:999px;padding:9px 18px;font-size:13px;font-weight:500;box-shadow:0 10px 24px -12px oklab(0.2 0 0/.5);transition:box-shadow .35s var(--ease)}
+
+  /* mobile bottom tab (substitutes top nav-links on small screens) */
+  .mbar{display:none;position:fixed;left:0;right:0;bottom:0;z-index:40;align-items:center;justify-content:space-around;gap:6px;flex-wrap:nowrap;
+    padding:10px calc(12px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
+    background:var(--glass);backdrop-filter:blur(22px) saturate(1.2);-webkit-backdrop-filter:blur(22px) saturate(1.2);
+    border-top:1px solid color-mix(in oklab,white 72%,var(--line));box-shadow:0 -12px 32px -20px oklab(0.2 0 0/.35)}
+  .mbar a{font-size:12.5px;color:var(--ink-soft);padding:12px 16px;border-radius:999px;white-space:nowrap;transition:color .25s var(--ease)}
+  .mbar a:active,.mbar a:hover{color:var(--ink)}
+  .mbar .mbar-cta{background:var(--ink);color:var(--paper);border:0;border-radius:999px;padding:12px 20px;font-size:13px;font-weight:600;min-height:42px;white-space:nowrap;box-shadow:0 10px 24px -12px oklab(0.2 0 0/.5)}
 
   .hero{padding:clamp(40px,6vw,84px) 0 8px;position:relative;z-index:1}
   .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent)}
@@ -143,7 +152,27 @@
   .into svg{transition:transform .3s var(--ease)}.into:hover svg{transform:translateX(4px)}
 
   @media(max-width:960px){.metrics{grid-template-columns:repeat(2,1fr)}.charts{grid-template-columns:1fr}.stories{grid-template-columns:repeat(2,1fr)}}
-  @media(max-width:640px){.nav-links{display:none}.metrics{grid-template-columns:1fr}.stories{grid-template-columns:1fr}.lab{grid-template-columns:1fr}.seg button{padding:6px 10px;font-size:11.5px}}
+  @media(max-width:640px){
+  .nav-links{display:none}
+  .nav-cta{display:none}
+  .mbar{display:flex}
+  .wrap{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
+  .hero{padding-top:clamp(56px,15vh,88px);min-height:calc(58vh - 30px);display:flex;flex-direction:column;justify-content:center}
+  .metrics{grid-template-columns:1fr}
+  .stories{grid-template-columns:1fr}
+  .lab{grid-template-columns:1fr}
+  .seg button{padding:8px 12px;font-size:12px;min-height:38px}
+  .metric{padding:20px 18px 16px}
+  .metric-value{font-size:clamp(1.8rem,8vw,2.4rem)}
+  .panel{padding:20px 16px 16px}
+  .panel-head{flex-wrap:wrap;gap:10px}
+  .legend{gap:10px;font-size:11.5px}
+  .story{padding:20px 18px}
+  .sil{width:128px;height:128px}
+  .hero-actions{width:100%}
+  .mag-cta{flex:1;justify-content:center;width:100%}
+  .foot{padding-bottom:calc(40px + env(safe-area-inset-bottom))}
+}
   @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::after,*::before{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
 </head>
@@ -328,6 +357,13 @@
     <span class="serif">让数据像植物一样呼吸</span>
   </footer>
 </div>
+
+<nav class="mbar" aria-label="移动导航">
+  <a href="#signals">一览</a>
+  <a href="#charts">图表</a>
+  <a href="#specimen">样本</a>
+  <button class="mbar-cta" id="enterM" data-magnet>进入工作台</button>
+</nav>
 
 <script>
 (function(){
@@ -609,6 +645,8 @@
     if(btn) btn.addEventListener("click",enter);
     var nav=document.querySelector(".nav [data-magnet]");
     if(nav) nav.addEventListener("click",function(){ enter(); setTimeout(function(){ wb.scrollIntoView({behavior:reduced?"auto":"smooth"}); },750); });
+    var btnM=document.getElementById("enterM");
+    if(btnM) btnM.addEventListener("click",function(){ enter(); setTimeout(function(){ wb.scrollIntoView({behavior:reduced?"auto":"smooth"}); },720); });
     // if reduced motion, still make it enter immediately
     if(reduced) wb.classList.add("on");
   })();
