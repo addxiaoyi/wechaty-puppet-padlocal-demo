@@ -1,3 +1,4 @@
+import path from 'node:path'
 import express from 'express'
 import type { Request, Response } from 'express'
 import type { Server } from 'http'
@@ -16,6 +17,12 @@ import {
 export function startWebServer(status: StatusHub): Server {
   const app = express()
   app.use(express.json())
+
+  // ===== 同源托管个人工作台 =====
+  // 按 README 的运行方式（npm start / ts-node / Docker 均从仓库根启动），
+  // ui-demo 与仓库根同层，工作台可直接用相对 /api 取数，无跨域问题。
+  const uiDir = path.resolve(process.cwd(), 'ui-demo')
+  app.use(express.static(uiDir))
 
   // ===== REST API =====
   // 机器人登录状态（供前端状态条/二维码）
@@ -71,7 +78,8 @@ export function startWebServer(status: StatusHub): Server {
   })
 
   // ===== WebUI 页面 =====
-  app.get('/', (_req: Request, res: Response) => {
+  // 旧的落地管理面板迁移到 /dashboard 作后备；根路径 / 由上面的静态托管提供工作台 index.html
+  app.get('/dashboard', (_req: Request, res: Response) => {
     res.type('html').send(DASHBOARD_HTML)
   })
 
