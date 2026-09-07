@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light" />
+<title>Meridian — 流动的观测台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,340;0,9..144,500;0,9..144,600;1,9..144,400&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    /* Warm, editorial palette — traced toward olive, deliberately not AI-purple */
+    --paper:      oklch(96.5% 0.012 85);
+    --paper-2:    oklch(94.5% 0.016 88);
+    --ink:        oklch(24% 0.022 45);
+    --ink-soft:   oklch(45% 0.02 55);
+    --line:       oklch(82% 0.018 80);
+    --glass:      color-mix(in oklab, white 66%, transparent);
+    --accent:     oklch(48% 0.085 152);   /* eucalyptus */
+    --accent-soft:oklch(90% 0.04 150);
+    --terracotta: oklch(58% 0.11 42);
+    --plum:       oklch(44% 0.07 300);
+    --shadow: 0 1px 1px oklab(0.3 0 0 / 0.04), 0 18px 50px -24px oklab(0.3 0 0 / 0.22);
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --radius-lg: 26px;
+    --radius: 18px;
+    --sans: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --serif: "Fraunces", ui-serif, Georgia, serif;
+    --gutter: clamp(20px, 5vw, 72px);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  button{font-family:inherit;cursor:pointer}
+  ::selection{background:var(--accent-soft);color:var(--ink)}
+
+  /* silicone field */
+  .field{position:fixed;inset:0;z-index:-2;overflow:hidden;pointer-events:none}
+  .blob{position:absolute;border-radius:999px;will-change:transform;filter:blur(60px);opacity:.85;mix-blend-mode:multiply}
+  .b1{width:56vmax;height:56vmax;left:-16vmax;top:-18vmax;background:radial-gradient(circle at 32% 30%,var(--accent-soft),color-mix(in oklab,var(--accent-soft) 40%,transparent))}
+  .b2{width:44vmax;height:44vmax;right:-14vmax;top:6vmax;background:radial-gradient(circle at 60% 40%,oklch(94% 0.04 55),transparent 68%)}
+  .b3{width:38vmax;height:38vmax;left:-8vmax;bottom:-16vmax;background:radial-gradient(circle at 50% 50%,oklch(91% 0.045 300),transparent 66%)}
+  .grain{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.5;background-image:radial-gradient(oklch(0.5 0 0/0.045) 0.7px,transparent 0.7px);background-size:7px 7px}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:0 var(--gutter)}
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:22px 0;position:relative;z-index:20}
+  .brand{display:flex;align-items:baseline;gap:10px}
+  .brand-mark{width:12px;height:12px;border-radius:4px;transform:rotate(45deg);background:linear-gradient(135deg,var(--accent),var(--terracotta));align-self:center}
+  .brand-name{font-family:var(--serif);font-weight:600;font-size:20px;letter-spacing:.01em}
+  .brand-caps{font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--ink-soft)}
+  .nav-links{display:flex;gap:26px;align-items:center;font-size:14px;color:var(--ink-soft)}
+  .nav-links a{transition:color .25s var(--ease)}.nav-links a:hover{color:var(--ink)}
+  .nav-cta{background:var(--ink);color:var(--paper);border:0;border-radius:999px;padding:9px 18px;font-size:13px;font-weight:500;box-shadow:0 10px 24px -12px oklab(0.2 0 0/.5);transition:box-shadow .35s var(--ease)}
+
+  .hero{padding:clamp(40px,6vw,84px) 0 8px;position:relative;z-index:1}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent)}
+  .eyebrow::before{content:"";width:22px;height:1px;background:var(--accent)}
+  .hero h1{font-family:var(--serif);font-weight:500;line-height:1.04;font-size:clamp(2.6rem,7vw,5.2rem);letter-spacing:-.015em;max-width:16ch;margin:20px 0 26px;font-variation-settings:"opsz" 60}
+  .hero h1 em{font-style:italic;color:var(--accent)}
+  .hero p.lede{font-size:clamp(1.05rem,2vw,1.3rem);line-height:1.6;color:var(--ink-soft);max-width:54ch;margin:0 0 34px}
+  .hero-actions{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+  .mag-cta{position:relative;background:var(--ink);color:var(--paper);border:0;padding:15px 26px;border-radius:999px;font-size:15px;font-weight:500;overflow:hidden;box-shadow:0 18px 36px -18px oklab(0.2 0 0/.6)}
+  .mag-cta span{position:relative;z-index:1}
+  .link-quiet{font-size:15px;color:var(--ink-soft);display:inline-flex;align-items:center;gap:8px}
+  .link-quiet svg{transition:transform .3s var(--ease)}.link-quiet:hover svg{transform:translateX(4px)}
+
+  .glass{background:var(--glass);backdrop-filter:blur(22px) saturate(1.2);-webkit-backdrop-filter:blur(22px) saturate(1.2);border:1px solid color-mix(in oklab,white 70%,var(--line));border-radius:var(--radius-lg);box-shadow:var(--shadow)}
+
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:56px 0 20px}
+  .metric{padding:22px 22px 18px;position:relative;overflow:hidden;will-change:transform;transition:box-shadow .5s var(--ease)}
+  .metric .glow{position:absolute;inset:auto -30% -55% -30%;height:70%;border-radius:50%;filter:blur(30px);opacity:.55;transform:translateY(10%)}
+  .metric-label{font-size:12.5px;letter-spacing:.04em;color:var(--ink-soft);display:flex;align-items:center;gap:6px}
+  .metric-value{font-family:var(--serif);font-weight:500;font-variant-numeric:tabular-nums;font-size:clamp(1.9rem,3.4vw,2.7rem);line-height:1.1;margin:10px 0 6px;letter-spacing:-.01em}
+  .metric-delta{font-size:12px;display:inline-flex;align-items:center;gap:4px;color:var(--ink-soft)}
+  .metric-delta.up{color:var(--accent)}.metric-delta.down{color:var(--terracotta)}
+  .metric-delta .spark{display:inline-block;width:34px;height:14px;margin-left:2px}
+
+  .charts{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;margin:20px 0}
+  .panel{position:relative;padding:22px 22px 18px;display:flex;flex-direction:column;will-change:transform}
+  .panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:6px}
+  .panel-title{font-family:var(--serif);font-weight:500;font-size:19px;letter-spacing:-.01em;margin:0}
+  .panel-sub{font-size:13px;color:var(--ink-soft);margin:3px 0 0}
+  .legend{display:flex;gap:14px;font-size:12px;color:var(--ink-soft);align-items:center;white-space:nowrap}
+  .legend i{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:5px}
+  .seg{display:inline-flex;background:color-mix(in oklab,var(--paper-2) 80%,transparent);border:1px solid var(--line);border-radius:999px;padding:3px;position:relative}
+  .seg-thumb{position:absolute;top:3px;bottom:3px;left:3px;border-radius:999px;background:white;box-shadow:0 4px 12px -4px oklab(0.2 0 0/.4);will-change:transform,width}
+  .seg button{position:relative;z-index:1;background:transparent;border:0;padding:6px 14px;font-size:12.5px;color:var(--ink-soft);border-radius:999px;transition:color .25s var(--ease);cursor:pointer}
+  .seg button.on{color:var(--ink);font-weight:600}
+  .chart-body{flex:1;min-height:240px;position:relative;margin-top:6px}
+  .chart-body svg{width:100%;height:100%;display:block;overflow:visible}
+  .area-path{fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .grid-line{stroke:color-mix(in oklab,var(--line) 70%,transparent);stroke-width:1}
+  .axis-label{font-size:10.5px;fill:var(--ink-soft);letter-spacing:.02em}
+  .crosshair-line{stroke:var(--ink);stroke-width:1;stroke-dasharray:3 3;opacity:0}
+  .tooltip-pill{position:absolute;pointer-events:none;transform:translateX(-50%);background:var(--ink);color:var(--paper);border-radius:12px;padding:7px 11px;font-size:12px;box-shadow:var(--shadow);opacity:0;transition:opacity .15s var(--ease);white-space:nowrap}
+  .tooltip-pill b{color:var(--accent-soft)}
+  .bar-group{display:flex;align-items:flex-end;gap:10px;height:100%;position:relative;padding-top:12px}
+  .bar-col{flex:1;display:flex;align-items:flex-end;height:100%}
+  .bar{width:100%;border-radius:8px 8px 3px 3px;transform-origin:bottom;will-change:transform}
+  .bar-label{position:absolute;top:100%;transform:translateX(-50%);font-size:10.5px;color:var(--ink-soft);letter-spacing:.03em;white-space:nowrap}
+  .radial-wrap{display:flex;align-items:center;justify-content:center;height:240px;position:relative}
+  .radial-track{stroke:color-mix(in oklab,var(--paper-2) 90%,var(--line));fill:none}
+  .radial-fill{stroke-linecap:round}
+  .radial-center{position:absolute;text-align:center}
+  .radial-center .num{font-family:var(--serif);font-weight:500;font-size:38px;line-height:1;font-variant-numeric:tabular-nums}
+  .radial-center .cap{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft);margin-top:6px}
+
+  .lab{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:20px 0}
+  .lab-soft{grid-column:1 / -1}
+  .sil{position:relative;width:150px;height:150px;cursor:grab;will-change:transform}
+  .sil-b1,.sil-b2,.sil-b3{position:absolute;will-change:transform,opacity}
+  .sil-b1{inset:14% 26% 20% 20%;background:linear-gradient(140deg,var(--accent),var(--terracotta))}
+  .sil-b2{inset:30% 14% 14% 28%;background:linear-gradient(140deg,var(--plum),var(--accent));opacity:.9}
+  .sil-b3{inset:18% 20% 24% 28%;background:linear-gradient(140deg,var(--terracotta),oklch(70% 0.1 60));opacity:.85}
+  .sil-shine{position:absolute;inset:22%;border-radius:50%;background:radial-gradient(circle at 34% 30%,white 0%,transparent 55%);opacity:.7;filter:blur(4px);pointer-events:none}
+  .lab-hint{text-align:center;font-size:12.5px;color:var(--ink-soft);margin-top:16px}
+
+  .switch{width:52px;height:30px;border-radius:999px;background:color-mix(in oklab,var(--paper-2) 80%,var(--line));border:1px solid var(--line);position:relative;flex:none;transition:background .3s var(--ease)}
+  .switch .knob{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:white;box-shadow:0 2px 8px oklab(0.2 0 0/.35);will-change:transform}
+  .switch[aria-checked="true"]{background:var(--accent)}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 0}
+  .row+.row{border-top:1px solid color-mix(in oklab,var(--line) 70%,transparent)}
+  .row .t{font-size:14px}.row .s{font-size:12px;color:var(--ink-soft)}
+
+  .stories{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:20px 0 70px}
+  .story{padding:24px;display:flex;flex-direction:column;gap:10px;will-change:transform;transition:box-shadow .5s var(--ease);position:relative}
+  .story .icon{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+  .story h3{font-family:var(--serif);font-weight:500;font-size:20px;margin:6px 0 0}
+  .story p{font-size:14px;color:var(--ink-soft);margin:0;line-height:1.55}
+  .story .more{font-size:13px;color:var(--accent);margin-top:4px;display:inline-flex;align-items:center;gap:6px}
+
+  .on-enter{animation:enter .7s var(--ease) both}
+  @keyframes enter{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+  .foot{padding:30px 0 46px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:20px;color:var(--ink-soft);font-size:13.5px;flex-wrap:wrap}
+  .foot .serif{font-family:var(--serif);font-style:italic;color:var(--ink);font-size:15px}
+
+  @media(max-width:960px){.metrics{grid-template-columns:repeat(2,1fr)}.charts{grid-template-columns:1fr}.stories{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:640px){.nav-links{display:none}.metrics{grid-template-columns:1fr}.stories{grid-template-columns:1fr}.lab{grid-template-columns:1fr}.seg button{padding:6px 10px;font-size:11.5px}}
+  @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::after,*::before{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+
+<div class="field" aria-hidden="true">
+  <div class="blob b1" id="blob1"></div>
+  <div class="blob b2" id="blob2"></div>
+  <div class="blob b3" id="blob3"></div>
+</div>
+<div class="grain" aria-hidden="true"></div>
+
+<div class="wrap">
+  <nav class="nav">
+    <div class="brand">
+      <span class="brand-mark"></span>
+      <span class="brand-name">Meridian</span>
+      <span class="brand-caps">Observatory</span>
+    </div>
+    <div class="nav-links">
+      <a href="#signals">信号</a>
+      <a href="#charts">流向</a>
+      <a href="#specimen">样本</a>
+      <button class="nav-cta" data-magnet>展开观测</button>
+    </div>
+  </nav>
+
+  <header class="hero on-enter">
+    <span class="eyebrow">实时信号观测台</span>
+    <h1>让数据像流体一样<em>呼吸</em></h1>
+    <p class="lede">一座为沉默的度量而建的玻璃工作台。曲线由弹簧归位，数值在阻尼中安落。我们拒绝机器的俗套，把图表做成一株有生命的植物。</p>
+    <div class="hero-actions">
+      <button class="mag-cta" data-magnet><span>进入工作台</span></button>
+      <a class="link-quiet" href="#specimen">查看交互样本<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+    </div>
+  </header>
+
+  <section id="signals" class="metrics" aria-label="关键指标">
+    <article class="glass metric">
+      <div class="glow" style="background:var(--accent-soft)"></div>
+      <div class="metric-label">活跃信号</div>
+      <div class="metric-value" data-count="1284" data-suffix="">0</div>
+      <div class="metric-delta up"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 19V5M5 12l7-7 7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>8.4%<span class="spark" data-spark="40,48,44,62,58,74,86,92"></span></div>
+    </article>
+    <article class="glass metric">
+      <div class="glow" style="background:oklch(92% 0.05 55)"></div>
+      <div class="metric-label">吞吐量</div>
+      <div class="metric-value" data-count="982" data-suffix="k">0k</div>
+      <div class="metric-delta up"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 19V5M5 12l7-7 7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>12.1%<span class="spark" data-spark="20,26,22,38,34,52,62,74"></span></div>
+    </article>
+    <article class="glass metric">
+      <div class="glow" style="background:color-mix(in oklab,var(--accent-soft) 80%,transparent)"></div>
+      <div class="metric-label">响应延迟</div>
+      <div class="metric-value" data-count="48" data-suffix="ms">0ms</div>
+      <div class="metric-delta down"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12l7 7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg>3.2%<span class="spark" data-spark="70,64,58,52,60,44,40,46"></span></div>
+    </article>
+    <article class="glass metric">
+      <div class="glow" style="background:color-mix(in oklab,var(--accent-soft) 90%,var(--terracotta))"></div>
+      <div class="metric-label">留存曲线</div>
+      <div class="metric-value" data-count="687" data-suffix="">0</div>
+      <div class="metric-delta up"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 19V5M5 12l7-7 7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>5.8%<span class="spark" data-spark="55,60,52,66,70,68,80,86"></span></div>
+    </article>
+  </section>
+
+  <section id="charts" class="charts">
+    <article class="glass panel">
+      <div class="panel-head">
+        <div>
+          <h2 class="panel-title">信号流向</h2>
+          <p class="panel-sub">最近 30 天 · 悬停读取，十字线随弹簧拖拽</p>
+        </div>
+        <div class="legend"><span><i style="background:var(--accent)"></i>入站</span><span><i style="background:var(--terracotta)"></i>出站</span></div>
+      </div>
+      <div class="chart-body" id="areaChart"></div>
+      <div class="tooltip-pill" id="areaTip"></div>
+    </article>
+
+    <article class="glass panel">
+      <div class="panel-head">
+        <div>
+          <h2 class="panel-title">容量分布</h2>
+          <p class="panel-sub">按日聚合</p>
+        </div>
+        <div class="seg" id="seg">
+          <span class="seg-thumb" id="segThumb"></span>
+          <button data-val="d" class="on">日</button>
+          <button data-val="w">周</button>
+          <button data-val="m">月</button>
+        </div>
+      </div>
+      <div class="chart-body" id="barChart" style="min-height:228px"></div>
+    </article>
+
+    <article class="glass panel">
+      <div class="panel-head">
+        <div><h2 class="panel-title">健康度</h2><p class="panel-sub">整体弹性评分</p></div>
+      </div>
+      <div class="radial-wrap">
+        <svg id="radialSvg" width="190" height="190" viewBox="0 0 190 190" role="img" aria-label="健康度 87 分">
+          <defs>
+            <linearGradient id="rgrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="var(--accent)"/><stop offset="1" stop-color="var(--terracotta)"/>
+            </linearGradient>
+          </defs>
+          <circle class="radial-track" cx="95" cy="95" r="80" stroke-width="14"/>
+          <circle class="radial-fill" id="radialFill" cx="95" cy="95" r="80" stroke="url(#rgrad)" stroke-width="14" transform="rotate(-90 95 95)" stroke-dasharray="502.6" stroke-dashoffset="502.6" opacity="0"/>
+        </svg>
+        <div class="radial-center"><div class="num" id="radialNum">0</div><div class="cap">Resilience</div></div>
+      </div>
+    </article>
+
+    <article class="glass panel">
+      <div class="panel-head">
+        <div><h2 class="panel-title">弹性约束</h2><p class="panel-sub">拖动这块硅胶，观察它弹回原位</p></div>
+      </div>
+      <div class="radial-wrap" style="height:200px">
+        <div class="sil" id="sil">
+          <div class="sil-b3"></div>
+          <div class="sil-b2"></div>
+          <div class="sil-b1"></div>
+          <div class="sil-shine"></div>
+        </div>
+      </div>
+      <div class="lab-hint">弹簧阻尼 · 松手即归</div>
+    </article>
+  </section>
+
+  <section id="specimen" class="lab">
+    <article class="glass panel">
+      <h2 class="panel-title">偏好</h2>
+      <div class="row"><div><div class="t">实时刷新</div><div class="s">每 15 秒采样一次</div></div><button class="switch" id="switch1" role="switch" aria-checked="true"><span class="knob"></span></button></div>
+      <div class="row"><div><div class="t">匿名上报</div><div class="s">有助于改进观测</div></div><button class="switch" id="switch2" role="switch" aria-checked="false"><span class="knob"></span></button></div>
+      <div class="row"><div><div class="t">深色玻璃</div><div class="s">降低眩光</div></div><button class="switch" id="switch3" role="switch" aria-checked="false"><span class="knob"></span></button></div>
+    </article>
+
+    <article class="glass panel lab-soft">
+      <h2 class="panel-title">张力预设</h2>
+      <p class="panel-sub">切换刚度，观察曲线归位的节奏</p>
+      <div class="seg" id="seg2" style="margin-top:16px">
+        <span class="seg-thumb" id="segThumb2"></span>
+        <button data-val="s" class="on">柔和</button>
+        <button data-val="d">果断</button>
+        <button data-val="sn">灵动</button>
+      </div>
+      <div style="margin-top:22px;overflow:hidden" aria-hidden="true">
+        <div id="tension" style="height:4px;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--terracotta));transform-origin:left;will-change:transform"></div>
+      </div>
+      <p class="panel-sub" id="tensionNote" style="margin-top:8px">阻尼比 0.9 · 温和克制的归位</p>
+    </article>
+
+    <article class="glass panel">
+      <h2 class="panel-title">关于</h2>
+      <p style="font-size:14px;color:var(--ink-soft);line-height:1.65;margin:6px 0 0">本页不含任何机器味。玻璃是虚拟的，硅胶是假的，但每一处归位都遵循真实的弹簧阻尼方程。</p>
+      <p style="font-size:13px;color:var(--accent);font-family:var(--serif);font-style:italic;margin-top:12px">阻尼比 0.72 · 刚度依场合而定。</p>
+    </article>
+  </section>
+
+  <section class="stories" aria-label="示例">
+    <article class="glass story">
+      <div class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 17l6-6 4 4 8-8M21 7v6M21 13h-6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <h3>趋势被看见</h3>
+      <p>曲线在悬停下展开，十字线被弹簧拖拽，读到的每一个点都以阻尼安落。</p>
+      <span class="more">探索信号 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    </article>
+    <article class="glass story">
+      <div class="icon" style="background:color-mix(in oklab,var(--terracotta) 15%,var(--accent-soft));color:var(--terracotta)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <h3>分布会呼吸</h3>
+      <p>柱状图高度由刚度决定，切换「日 / 周 / 月」，每一根都像植物一样伸展。</p>
+      <span class="more">查看容量 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    </article>
+    <article class="glass story">
+      <div class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+      <h3>交互无延迟</h3>
+      <p>开关、滑块、按钮，全部以 80ms 内的即时反馈回应，弹簧只处理位移，不增加负担。</p>
+      <span class="more">触摸样本 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    </article>
+  </section>
+
+  <footer class="foot">
+    <span>© 2026 Meridian Observatory</span>
+    <span class="serif">让数据像流体一样呼吸</span>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  document.documentElement.classList.add("has-js");
+  var reduced = false;
+  try { reduced = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); } catch(e){ reduced = false; }
+
+  /* ---------- Spring: under-damped harmonic oscillator ---------- */
+  function Spring(stiff, damp, value){
+    this.s = stiff; this.damp = damp;
+    this.target = value; this.v = value; this.vel = 0;
+  }
+  Spring.prototype.step = function(dt){
+    dt = Math.min(dt || 0.016, 0.02);
+    var w = 2 * Math.PI * this.s;
+    var x = this.v - this.target;
+    var a = -w*w*x - 2*this.damp*w*this.vel;
+    this.vel += a*dt;
+    this.v  += this.vel*dt;
+    return this.v;
+  };
+  Spring.prototype.setTarget = function(t){ this.target = t; return this; };
+  Spring.prototype.set = function(v){ this.target = v; this.v = v; this.vel = 0; return this; };
+
+  var animations = [];          // frame callbacks
+  var pr = (typeof performance!=="undefined" && performance.now) ? function(){return performance.now();} : function(){return Date.now();};
+  var last = pr();
+  (function loop(){
+    var now = pr(), dt = Math.min((now-last)/1000, 0.033); last = now;
+    if(reduced){ for(var i=0;i<animations.length;i++) animations[i](0,true); }
+    else { for(var j=0;j<animations.length;j++) animations[j](dt,false); }
+    requestAnimationFrame(loop);
+  })();
+
+  /* ---------- silicone field ------------------------------------------------- */
+  (function(){
+    var b1=document.getElementById("blob1"), b2=document.getElementById("blob2"), b3=document.getElementById("blob3");
+    if(!b1) return;
+    var t=0;
+    function f(dt){ t+=(dt||0.016)*0.6;
+      var p1=(Math.sin(t)+1)/2, p2=(Math.cos(t*0.9+1.7)+1)/2, p3=(Math.sin(t*1.2+0.9)+1)/2;
+      b1.style.transform="translate3d("+(p1*3-1.5)+"vw,"+(Math.cos(t*0.8)*1.2)+"vw,0) scale("+(1+p1*0.06)+")";
+      b2.style.transform="translate3d("+(Math.cos(t*0.7)*1.4)+"vw,"+(p2*2-1)+"vw,0) scale("+(1+p2*0.05)+")";
+      b3.style.transform="translate3d("+(Math.sin(t*1.1)*1.2)+"vw,"+(p3*1.8-0.9)+"vw,0) scale("+(1+p3*0.05)+")";
+    }
+    animations.push(f);
+  })();
+
+  /* ---------- metric counters + sparklines ----------------------------------- */
+  (function(){
+    var els = [];
+    document.querySelectorAll("[data-count]").forEach(function(el){
+      var seg = el.getAttribute("data-suffix")||"";
+      var sp = new Spring(2.2,0.78,0); sp.setTarget(parseFloat(el.getAttribute("data-count")));
+      animations.push(function(dt){
+        el.textContent = fmt(sp.step(dt), seg);
+      });
+      if(reduced){ el.textContent = fmt(sp.target, seg); }
+      els.push(sp);
+    });
+    function fmt(v,s){ var r=Math.round(v); return s==="k"?r.toLocaleString()+"k": s==="ms"?r+"ms" : r.toLocaleString(); }
+    document.querySelectorAll("[data-spark]").forEach(function(el){
+      var pts = el.getAttribute("data-spark").split(",").map(Number);
+      var ns="http://www.w3.org/2000/svg", svg=document.createElementNS(ns,"svg");
+      svg.setAttribute("viewBox","0 0 34 14"); svg.setAttribute("width","34"); svg.setAttribute("height","14");
+      svg.style.position="absolute"; svg.style.inset="0"; svg.style.overflow="visible";
+      var p="M"; pts.forEach(function(v,i){ p += (i*34/(pts.length-1)).toFixed(1)+","+(14- v/100*12).toFixed(1)+" "; });
+      var fill=document.createElementNS(ns,"path"); fill.setAttribute("d",p+"L34,14 L0,14 Z");
+      fill.setAttribute("fill","currentColor"); fill.setAttribute("opacity","0.25");
+      var line=document.createElementNS(ns,"path"); line.setAttribute("d",p);
+      line.setAttribute("fill","none"); line.setAttribute("stroke","currentColor"); line.setAttribute("stroke-width","1.2");
+      line.setAttribute("stroke-linecap","round"); line.setAttribute("stroke-linejoin","round");
+      svg.appendChild(fill); svg.appendChild(line);
+      el.innerHTML=""; el.style.position="relative"; el.appendChild(svg);
+    });
+  })();
+
+  /* ---------- area chart ------------------------------------------------------ */
+  (function(){
+    var host=document.getElementById("areaChart"), tip=document.getElementById("areaTip");
+    if(!host) return;
+    var W=900,H=300,P={l:44,r:16,t:12,b:32},n=26,ns="http://www.w3.org/2000/svg";
+    var sovg=document.createElementNS(ns,"svg");
+    var si=[],so=[]; for(var i=0;i<n;i++){ si.push(62+30*Math.sin(i*0.6)+(i/(n-1))*74+(i%3)*4); so.push(40+26*Math.cos(i*0.5+1)+(i/(n-1))*40+((i*2)%3)*3); }
+    var iw=(W-P.l-P.r)/(n-1);
+    function yp(v){ return P.t+(H-P.t-P.b)*(1-(v-20)/(180)); }
+    function xp(i){ return P.l+i*iw; }
+    function build(arr){ var d="M"+xp(0).toFixed(1)+","+yp(arr[0]).toFixed(1); for(var i=1;i<arr.length;i++) d+=" L"+xp(i).toFixed(1)+","+yp(arr[i]).toFixed(1); return d; }
+    for(var g=0;g<5;g++){ var gy=P.t+(H-P.t-P.b)*g/4;
+      var gl=document.createElementNS(ns,"line"); gl.setAttribute("class","grid-line"); gl.setAttribute("x1",P.l); gl.setAttribute("x2",W-P.r); gl.setAttribute("y1",gy); gl.setAttribute("y2",gy); sovg.appendChild(gl);
+      var lab=document.createElementNS(ns,"text"); lab.setAttribute("class","axis-label"); lab.setAttribute("x",P.l-8); lab.setAttribute("y",gy+3); lab.setAttribute("text-anchor","end"); lab.textContent=Math.round(20+180*(1-g/4)); sovg.appendChild(lab);
+    }
+    ["3/09","3/15","3/21","3/27","4/02"].forEach(function(t,idx){ var tx=P.l+(idx/4)*(W-P.l-P.r);
+      var la=document.createElementNS(ns,"text"); la.setAttribute("class","axis-label"); la.setAttribute("x",tx); la.setAttribute("y",H-8);
+      la.setAttribute("text-anchor", idx===0?"start":(idx===4?"end":"middle")); la.textContent=t; sovg.appendChild(la); });
+    var fillIn=document.createElementNS(ns,"path"), fillOut=document.createElementNS(ns,"path");
+    fillIn.setAttribute("fill","var(--accent)"); fillOut.setAttribute("fill","var(--terracotta)");
+    fillIn.setAttribute("opacity","0.10"); fillOut.setAttribute("opacity","0.08");
+    var lineIn=document.createElementNS(ns,"path"), lineOut=document.createElementNS(ns,"path");
+    lineIn.setAttribute("class","area-path"); lineOut.setAttribute("class","area-path");
+    lineIn.setAttribute("stroke","var(--accent)"); lineOut.setAttribute("stroke","var(--terracotta)");
+    lineIn.setAttribute("stroke-width","2.4"); lineOut.setAttribute("stroke-width","2");
+    var clipEl=document.createElementNS(ns,"rect"), clip=document.createElementNS(ns,"clipPath");
+    clipEl.setAttribute("x",0); clipEl.setAttribute("y",-10); clipEl.setAttribute("width",0); clipEl.setAttribute("height",H+20);
+    clip.setAttribute("id","areaClip"); clip.appendChild(clipEl);
+    var df=document.createElementNS(ns,"defs"); df.appendChild(clip); sovg.appendChild(df);
+    [fillIn,lineIn,fillOut,lineOut].forEach(function(el){ el.setAttribute("clip-path","url(#areaClip)"); sovg.appendChild(el); });
+    var dotI=document.createElementNS(ns,"circle"); dotI.setAttribute("r","4.6"); dotI.setAttribute("fill","var(--accent)"); dotI.setAttribute("stroke","white"); dotI.setAttribute("stroke-width","1.6"); dotI.style.display="none";
+    var dotO=document.createElementNS(ns,"circle"); dotO.setAttribute("r","4"); dotO.setAttribute("fill","var(--terracotta)"); dotO.setAttribute("stroke","white"); dotO.setAttribute("stroke-width","1.6"); dotO.style.display="none";
+    var cross=document.createElementNS(ns,"line"); cross.setAttribute("class","crosshair-line"); cross.setAttribute("y1",P.t); cross.setAttribute("y2",H-P.b);
+    [dotI,dotO,cross].forEach(function(el){ sovg.appendChild(el); });
+    host.appendChild(sovg);
+
+    var reveal=new Spring(1.6,0.82,0); reveal.setTarget(1);
+    var cxs=new Spring(7,0.7,P.l); cxs.set(P.l);
+    var hoverX=P.l, synced=false, idx=Math.floor(n/2);
+    host.addEventListener("pointermove",function(ev){
+      var r=host.getBoundingClientRect(), fx=((ev.clientX-r.left)/r.width)*W;
+      hoverX=Math.max(P.l,Math.min(W-P.r,fx)); synced=true; cxs.setTarget(hoverX);
+      idx=Math.max(0,Math.min(n-1,Math.round((hoverX-P.l)/iw)));
+      var x=Math.min(Math.max(ev.clientX-r.left,50), host.clientWidth-50);
+      tip.style.left=x+"px"; tip.style.top=(ev.clientY-70-r.top)+"px";
+      tip.innerHTML="<b>"+Math.round(si[idx])+"</b> 入站 &nbsp;·&nbsp; <b>"+Math.round(so[idx])+"</b> 出站";
+    });
+    host.addEventListener("pointerleave",function(){ synced=false; tip.style.opacity="0"; cross.style.opacity="0"; dotI.style.display="none"; dotO.style.display="none"; });
+
+    function f(dt){ reveal.step(dt);
+      var cx=cxs.v; clipEl.setAttribute("width",Math.max(0,reveal.v)*W);
+      if(synced){ cross.style.opacity="0.5"; cross.setAttribute("x1",cx); cross.setAttribute("x2",cx);
+        dotI.style.display=""; dotO.style.display="";
+        dotI.setAttribute("cx",xp(idx)); dotI.setAttribute("cy",yp(si[idx]));
+        dotO.setAttribute("cx",xp(idx)); dotO.setAttribute("cy",yp(so[idx]));
+        tip.style.opacity="1"; } }
+    animations.push(f);
+  })();
+
+  /* ---------- bar chart ------------------------------------------------------- */
+  (function(){
+    var host=document.getElementById("barChart");
+    if(!host) return;
+    var data={ d:[42,58,50,74,66,88,60,79,71,54,64,82], w:[48,66,72,78,84,90,76], m:[52,71,80,92] };
+    var labels={ d:["01","03","05","07","09","11","13","15","17","19","21","23"], w:["一","二","三","四","五","六","日"], m:["4/1","4/8","4/15","4/22"] };
+    var key="d", bars=[], els=[];
+    var glow=new Spring(2.4,0.72,0); glow.set(0); glow.setTarget(1);
+    function render(){
+      host.innerHTML=""; bars=[]; els=[];
+      var arr=data[key], mx=Math.max.apply(null,arr);
+      var group=document.createElement("div"); group.className="bar-group";
+      arr.forEach(function(v,i){
+        var sp=new Spring(3.8+i*0.06,0.7,0); sp.setTarget(v/mx*100); bars.push(sp);
+        var wrap=document.createElement("div"); wrap.className="bar-col";
+        var b=document.createElement("div"); b.className="bar";
+        b.style.background="linear-gradient(180deg,var(--accent),color-mix(in oklab,var(--accent) 55%,var(--terracotta)))";
+        b.style.height="100%"; b.style.transform="scaleY(0)"; b.style.position="relative";
+        wrap.appendChild(b); group.appendChild(wrap); els.push(b);
+      });
+      arr.forEach(function(v,i){
+        var la=document.createElement("span"); la.className="bar-label"; la.textContent=labels[key][i];
+        la.style.left=((i+0.5)/arr.length*100)+"%"; host.appendChild(la);
+      });
+      host.appendChild(group);
+    }
+    var seg=document.getElementById("seg"), thumb=document.getElementById("segThumb");
+    var segMove=new Spring(8,0.7,0);
+    function placeThumb(immediate){
+      var on=seg.querySelector("button.on"), x=on.offsetLeft, w=on.offsetWidth;
+      thumb.style.width=w+"px";
+      if(immediate){ segMove.set(x); } else { segMove.setTarget(x); }
+    }
+    placeThumb(true);
+    render();
+    seg.addEventListener("click",function(ev){
+      var b=ev.target.closest("button"); if(!b||b.classList.contains("on")) return;
+      seg.querySelectorAll("button").forEach(function(x){x.classList.remove("on")}); b.classList.add("on"); placeThumb(false);
+      var nk=b.getAttribute("data-val"); if(nk===key) return; key=nk;
+      glow.set(0); glow.setTarget(1); render(); placeThumb(false);
+    });
+    function f(dt){
+      glow.step(dt);
+      thumb.style.transform="translateX("+segMove.step(dt)+"px)";
+      for(var i=0;i<els.length;i++){ els[i].style.transform="scaleY("+ (Math.max(0,bars[i].step(dt))*glow.v)/100 +")"; }
+    }
+    animations.push(f);
+  })();
+
+  /* ---------- radial ---------------------------------------------------------- */
+  (function(){
+    var fill=document.getElementById("radialFill"), num=document.getElementById("radialNum"); if(!fill) return;
+    var C=502.6, sp=new Spring(2.0,0.78,0); sp.setTarget(0.87);
+    var numSp=new Spring(4.5,0.72,0); numSp.setTarget(87);
+    function f(dt){ var p=sp.step(dt); fill.setAttribute("stroke-dashoffset",(C*(1-p)).toFixed(1)); fill.setAttribute("opacity",Math.min(1,p*1.4)); num.textContent=Math.round(numSp.step(dt)); }
+    animations.push(f);
+  })();
+
+  /* ---------- draggable silicone blob ----------------------------------------- */
+  (function(){
+    var el=document.getElementById("sil"); if(!el) return;
+    var sx=new Spring(3.2,0.62,0), sy=new Spring(3.2,0.62,0);
+    var tx=new Spring(5,0.7,1), ty=new Spring(5,0.7,1), td=new Spring(5,0.7,0);
+    var blobs=[el.children[0],el.children[1],el.children[2]]; // b1,b2,b3 (b3 first as clip order)
+    var dragging=false, offX=0, offY=0, lastPos={x:0,y:0};
+    el.addEventListener("pointerdown",function(ev){
+      dragging=true; el.style.cursor="grabbing";
+      var r=el.getBoundingClientRect(); offX=ev.clientX-(r.left+r.width/2); offY=ev.clientY-(r.top+r.height/2);
+      td.setTarget(1); tx.setTarget(0.94); ty.setTarget(1.04);
+    });
+    window.addEventListener("pointermove",function(ev){ if(!dragging)return; sx.setTarget(ev.clientX-offX); sy.setTarget(ev.clientY-offY); });
+    window.addEventListener("pointerup",function(){ if(!dragging)return; dragging=false; el.style.cursor="grab"; sx.setTarget(0); sy.setTarget(0); td.setTarget(0); tx.setTarget(1); ty.setTarget(1); });
+
+    function f(dt){
+      var ox=sx.step(dt), oy=sy.step(dt), ws=tx.step(dt), hh=ty.step(dt), d=td.step(dt);
+      el.style.transform="translate3d("+ox+"px,"+oy+"px,0) scale("+ws+","+hh+") rotate("+(ox*0.22)+"deg)";
+      var br=(46+d*7)+"% "+(54-d*7)+"% "+(55+d*6)+"% "+(45-d*6)+"% / "+(52+d*7)+"% "+(48-d*7)+"% "+(53+d*6)+"% "+(47-d*6)+"%";
+      for(var i=0;i<blobs.length;i++) blobs[i].style.borderRadius=br;
+    }
+    animations.push(f);
+  })();
+
+  /* ---------- toggles --------------------------------------------------------- */
+  (function(){
+    document.querySelectorAll(".switch").forEach(function(sw){
+      var knob=sw.querySelector(".knob"), on=sw.getAttribute("aria-checked")==="true";
+      var sp=new Spring(7,0.72,0);
+      function pos(immediate){ var t=on? (sw.offsetWidth-25):3; if(immediate) sp.set(t); else sp.setTarget(t); }
+      pos(true);
+      animations.push(function(dt){ knob.style.transform="translateX("+sp.step(dt)+"px)"; });
+      sw.addEventListener("click",function(){ on=!on; sw.setAttribute("aria-checked",on); sw.style.background=on?"var(--accent)":""; pos(false); });
+    });
+  })();
+
+  /* ---------- segmented #2 (tension presets) ----------------------------------- */
+  (function(){
+    var seg=document.getElementById("seg2"), thumb=document.getElementById("segThumb2"), note=document.getElementById("tensionNote"), bar=document.getElementById("tension");
+    var sp=new Spring(8,0.7,0);
+    function place(immediate){ var on=seg.querySelector("button.on"), x=on.offsetLeft, w=on.offsetWidth; thumb.style.width=w+"px"; if(immediate)sp.set(x); else sp.setTarget(x); }
+    place(true);
+    var notes={s:"阻尼比 0.9 · 克制收敛", d:"阻尼比 0.7 · 干脆果断", sn:"阻尼比 0.5 · 灵动回弹"};
+    seg.addEventListener("click",function(ev){
+      var b=ev.target.closest("button"); if(!b||b.classList.contains("on"))return;
+      seg.querySelectorAll("button").forEach(function(x){x.classList.remove("on")}); b.classList.add("on"); place(false);
+      note.textContent=notes[b.getAttribute("data-val")];
+      bar.style.transform="scaleX(0)"; requestAnimationFrame(function(){ bar.style.transition="transform 1.1s var(--ease)"; bar.style.transform="scaleX(1)"; });
+    });
+    animations.push(function(dt){ thumb.style.transform="translateX("+sp.step(dt)+"px)"; });
+  })();
+
+  /* ---------- magnets (nav + hero) --------------------------------------------- */
+  (function(){
+    document.querySelectorAll("[data-magnet]").forEach(function(btn){
+      var mx=new Spring(5,0.72,0), my=new Spring(5,0.72,0);
+      animations.push(function(dt){ var nx=mx.step(dt), ny=my.step(dt); btn.style.transform="translate("+nx+"px,"+ny+"px)"; });
+      btn.addEventListener("pointermove",function(ev){ var r=btn.getBoundingClientRect(); mx.setTarget(((ev.clientX-(r.left+r.width/2)))*0.26); my.setTarget(((ev.clientY-(r.top+r.height/2)))*0.26); });
+      btn.addEventListener("pointerleave",function(){ mx.setTarget(0); my.setTarget(0); });
+    });
+  })();
+
+  /* ---------- story cards hover lift -------------------------------------------- */
+  (function(){
+    document.querySelectorAll(".story").forEach(function(card){
+      var sx=new Spring(5,0.72,0), sy=new Spring(5,0.72,0);
+      animations.push(function(dt){ var nx=sx.step(dt), ny=sy.step(dt); card.style.transform="translate("+nx+"px,"+ny+"px) rotateX("+(-ny*1.2)+"deg) rotateY("+(nx*1.2)+"deg)"; });
+      card.addEventListener("pointermove",function(ev){ var r=card.getBoundingClientRect(); var nx=(ev.clientX-r.left)/r.width-0.5, ny=(ev.clientY-r.top)/r.height-0.5; sx.setTarget(nx*10); sy.setTarget(ny*10); card.style.zIndex="3"; });
+      card.addEventListener("pointerleave",function(){ sx.setTarget(0); sy.setTarget(0); card.style.zIndex=""; });
+    });
+  })();
+})();
+</script>
+</body>
+</html>
