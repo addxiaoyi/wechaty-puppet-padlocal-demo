@@ -397,6 +397,10 @@
     -webkit-backdrop-filter:blur(18px) saturate(1.1); border-radius:var(--radius-card); padding:16px; box-shadow:0 12px 28px -18px rgba(60,46,30,.4); }
   .mr-card .lab { font-size:12px; color:var(--text-tertiary); }
   .mr-card .val { font-size:24px; font-weight:700; margin-top:6px; color:var(--text); font-family:var(--font); }
+  .mr-card .cap { width:34px;height:34px;border-radius:10px;display:grid;place-items:center;margin-bottom:10px;
+    background:color-mix(in srgb, currentColor 12%, transparent); }
+  .mr-card .capi { font-size:14px; font-weight:700; }
+  .mr-card .capd { font-size:12px; color:var(--text-secondary); margin-top:4px; line-height:1.45; }
   .mrow { display:flex; align-items:center; gap:10px; padding:11px 4px; border-bottom:1px solid var(--border); font-size:14px; }
   .mrow:last-child { border-bottom:none; }
   .mrow-link { cursor:pointer; }
@@ -850,10 +854,24 @@ function renderBot(m){
   const base = m.api || "/api";
   const suffix = (txt, cls)=>{ const stateClass = { ok:'ok', off:'off', scan:'scan' }[cls]||'off'; return `<div class="lineq"><div class="mstate ${stateClass}"></div><span>${txt}</span></div>`; };
 
+  // 机器人全部能力（对齐 README / src/handlers、services）
+  const CAP = [
+    { i:"bolt",   t:"AI 智能回复",  d:"连续上下文对话，私聊直接应答" },
+    { i:"user",   t:"群聊 @ 应答",  d:"群里 @机器人 才响应，不打扰" },
+    { i:"leaf",   t:"记忆学习",     d:"发『记住 事项』即写入长期记忆" },
+    { i:"target", t:"向量召回",     d:"提问时自动检索相关记忆注入上下文" },
+    { i:"camera", t:"多类型消息",   d:"识别文本/图片/语音/视频/表情/链接/小程序" },
+    { i:"chart",  t:"Token 用量",   d:"记录每轮输入/输出 Token 并统计" },
+  ];
+
   $("#screen").innerHTML = `
     <div class="greet"><div><h1>${m.name}</h1><p>${m.desc}</p></div>
       <button class="add" id="bot-refresh">${icon("bolt",16,2)}刷新</button></div>
     <div style="margin-top:16px">
+      <div class="sec-title">机器人能力</div>
+      <div class="mr-grid">
+        ${CAP.map(c=>`<div class="mr-card"><div class="cap" style="color:${m.color}">${icon(c.i,18,1.8)}</div><div class="capi">${c.t}</div><div class="capd">${c.d}</div></div>`).join("")}
+      </div>
       <div class="sec-title">状态</div>
       <div class="panel" id="bot-status">${suffix("加载中…",'off')}</div>
       <div class="sec-title">用量总览</div>
@@ -867,7 +885,7 @@ function renderBot(m){
       <div class="panel" id="w-rank">${suffix("加载中…",'off')}</div>
       <div class="sec-title">最近对话 <span class="stip">点任一条查看完整记录</span></div>
       <div class="panel" id="w-conv">${suffix("加载中…",'off')}</div>
-      <div class="sec-title">记忆管理</div>
+      <div class="sec-title">记忆管理 <span class="stip">向机器人发送「记住 事项」即可添加</span></div>
       <div class="panel" id="w-mem">${suffix("加载中…",'off')}</div>
     </div>`;
 
