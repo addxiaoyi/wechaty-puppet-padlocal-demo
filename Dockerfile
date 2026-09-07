@@ -21,6 +21,7 @@ WORKDIR /app
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/package.json ./
+COPY --from=build /app/ui-demo ./ui-demo
 # 配置模板随镜像提供，便于首次部署
 COPY --from=build /app/.env.example ./
 

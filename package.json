@@ -28,7 +28,9 @@
     "eslint": "^8.57.0",
     "prettier": "^3.2.5",
     "ts-node": "^10.9.2",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "vite": "^8.2.2",
+    "vitest": "^5.0.0"
   },
   "scripts": {
     "demo": "npx ts-node main.ts",
@@ -36,7 +38,9 @@
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "engines": {
     "node": ">= 16",

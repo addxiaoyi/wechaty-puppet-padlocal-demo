@@ -143,8 +143,8 @@ export function dailyUsage(days = 7): DailyUsage[] {
     .prepare(
       `SELECT date(created_at/1000, 'unixepoch') as date,
               count(*) as calls,
-              sum(in_tokens) as in_tokens,
-              sum(out_tokens) as out_tokens
+              sum(in_tokens) as inTokens,
+              sum(out_tokens) as outTokens
        FROM usage_log
        WHERE created_at >= ?
        GROUP BY date ORDER BY date DESC LIMIT ?`
