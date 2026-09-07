@@ -323,7 +323,6 @@ async function loadConversations() {
     conv.appendChild(div);
   });
 }
-const esc = (s) => String(s).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
 
 function refreshAll() {
   loadSummary(); loadTrend(); loadMemories(); loadRanking(); loadConversations();
