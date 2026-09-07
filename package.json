@@ -1,26 +1,43 @@
 {
   "name": "wechaty-puppet-padlocal-demo",
-  "version": "0.1.2",
-  "description": "Demo for wechaty-puppet-padlocal",
+  "version": "0.2.0",
+  "description": "Demo for wechaty with pluggable puppet (PadLocal / Service)",
   "author": "haoda",
   "license": "Apache-2.0",
+  "main": "dist/main.js",
   "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "dotenv": "^16.4.5",
+    "express": "^5.2.1",
     "qrcode-terminal": "^0.12.0",
-    "wechaty": "^1.19.10",
-    "wechaty-puppet": "^1.19.6",
-    "wechaty-puppet-padlocal": "^1.11.18"
+    "wechaty": "^1.20.2",
+    "wechaty-puppet": "^1.20.2",
+    "wechaty-puppet-padlocal": "^1.20.1",
+    "wechaty-puppet-service": "^1.18.2"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/express": "^5.0.6",
+    "@types/node": "^20.11.0",
+    "@types/qrcode-terminal": "^0.12.2",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
     "cross-env": "^7.0.3",
-    "ts-node": "^10.7.0",
-    "typescript": "^4.6.4"
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
   },
   "scripts": {
     "demo": "npx ts-node main.ts",
-    "demo-esm": "cross-env NODE_OPTIONS=\"--no-warnings --loader=ts-node/esm\" node main.ts"
+    "build": "tsc",
+    "start": "node dist/main.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts",
+    "format": "prettier --write ."
   },
   "engines": {
     "node": ">= 16",
-    "npm": ">=7"
+    "npm": ">= 7"
   }
 }

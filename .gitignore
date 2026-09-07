@@ -1,9 +1,9 @@
 node_modules
-#!/config/
-/config/*
-!/config/default.json
-
+dist
 .idea
 .DS_Store
 package-lock.json
 yarn.lock
+
+.env
+bot-data/
