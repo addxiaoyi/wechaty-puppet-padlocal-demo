@@ -1351,7 +1351,7 @@ function buildDrawer(){
   $("#drawerList").querySelectorAll("[data-go]").forEach(el=>el.onclick=()=>go(el.dataset.go));
 }
 function openDrawer(){
-  $("#drawerList").querySelectorAll(".ditem").forEach(el=>el.classList.toggle("active", true));
+  $("#drawerList").querySelectorAll(".ditem").forEach(el=>el.classList.toggle("active", el.dataset.go===('bot-'+botView)));
   $("#drawer").classList.add("show"); $("#scrim").classList.add("show");
 }
 function closeDrawer(){ $("#drawer").classList.remove("show"); $("#scrim").classList.remove("show"); }
