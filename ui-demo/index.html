@@ -136,6 +136,12 @@
   .foot{padding:30px 0 46px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:20px;color:var(--ink-soft);font-size:13.5px;flex-wrap:wrap}
   .foot .serif{font-family:var(--serif);font-style:italic;color:var(--ink);font-size:15px}
 
+  /* workbench gateway: hidden on landing, reveals on entry */
+  .workbench{opacity:0;transform:translateY(36px);pointer-events:none;transition:opacity .8s var(--ease),transform .8s var(--ease)}
+  .workbench.on{opacity:1;transform:none;pointer-events:auto}
+  .into{display:inline-flex;align-items:center;gap:8px;font-size:15px;color:var(--ink-soft)}
+  .into svg{transition:transform .3s var(--ease)}.into:hover svg{transform:translateX(4px)}
+
   @media(max-width:960px){.metrics{grid-template-columns:repeat(2,1fr)}.charts{grid-template-columns:1fr}.stories{grid-template-columns:repeat(2,1fr)}}
   @media(max-width:640px){.nav-links{display:none}.metrics{grid-template-columns:1fr}.stories{grid-template-columns:1fr}.lab{grid-template-columns:1fr}.seg button{padding:6px 10px;font-size:11.5px}}
   @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::after,*::before{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
@@ -170,11 +176,11 @@
     <h1>让数据<em>呼吸</em></h1>
     <p class="lede">曲线由弹簧归位，数值在阻尼中落定。图表不做俗套，像一株活物。</p>
     <div class="hero-actions">
-      <button class="mag-cta" data-magnet><span>进入工作台</span></button>
-      <a class="link-quiet" href="#specimen">查看交互样本<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      <button class="mag-cta" id="enterBtn" data-magnet><span>进入工作台</span></button>
     </div>
   </header>
 
+  <div class="workbench" id="workbench">
   <section id="signals" class="metrics" aria-label="关键指标">
     <article class="glass metric">
       <div class="glow" style="background:var(--accent-soft)"></div>
@@ -315,6 +321,7 @@
       <span class="more">触摸样本 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
     </article>
   </section>
+  </div>
 
   <footer class="foot">
     <span>© 2026 Meridian Observatory</span>
@@ -586,6 +593,24 @@
       card.addEventListener("pointermove",function(ev){ var r=card.getBoundingClientRect(); var nx=(ev.clientX-r.left)/r.width-0.5, ny=(ev.clientY-r.top)/r.height-0.5; sx.setTarget(nx*10); sy.setTarget(ny*10); card.style.zIndex="3"; });
       card.addEventListener("pointerleave",function(){ sx.setTarget(0); sy.setTarget(0); card.style.zIndex=""; });
     });
+  })();
+
+  /* ---------- workbench gateway: hero reveals the workbench on entry ------------- */
+  (function(){
+    var wb=document.getElementById("workbench");
+    if(!wb) return;
+    var raf=false;
+    function enter(){ if(raf) return; raf=true; wb.classList.add("on");
+      requestAnimationFrame(function(){ raf=false;
+        wb.scrollIntoView({behavior: reduced?"auto":"smooth", block:"start"});
+      });
+    }
+    var btn=document.getElementById("enterBtn");
+    if(btn) btn.addEventListener("click",enter);
+    var nav=document.querySelector(".nav [data-magnet]");
+    if(nav) nav.addEventListener("click",function(){ enter(); setTimeout(function(){ wb.scrollIntoView({behavior:reduced?"auto":"smooth"}); },750); });
+    // if reduced motion, still make it enter immediately
+    if(reduced) wb.classList.add("on");
   })();
 })();
 </script>
