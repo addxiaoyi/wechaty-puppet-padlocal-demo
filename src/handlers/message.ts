@@ -1,6 +1,7 @@
 import { log } from 'wechaty'
 import type { Message } from 'wechaty'
 import * as PUPPET from 'wechaty-puppet'
+import { askAgent } from '../services/agent'
 
 export const LOGPRE = '[PadLocalDemo]'
 
@@ -8,7 +9,36 @@ export async function handleMessage(message: Message): Promise<void> {
   log.info(LOGPRE, `on message: ${message.toString()}`)
 
   await logPayload(message)
-  await dingDongBot(message)
+  await reply(message)
+}
+
+// 私聊直接回复；群聊仅在 @机器人 时回复
+async function reply(message: Message): Promise<void> {
+  if (message.type() !== PUPPET.types.Message.Text) {
+    return
+  }
+
+  const roomId = message.room()?.id ?? null
+  const talker = message.talker()
+
+  // 自己发的消息不回复
+  if (message.self()) {
+    return
+  }
+  // 群聊：仅在 @机器人 时回复，避免刷屏
+  if (roomId && !(await message.mentionSelf())) {
+    return
+  }
+
+  const answer = await askAgent({
+    contactId: talker.id,
+    roomId,
+    text: message.text(),
+  })
+
+  if (answer && !message.self()) {
+    await message.say(answer)
+  }
 }
 
 async function logPayload(message: Message): Promise<void> {
@@ -73,12 +103,5 @@ async function logPayload(message: Message): Promise<void> {
       log.info(LOGPRE, `MiniProgramPayload: ${JSON.stringify(miniProgram)}`)
       break
     }
-  }
-}
-
-async function dingDongBot(message: Message): Promise<void> {
-  // 只回应对机器人自己的消息，且文本包含 ding
-  if (message.to()?.self() && message.text().includes('ding')) {
-    await message.talker().say(message.text().replace('ding', 'dong'))
   }
 }
