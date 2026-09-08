@@ -102,7 +102,9 @@ export function startWebServer(status: StatusHub): Server {
   // 最近收到的消息流（含类型与元信息），供「多类型消息」页展示
   app.get('/api/messages', (req: Request, res: Response) => {
     const limit = Number.parseInt(String(req.query.limit ?? '50'), 10)
-    res.json(recentMessageTypes(Number.isNaN(limit) ? 50 : limit))
+    const type = String(req.query.type ?? '')
+    const msgs = recentMessageTypes(Number.isNaN(limit) ? 50 : limit)
+    res.json(type ? msgs.filter(m => m.type === type) : msgs)
   })
 
   // 最近向量召回记录，供「向量召回」页展示埋点数据

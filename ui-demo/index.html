@@ -427,8 +427,10 @@
   .mrow-inf { color:var(--text-secondary); font-size:13px; line-height:1.6; }
   .mrow-inf svg { flex:0 0 auto; color:var(--module-3); }
   .msg-types { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
-  .msg-types span { font-size:12px; color:var(--text-secondary); background:var(--surface-nested);
-    border:1px solid var(--border); border-radius:999px; padding:5px 12px; }
+.msg-types span { font-size:12px; color:var(--text-secondary); background:var(--surface-nested);
+  border:1px solid var(--border); border-radius:999px; padding:5px 12px; cursor:pointer; transition:.15s; }
+.msg-types span:hover { border-color:var(--accent); color:var(--accent); }
+.msg-types span.active { background:var(--accent); color:#fff; border-color:var(--accent); }
   .btn-del { border:none; background:var(--danger-muted); color:var(--danger); border-radius:8px; padding:6px; cursor:pointer;
     display:grid; place-items:center; flex:0 0 auto; }
   .btn-del:disabled { opacity:.5; }
@@ -899,7 +901,7 @@ const api = {
   memoriesByIds: (ids)    => apiGet("/memories-by-ids", { ids: (ids||[]).join(",") }),
   deleteMemory:  (id)     => apiSend("/memories/"+id, null, { method:"DELETE" }),
   addMemory:     (payload)=> apiSend("/memories", null, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) }),
-  messages:      (limit=50)=> apiGet("/messages", { limit }),
+  messages:      (limit=50, type=null)=> type ? apiGet("/messages", { limit, type }) : apiGet("/messages", { limit }),
   recalls:       (limit=20)=> apiGet("/recalls", { limit }),
 };
 // 子页统一页头：标题 + 返回按钮
@@ -1010,19 +1012,32 @@ function renderBotGroup(){  renderBotConvs("群聊 @ 应答","群里 @机器人 
 
 /* 多类型消息页：展示真实落库的消息类型流（文本/图片/语音/视频/表情/链接/小程序/文件） */
 function renderBotMsg(){
+  const types = ["全部","文本","图片","语音","视频","表情","链接","小程序","文件"];
+  const typeMap = { "全部":null, "文本":"文本", "图片":"图片", "语音":"语音", "视频":"视频", "表情":"表情", "链接":"链接", "小程序":"小程序", "文件":"文件" };
   $("#screen").innerHTML = botPageHead("多类型消息","识别文本/图片/语音/视频/表情/链接/小程序/文件")
     + `<div style="margin-top:16px">
-      <div class="msg-types">${["文本","图片","语音","视频","表情","链接","小程序","文件"].map(t=>`<span>${t}</span>`).join("")}</div>
+      <div class="msg-types" id="msg-types-bar">${types.map(t=>`<span class="${t==='全部'?'active':''}" data-type="${t}">${t}</span>`).join("")}</div>
       <div class="panel" id="w-msg">${botSuffix("加载中…",'off')}</div>
     </div>`;
+
+  let activeType = null;
 
   const retry = ()=>{ renderBotMsg(); };
   const refresh = ()=>{ renderBotMsg(); };
   $("#bot-refer").onclick = refresh;
 
+  $("#msg-types-bar").addEventListener("click", (e)=>{
+    const span = e.target.closest("[data-type]");
+    if(!span) return;
+    const t = span.dataset.type;
+    if(!typeMap.hasOwnProperty(t)) return;
+    activeType = typeMap[t];
+    renderBotMsg();
+  });
+
   (async ()=>{
     const el=$("#w-msg");
-    try{ const list = await api.messages(50); const arr=(list||[]).slice().reverse();
+    try{ const list = await api.messages(50, activeType); const arr=(list||[]).slice().reverse();
       if(!arr.length){ el.innerHTML=`<div class="empty">暂无消息，收到新消息后这里会实时展示</div>`; return; }
       el.innerHTML = arr.map(mm=>{
         const meta = mm.meta||{};
@@ -1200,14 +1215,22 @@ function openConv(contactId, roomId){
   sheet.querySelector(".btn-close").onclick=()=>mask.remove();
   mask.onclick=(e)=>{ if(e.target===mask) mask.remove(); };
   const box=sheet.querySelector(".sh-b");
-  (async()=>{
+  
+  const retry = async()=>{ try{ await load(); }catch(e){ showError(e); } };
+  const load = async()=>{
     try{
       const list = await api.conversations(contactId, roomId || null);
       const arr = list.slice().reverse();
       box.innerHTML = arr.length ? arr.map(mm=>`<div class="bmsg ${mm.role}"><div class="nm">${ROLE_LABEL[mm.role]||mm.role} · ${new Date(mm.created_at).toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"})}</div><div class="bd">${esc(mm.content)}</div></div>`).join("")
         : `<div class="empty">暂无历史会话</div>`;
-    }catch(e){ box.innerHTML=`<div class="empty">加载失败${(e&&e.message)?' · '+esc(String(e.message)):''}</div>`; }
-  })();
+    }catch(e){ showError(e); }
+  };
+  const showError=(e)=>{ box.innerHTML=`<div class="load-fail text-center" style="padding:24px 16px">
+    <div class="error-msg">${esc(e?.message||'加载失败')}</div>
+    <button class="btn retry-btn" data-retry>重新加载</button>
+  </div>`; wireRetry(sheet, retry); };
+  
+  load();
 }
 
 /* ---------- MODULE VIEW ---------- */
