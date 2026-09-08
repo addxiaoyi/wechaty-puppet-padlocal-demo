@@ -271,6 +271,18 @@ export function deleteMemory(id: number): void {
   db.prepare('DELETE FROM memories WHERE id = ?').run(id)
 }
 
+// 按一组 id 取记忆（召回命中明细用）；id 列表为空时返回空数组
+export function memoriesByIds(ids: number[]): MemoryRow[] {
+  if (!ids.length) return []
+  const marks = ids.map(() => '?').join(',')
+  return db
+    .prepare(
+      `SELECT id, contact_id as contactId, room_id as roomId, content, created_at
+       FROM memories WHERE id IN (${marks}) ORDER BY id DESC`
+    )
+    .all(...ids) as unknown as MemoryRow[]
+}
+
 export function allMemories(contactId?: string): MemoryRow[] {
   if (contactId) {
     return db

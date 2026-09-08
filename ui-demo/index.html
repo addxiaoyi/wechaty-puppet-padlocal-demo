@@ -872,7 +872,9 @@ const CAP = [
   { i:"chart",  t:"Token 用量",   d:"记录每轮输入/输出 Token 并统计",    page:"usage" },
 ];
 function botSuffix(txt, cls){ const s={ ok:'ok', off:'off', scan:'scan' }[cls]||'off'; return `<div class="lineq"><div class="mstate ${s}"></div><span>${txt}</span></div>`; }
-const botFail = (el)=>{ if(el) el.innerHTML = `<div class="empty">机器人服务未连接</div>`; };
+const botFail = (el)=>{ if(el) el.innerHTML = `<div class="empty"><span class="e">${icon("refresh",24)}</span><div>机器人服务未连接</div><div style="margin-top:10px"><button class="btn" data-retry style="max-width:120px">重试</button></div></div>`; };
+// 给失败占位里的「重试」按钮绑定回调；无回调时整页重渲染
+function wireRetry(el, retry){ el.querySelectorAll("[data-retry]").forEach(b=>b.onclick=()=> (retry||render)()); }
 
 /* ---------- API Client 抽象层：端点集中定义，前端不再感知路径拼接 ---------- */
 const BOT_BASE = (CONFIG.modules.find(x=>x.key==="bot")||{}).api||"/api";
@@ -887,6 +889,7 @@ const api = {
   recentConvs:   ()       => apiGet("/conversations/recent"),
   conversations: (contactId, roomId) => apiGet("/conversations", { contactId, roomId }),
   memories:      ()       => apiGet("/memories"),
+  memoriesByIds: (ids)    => apiGet("/memories-by-ids", { ids: (ids||[]).join(",") }),
   deleteMemory:  (id)     => apiSend("/memories/"+id, null, { method:"DELETE" }),
   addMemory:     (payload)=> apiSend("/memories", null, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) }),
   messages:      (limit=50)=> apiGet("/messages", { limit }),
@@ -912,17 +915,22 @@ function renderBotHome(m){
       </div>
     </div>`;
 
+  let pollTimer = null;
   const run = async ()=>{
     const el=$("#bot-status");
+    if(!el) return;
     try{ const d = await api.status();
       const map = { idle:['初始化中','off'], scanning:['等待扫码','scan'], 'logged-in':['在线 · '+(d.userName||'—'),'ok'], 'logged-out':['已登出','off'] };
       const [txt,cls] = map[d.state] || ['连接中…','off'];
       const qr = d.state==='scanning' && d.qrcodeUrl ? `<img class="bot-qr" src="${d.qrcodeUrl}" alt="扫码登录二维码"/>` : '';
       el.innerHTML = botSuffix(txt, cls) + qr;
-    }catch(e){ botFail(el); }
+      // 扫码阶段每 2s 自动轮询，登录成功/登出即停
+      if(d.state==='scanning'){ if(!pollTimer) pollTimer=setInterval(run, 2000); }
+      else if(pollTimer){ clearInterval(pollTimer); pollTimer=null; }
+    }catch(e){ botFail(el); wireRetry(el, run); }
   };
   run();
-  $("#bot-refresh").onclick = run;
+  $("#bot-refresh").onclick = ()=>{ clearInterval(pollTimer); pollTimer=null; run(); };
   $("#screen").querySelectorAll(".cap-link").forEach(card=>{ card.onclick = ()=>go('bot-'+card.dataset.page); });
 }
 

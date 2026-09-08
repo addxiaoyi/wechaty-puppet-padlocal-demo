@@ -9,6 +9,7 @@ import {
   usageSummary,
   allMemories,
   deleteMemory,
+  memoriesByIds,
   recentConversations,
   listConversations,
   usageByContact,
@@ -108,6 +109,16 @@ export function startWebServer(status: StatusHub): Server {
   app.get('/api/recalls', (req: Request, res: Response) => {
     const limit = Number.parseInt(String(req.query.limit ?? '20'), 10)
     res.json(recentRecalls(Number.isNaN(limit) ? 20 : limit))
+  })
+
+  // 按 id 列表取记忆，供「向量召回」页查看命中明细
+  app.get('/api/memories-by-ids', (req: Request, res: Response) => {
+    const raw = String(req.query.ids ?? '')
+    const ids = raw
+      .split(',')
+      .map((s) => Number.parseInt(s.trim(), 10))
+      .filter((n) => !Number.isNaN(n))
+    res.json(memoriesByIds(ids))
   })
 
   // 根路径 / 由上方 express.static 托管工作台 index.html
