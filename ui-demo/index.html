@@ -432,6 +432,13 @@
   .btn-del { border:none; background:var(--danger-muted); color:var(--danger); border-radius:8px; padding:6px; cursor:pointer;
     display:grid; place-items:center; flex:0 0 auto; }
   .btn-del:disabled { opacity:.5; }
+  .btn-refresh{opacity:.7;transition:.2s}
+  .btn-refresh:hover{opacity:1}
+  .mrow-msg .btn-refresh{color:var(--accent);background:var(--surface-nested);border:1px solid var(--border);min-width:32px;width:32px}
+  .loading-dots{animation:dots 1s infinite;opacity:.7}
+  @keyframes dots{0%{content:"·"}25%{content:"··"}50%{content:"···"}75%{content:"··"}}
+  .load-fail{width:100%;text-align:center;line-height:1.6;color:var(--danger-muted)}
+  .load-fail .retry-btn{margin-top:8px}
   .sheet-mask { position:fixed; inset:0; background:oklab(0.05 0 0/.5); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
     z-index:90; display:flex; align-items:flex-end; justify-content:center; animation:shfade .2s ease; }
   @keyframes shfade { from { opacity:0 } }
@@ -898,7 +905,8 @@ const api = {
 // 子页统一页头：标题 + 返回按钮
 function botPageHead(title, sub, backTo){
   return `<div class="greet"><div><h1>${title}</h1><p>${sub}</p></div>
-    <button class="add" id="bot-back">${icon("chevron",15,2)} 返回</button></div>`;
+    <button class="add" id="bot-back">${icon("chevron",15,2)} 返回</button>
+    <button class="add" id="bot-refer" style="margin-left:6px">${icon("refresh",16,1.8)} 刷新</button></div>`;
 }
 
 /* 首页：运行状态 + 机器人能力卡片 */
@@ -915,7 +923,6 @@ function renderBotHome(m){
       </div>
     </div>`;
 
-  let pollTimer = null;
   const run = async ()=>{
     const el=$("#bot-status");
     if(!el) return;
@@ -924,13 +931,12 @@ function renderBotHome(m){
       const [txt,cls] = map[d.state] || ['连接中…','off'];
       const qr = d.state==='scanning' && d.qrcodeUrl ? `<img class="bot-qr" src="${d.qrcodeUrl}" alt="扫码登录二维码"/>` : '';
       el.innerHTML = botSuffix(txt, cls) + qr;
-      // 扫码阶段每 2s 自动轮询，登录成功/登出即停
       if(d.state==='scanning'){ if(!pollTimer) pollTimer=setInterval(run, 2000); }
       else if(pollTimer){ clearInterval(pollTimer); pollTimer=null; }
     }catch(e){ botFail(el); wireRetry(el, run); }
   };
   run();
-  $("#bot-refresh").onclick = ()=>{ clearInterval(pollTimer); pollTimer=null; run(); };
+  $("#bot-refresh").onclick = ()=>{ stopPoll(); run(); };
   $("#screen").querySelectorAll(".cap-link").forEach(card=>{ card.onclick = ()=>go('bot-'+card.dataset.page); });
 }
 
@@ -948,17 +954,21 @@ function renderBotUsage(){
       <div class="panel" id="w-rank">${botSuffix("加载中…",'off')}</div>
     </div>`;
 
+  const retry = ()=>{ renderBotUsage(); };
+  const refresh = ()=>{ renderBotUsage(); };
+  $("#bot-refer").onclick = refresh;
+
   (async ()=>{
     try{ const d = await api.usageSummary();
       $("#v-calls").textContent=(d.totalCalls??0).toLocaleString();
       $("#v-in").textContent=(d.totalIn??0).toLocaleString();
       $("#v-out").textContent=(d.totalOut??0).toLocaleString();
       $("#v-total").textContent=((d.totalIn??0)+(d.totalOut??0)).toLocaleString();
-    }catch(e){ botFail($("#v-calls").parentElement); }
+    }catch(e){ botFail($("#v-calls").parentElement); wireRetry($("#v-calls").parentElement, retry); }
     const tel=$("#w-trend");
     try{ const d = await api.usageDaily(7); const arr=(d.data||[]);
       tel.innerHTML = arr.length ? botTrendSVG(arr) : `<div class="empty">暂无用量数据</div>`;
-    }catch(e){ botFail(tel); }
+    }catch(e){ botFail(tel); wireRetry(tel, retry); }
     const rel=$("#w-rank");
     try{ const list = await api.usageByContact();
       if(!list.length){ rel.innerHTML=`<div class="empty">暂无用户用量</div>`; return; }
@@ -966,7 +976,7 @@ function renderBotUsage(){
         <span class="idx">${i+1}</span><span class="who">${esc(u.contactId||'匿名')}</span>
         <span class="muted">${u.calls} 次</span><b class="tk">${(u.totalTokens||0).toLocaleString()}</b></div>`).join("");
       rel.querySelectorAll(".mrow-link").forEach(row=>{ row.onclick=()=>openConv(row.dataset.c, null); });
-    }catch(e){ botFail(rel); }
+    }catch(e){ botFail(rel); wireRetry(rel, retry); }
   })();
   $("#bot-back").onclick = ()=>go('bot');
 }
@@ -976,12 +986,12 @@ function renderBotConvs(title, sub, filter, extra){
   $("#screen").innerHTML = botPageHead(title, sub)
     + `<div style="margin-top:16px">${extra||""}<div class="panel" id="w-conv">${botSuffix("加载中…",'off')}</div></div>`;
 
-  (async ()=>{
+  const load = async ()=>{
     const el=$("#w-conv");
     try{ const list = await api.recentConvs();
       let arr=list.slice().reverse();
-      if(filter==='p') arr=arr.filter(mm=>!mm.roomId);       // 私聊
-      else if(filter==='g') arr=arr.filter(mm=>!!mm.roomId); // 群聊
+      if(filter==='p') arr=arr.filter(mm=>!mm.roomId);
+      else if(filter==='g') arr=arr.filter(mm=>!!mm.roomId);
       if(!arr.length){ el.innerHTML=`<div class="empty">暂无对话</div>`; return; }
       el.innerHTML = arr.map(mm=>`<div class="mrow mrow-msg mrow-link" data-c="${esc(mm.contactId||'')}" data-r="${esc(mm.roomId||'')}" data-role="${mm.role}">
         <span class="role ${mm.role}">${ROLE_LABEL[mm.role]||mm.role}</span>
@@ -989,8 +999,10 @@ function renderBotConvs(title, sub, filter, extra){
         <span class="txt">${esc(mm.content)}</span>
         <span class="muted">${new Date(mm.created_at).toLocaleString("zh-CN",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</span></div>`).join("");
       el.querySelectorAll(".mrow-link").forEach(row=>{ row.onclick=()=>openConv(row.dataset.c, row.dataset.r||null); });
-    }catch(e){ botFail(el); }
-  })();
+    }catch(e){ botFail(el); wireRetry(el, load); }
+  };
+  load();
+  $("#bot-refer").onclick = load;
   $("#bot-back").onclick = ()=>go('bot');
 }
 function renderBotAi(){     renderBotConvs("AI 智能回复","连续上下文对话 · 私聊直接应答", 'p'); }
@@ -1003,6 +1015,10 @@ function renderBotMsg(){
       <div class="msg-types">${["文本","图片","语音","视频","表情","链接","小程序","文件"].map(t=>`<span>${t}</span>`).join("")}</div>
       <div class="panel" id="w-msg">${botSuffix("加载中…",'off')}</div>
     </div>`;
+
+  const retry = ()=>{ renderBotMsg(); };
+  const refresh = ()=>{ renderBotMsg(); };
+  $("#bot-refer").onclick = refresh;
 
   (async ()=>{
     const el=$("#w-msg");
@@ -1017,7 +1033,7 @@ function renderBotMsg(){
           <span class="muted">${fmtDateTime(mm.createdAt)}</span></div>`;
       }).join("");
       el.querySelectorAll(".mrow-msg").forEach(row=>{ row.onclick=()=>openConv(row.dataset.c, row.dataset.r||null); });
-    }catch(e){ botFail(el); }
+    }catch(e){ botFail(el); wireRetry(el, retry); }
   })();
   $("#bot-back").onclick = ()=>go('bot');
 }
@@ -1033,12 +1049,16 @@ function renderBotMem(){
         <div class="sec-title">手动新增记忆 <span class="stip">填用户标识与内容，保存后同步向量化</span></div>
         <div class="field"><label>用户标识 contactId</label><input id="mem-contact" placeholder="微信号 / 联系人 id"/></div>
         <div class="field"><label>记忆内容</label><textarea id="mem-content" placeholder="例如：用户喜欢喝美式，不加糖"></textarea></div>
-        <button class="btn" id="mem-save">${icon("plus",15,2.2)} 保存记忆</button>
+        <button class="btn" id="mem-save" disabled>${icon("plus",15,2.2)} 保存记忆</button>
         <div class="lineq" id="mem-msg" style="display:none"></div>
       </div>
       <div class="sec-title">记忆库</div>
       <div class="panel" id="w-mem">${botSuffix("加载中…",'off')}</div>
     </div>`;
+
+  const retry = ()=>{ renderBotMem(); };
+  const refresh = ()=>{ renderBotMem(); };
+  $("#bot-refer").onclick = refresh;
 
   const load = async ()=>{
     const el=$("#w-mem");
@@ -1048,19 +1068,42 @@ function renderBotMem(){
         <div class="txt">${esc(mm.content)}</div>
         <span class="muted">${new Date(mm.created_at).toLocaleDateString("zh-CN")}</span>
         <button class="btn-del js-mem-del" data-id="${mm.id}">${icon("trash",14)}</button></div>`).join("");
-      el.querySelectorAll(".js-mem-del").forEach(b=>{ b.onclick=async(e)=>{ e.stopPropagation(); b.disabled=true; await api.deleteMemory(b.dataset.id); load(); }; });
-    }catch(e){ botFail(el); }
+      el.querySelectorAll(".js-mem-del").forEach(b=>{ b.onclick=async(e)=>{ e.stopPropagation(); b.disabled=true; b.style.opacity=".7"; await api.deleteMemory(b.dataset.id); load(); }; });
+    }catch(e){ botFail(el); wireRetry(el, retry); }
   };
   load();
 
   const msg=(txt,ok)=>{ const m=$("#mem-msg"); m.style.display="block"; m.innerHTML=botSuffix(txt,ok?'ok':'off'); };
-  $("#mem-save").onclick=async()=>{
+  let saving = false, debounceTimer = null;
+  const doSave = async()=>{
+    if(saving) return;
     const contactId=$("#mem-contact").value.trim();
     const content=$("#mem-content").value.trim();
     if(!contactId||!content){ msg("请填写用户标识和内容",false); return; }
+    saving = true;
+    $("#mem-save").innerHTML = `<span class="loading-dots">${icon("check",15,1.8)}</span> 保存中`;
+    $("#mem-save").disabled = true;
     try{ await api.addMemory({ contactId, content }); $("#mem-contact").value=""; $("#mem-content").value=""; msg("已保存",true); load(); }
     catch(e){ msg("保存失败："+(e&&e.message||e),false); }
+    finally{ saving = false; $("#mem-save").innerHTML = icon("plus",15,2.2); $("#mem-save").disabled = false; }
   };
+  $("#mem-save").onclick=doSave;
+  // Enter 键提交（保留 Shift+Enter 换行）
+  $("#mem-contact").addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); doSave(); } });
+  $("#mem-content").addEventListener('keydown',(e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); doSave(); } });
+  // 输入变化时防抖启用保存按钮
+  ["#mem-contact","#mem-content"].forEach(sel=>{
+    $(sel).addEventListener('input',()=>{
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(()=>{
+        const hasContent = !!$("#mem-contact").value.trim() && !!$("#mem-content").value.trim();
+        $("#mem-save").disabled = !hasContent;
+        $("#mem-save").style.opacity = hasContent ? '1' : '.5';
+      }, 300);
+    });
+  });
+  // 初始状态
+  $("#mem-save").disabled = !$("#mem-contact").value.trim() || !$("#mem-content").value.trim();
   $("#bot-back").onclick = ()=>go('bot');
 }
 
@@ -1069,22 +1112,45 @@ function renderBotRecall(){
   $("#screen").innerHTML = botPageHead("向量召回","提问时自动检索相关记忆注入上下文")
     + `<div style="margin-top:16px">
       <div class="panel"><div class="mrow mrow-inf">${icon("target",15)} 机器人提问时会把临近相关记忆当作上下文一并交给模型，让回答「记得你」。以下为真实召回命中记录。</div></div>
-      <div class="sec-title">召回命中记录</div>
+      <div class="sec-title">召回命中记录 <span class="stip">点行查看命中的记忆详情</span></div>
       <div class="panel" id="w-recall">${botSuffix("加载中…",'off')}</div>
       <div class="sec-title">记忆库（召回来源）</div>
       <div class="panel" id="w-recall-src">${botSuffix("加载中…",'off')}</div>
     </div>`;
 
+  const retry = ()=>{ renderBotRecall(); };
+  const refresh = ()=>{ renderBotRecall(); };
+  $("#bot-refer").onclick = refresh;
+
   const loadHits = async ()=>{
     const el=$("#w-recall");
     try{ const list = await api.recalls(20);
       if(!list.length){ el.innerHTML=`<div class="empty">暂无召回记录，机器人被提问并命中记忆后会在这里展示</div>`; return; }
-      el.innerHTML = list.map(rr=>`<div class="mrow mrow-mem" data-c="${esc(rr.contactId||'')}" data-r="${esc(rr.roomId||'')}">
+      el.innerHTML = list.map(rr=>`<div class="mrow mrow-mem recall-hit" data-ids="${esc((rr.hitIds||[]).join(','))}">
         <span class="role msg-type">${rr.hitCount} 命中</span>
         <div class="txt"><b>${esc(rr.query)}</b>${rr.roomId?'<i class="grp">群</i>':''}</div>
-        <span class="muted">${fmtDateTime(rr.createdAt)}</span></div>`).join("");
-      el.querySelectorAll(".mrow-mem").forEach(row=>{ row.onclick=()=>openConv(row.dataset.c, row.dataset.r||null); });
-    }catch(e){ botFail(el); }
+        <span class="muted">${fmtDateTime(rr.createdAt)}</span>
+        <span class="muted" style="margin-left:8px">${rr.hitCount} 条记忆</span>
+        <span class="muted" style="margin-left:auto;color:var(--accent)">查看详情 ▸</span></div>`).join("");
+      el.querySelectorAll(".recall-hit").forEach(row=>{
+        row.onclick = async ()=>{
+          const ids = (row.dataset.ids||"").split(",").map(Number).filter(n=>!Number.isNaN(n));
+          if(!ids.length){ alert("未记录命中的记忆 ID"); return; }
+          row.style.pointerEvents="none"; row.style.opacity=".7";
+          try{
+            const mems = await api.memoriesByIds(ids);
+            const box = row.querySelector(".txt");
+            if(box){
+              box.innerHTML = `<b>${esc((row.querySelector(".txt b")?.textContent||""))} · 命中记忆</b><br/>` +
+                (mems.length ? mems.map(m=>`<div style="margin-top:6px;padding:8px;background:var(--surface-nested);border-radius:8px;border:1px solid var(--border)">` +
+                  `<div style="font-size:11px;color:var(--text-tertiary)">${esc(m.contactId||'')} · ${new Date(m.created_at).toLocaleDateString("zh-CN")}</div>` +
+                  `<div style="margin-top:4px">${esc(m.content)}</div></div>`).join("") : `<div style="margin-top:6px;color:var(--text-secondary)">记忆源记录缺失</div>`);
+            }
+          }catch(e){ alert("加载失败："+(e&&e.message||e)); }
+          finally { row.style.pointerEvents=""; row.style.opacity=""; }
+        };
+      });
+    }catch(e){ botFail(el); wireRetry(el, retry); }
   };
   const loadSrc = async ()=>{
     const el=$("#w-recall-src");
@@ -1093,7 +1159,7 @@ function renderBotRecall(){
       el.innerHTML = list.map(mm=>`<div class="mrow mrow-mem"><div class="who">${esc(mm.contactId||'匿名')}</div>
         <div class="txt">${esc(mm.content)}</div>
         <span class="muted">${new Date(mm.created_at).toLocaleDateString("zh-CN")}</span></div>`).join("");
-    }catch(e){ botFail(el); }
+    }catch(e){ botFail(el); wireRetry(el, retry); }
   };
   loadHits();
   loadSrc();
@@ -1393,8 +1459,12 @@ function confirmDelete(key,id){
 
 /* ---------- router / nav ---------- */
 let botView = 'home';
+// 页面级轮询句柄集中管理：离开页面即清，防止后台定时器泄漏
+let pollTimer = null;
+function stopPoll(){ if(pollTimer){ clearInterval(pollTimer); pollTimer=null; } }
 function go(v){
   closeDrawer();
+  stopPoll();  // 切页先停轮询，再重渲染
   if(typeof v==='string' && v.indexOf('bot-')===0) botView = v.slice(4);   // 能力卡 → 子页
   else if(v==='bot') botView = 'home';                                     // 底部机器人 → 首页
   render();
