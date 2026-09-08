@@ -478,6 +478,24 @@
 .net-status.show { transform:translateY(0); }
 .net-status.offline { background:var(--danger); color:#fff; }
 .net-status.online { background:var(--module-1); color:#fff; }
+
+/* ---------- keyboard shortcut hint ---------- */
+.kbd-hint { position:fixed; right:16px; bottom:84px; z-index:80; width:38px; height:38px; border-radius:999px;
+  border:1px solid var(--border); background:var(--surface-card); backdrop-filter:blur(16px) saturate(1.1);
+  -webkit-backdrop-filter:blur(16px) saturate(1.1); color:var(--text-secondary); font-size:15px; font-weight:700;
+  display:grid; place-items:center; cursor:pointer; box-shadow:0 8px 20px -10px oklab(0.05 0 0/.6); transition:.18s; }
+.kbd-hint:hover { color:var(--accent); border-color:var(--accent); transform:translateY(-2px); }
+.kbd-panel { position:fixed; right:16px; bottom:130px; z-index:95; width:min(320px, calc(100vw - 32px));
+  background:var(--surface-card); backdrop-filter:blur(22px) saturate(1.1); -webkit-backdrop-filter:blur(22px) saturate(1.1);
+  border:1px solid var(--border); border-radius:var(--radius-card); box-shadow:var(--shadow-overlay);
+  padding:16px; animation:kbdIn .18s ease; }
+@keyframes kbdIn { from { opacity:0; transform:translateY(8px) } }
+.kbd-panel .kbd-t { font-size:11px; font-weight:700; letter-spacing:.08em; color:var(--text-tertiary); text-transform:uppercase; margin-bottom:12px; }
+.kbd-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:7px 0; border-bottom:1px solid var(--border); font-size:13px; color:var(--text-secondary); }
+.kbd-row:last-child { border-bottom:none; }
+.kbd-row kbd { font-family:var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size:11px; font-weight:600;
+  color:var(--accent); background:var(--surface-nested); border:1px solid var(--border); border-bottom-width:2px;
+  border-radius:6px; padding:2px 7px; white-space:nowrap; }
 </style>
   .sec-title { display:flex; align-items:center; justify-content:space-between; margin:18px 0 10px; }
   .seg { display:inline-flex; background:var(--surface-nested); border:1px solid var(--border); border-radius:999px; padding:2px; gap:2px; }
@@ -533,6 +551,9 @@
   <div class="dsep"></div>
   <div class="dfoot" id="drawerFoot">数据仅存在本机 · 每日更新</div>
 </aside>
+
+<!-- keyboard shortcut hint -->
+<button class="kbd-hint" id="kbdHint" title="快捷键 (?)" aria-label="查看快捷键">?</button>
 
 <script>
 /* ============================================================
@@ -1069,20 +1090,7 @@ function renderBotHome(m){
       </div>
     </div>`;
 
-  const run = async ()=>{
-    const el=$("#bot-status");
-    if(!el) return;
-    try{ const d = await api.status();
-      const map = { idle:['初始化中','off'], scanning:['等待扫码','scan'], 'logged-in':['在线 · '+(d.userName||'—'),'ok'], 'logged-out':['已登出','off'] };
-      const [txt,cls] = map[d.state] || ['连接中…','off'];
-      const qr = d.state==='scanning' && d.qrcodeUrl ? `<img class="bot-qr" src="${d.qrcodeUrl}" alt="扫码登录二维码"/>` : '';
-      el.innerHTML = botSuffix(txt, cls) + qr;
-      if(d.state==='scanning'){ if(!pollTimer) pollTimer=setInterval(run, 2000); }
-      else if(pollTimer){ clearInterval(pollTimer); pollTimer=null; }
-    }catch(e){ showError(el, e, run); }
-  };
   let isLoading = false;
-  const showLoading = ()=>{ const el=$("#bot-status"); if(el){ el.innerHTML=`<div class="lineq"><span class="spinner"></span><span>刷新中…</span></div>`; } };
   const run = async ()=>{
     const el=$("#bot-status");
     if(!el) return;
@@ -1883,6 +1891,38 @@ $("#avatarInput").onchange = e => {
 /* ---------- utils ---------- */
 function esc(s){ return String(s??"").replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function attr(s){ return esc(s).replace(/"/g,'&quot;'); }
+
+/* ---------- keyboard shortcut hint ---------- */
+const KBD_SHORTCUTS = [
+  { keys: ['Ctrl','S'], desc: '保存记忆' },
+  { keys: ['Ctrl','R'], desc: '刷新当前页' },
+  { keys: ['Ctrl','D'], desc: '打开/收起抽屉' },
+  { keys: ['?'], desc: '显示/隐藏本提示' },
+  { keys: ['Esc'], desc: '关闭浮层' },
+];
+function toggleKbdPanel(){
+  const hint = $("#kbdHint");
+  let panel = document.getElementById("kbdPanel");
+  if(panel){ panel.remove(); hint.classList.remove("active"); return; }
+  panel = document.createElement("div");
+  panel.className = "kbd-panel";
+  panel.id = "kbdPanel";
+  panel.innerHTML = `<div class="kbd-t">快捷键</div>` +
+    KBD_SHORTCUTS.map(s=>`<div class="kbd-row"><span>${esc(s.desc)}</span><span>${s.keys.map(k=>`<kbd>${esc(k)}</kbd>`).join("")}</span></div>`).join("");
+  document.body.appendChild(panel);
+  const closePanel = (e)=>{
+    if(!panel.contains(e.target) && e.target!==hint) panel.remove();
+  };
+  document.addEventListener("click", closePanel, { once:true });
+  hint.classList.add("active");
+}
+$("#kbdHint").onclick = (e)=>{ e.stopPropagation(); toggleKbdPanel(); };
+document.addEventListener("keydown", (e)=>{
+  if(e.key==="?" && !e.ctrlKey && !e.metaKey){ e.preventDefault(); toggleKbdPanel(); }
+});
+document.addEventListener("keydown", (e)=>{
+  if(e.key==="Escape"){ const p=document.getElementById("kbdPanel"); if(p) p.remove(); }
+});
 
 buildDrawer();
 render();
