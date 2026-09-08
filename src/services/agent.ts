@@ -3,6 +3,7 @@ import {
   addMessage,
   addMemory,
   addUsage,
+  addRecall,
   listMemoryRows,
   recentMessages,
 } from './storage'
@@ -70,6 +71,16 @@ async function retrieveMemory(
     // embedding 不可用，保留兜底结果
   }
 
+  // 埋点召回命中：记录本轮查询命中了哪些记忆 id，供 WebUI「向量召回」页展示
+  if (hits.length > 0) {
+    addRecall({
+      contactId,
+      roomId,
+      query,
+      hitIds: hits.map((r) => r.id),
+    })
+  }
+
   return hits.map((r) => r.content)
 }
 
@@ -122,6 +133,20 @@ async function persistMemory(
     // 无 embedding 能力时降级为纯文本记忆
   }
   addMemory({ contactId, roomId, content, vector })
+}
+
+// 供 WebUI「记忆学习」页手动新增记忆：向量化后落库，无 LLM 时降级为纯文本记忆
+export async function addMemoryManually(p: {
+  contactId: string
+  roomId?: string | null
+  content: string
+}): Promise<void> {
+  const client = llm
+  if (client instanceof Llm) {
+    await persistMemory(client, p.contactId, p.roomId ?? null, p.content)
+  } else {
+    addMemory({ contactId: p.contactId, roomId: p.roomId ?? null, content: p.content })
+  }
 }
 
 // 机器人入口：处理学习指令、调用 LLM、记录用量并回写会话历史。

@@ -12,7 +12,10 @@ import {
   recentConversations,
   listConversations,
   usageByContact,
+  recentMessageTypes,
+  recentRecalls,
 } from '../services/storage'
+import { addMemoryManually } from '../services/agent'
 
 export function startWebServer(status: StatusHub): Server {
   const app = express()
@@ -75,6 +78,36 @@ export function startWebServer(status: StatusHub): Server {
     }
     deleteMemory(id)
     res.json({ ok: true })
+  })
+
+  // 新增记忆（含向量化），供「记忆学习」页手动录入
+  app.post('/api/memories', async (req: Request, res: Response) => {
+    const contactId = typeof req.body?.contactId === 'string' ? req.body.contactId : ''
+    const roomId =
+      typeof req.body?.roomId === 'string' && req.body.roomId ? req.body.roomId : null
+    const content = typeof req.body?.content === 'string' ? req.body.content.trim() : ''
+    if (!contactId || !content) {
+      res.status(400).json({ ok: false, error: '缺少 contactId 或 content' })
+      return
+    }
+    try {
+      await addMemoryManually({ contactId, roomId, content })
+      res.json({ ok: true })
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e) })
+    }
+  })
+
+  // 最近收到的消息流（含类型与元信息），供「多类型消息」页展示
+  app.get('/api/messages', (req: Request, res: Response) => {
+    const limit = Number.parseInt(String(req.query.limit ?? '50'), 10)
+    res.json(recentMessageTypes(Number.isNaN(limit) ? 50 : limit))
+  })
+
+  // 最近向量召回记录，供「向量召回」页展示埋点数据
+  app.get('/api/recalls', (req: Request, res: Response) => {
+    const limit = Number.parseInt(String(req.query.limit ?? '20'), 10)
+    res.json(recentRecalls(Number.isNaN(limit) ? 20 : limit))
   })
 
   // 根路径 / 由上方 express.static 托管工作台 index.html

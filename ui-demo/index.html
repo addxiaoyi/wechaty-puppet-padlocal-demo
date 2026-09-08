@@ -417,6 +417,7 @@
   .mrow .role { flex:0 0 auto; font-size:11px; font-weight:700; padding:3px 8px; border-radius:999px; }
   .mrow .role.user { background:var(--accent-muted); color:var(--accent); }
   .mrow .role.assistant { background:var(--module-2); color:oklch(16% 0.03 240); opacity:.92; }
+  .mrow .role.msg-type { background:var(--surface-nested); color:var(--text-secondary); border:1px solid var(--border); }
   .mrow .who { font-weight:600; color:var(--text); white-space:nowrap; max-width:34%; overflow:hidden; text-overflow:ellipsis; }
   .mrow .txt { flex:1; min-width:0; color:var(--text-secondary); font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .mrow .muted { color:var(--text-tertiary); font-size:12px; flex:0 0 auto; }
@@ -887,6 +888,9 @@ const api = {
   conversations: (contactId, roomId) => apiGet("/conversations", { contactId, roomId }),
   memories:      ()       => apiGet("/memories"),
   deleteMemory:  (id)     => apiSend("/memories/"+id, null, { method:"DELETE" }),
+  addMemory:     (payload)=> apiSend("/memories", null, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) }),
+  messages:      (limit=50)=> apiGet("/messages", { limit }),
+  recalls:       (limit=20)=> apiGet("/recalls", { limit }),
 };
 // 子页统一页头：标题 + 返回按钮
 function botPageHead(title, sub, backTo){
@@ -983,18 +987,55 @@ function renderBotConvs(title, sub, filter, extra){
 }
 function renderBotAi(){     renderBotConvs("AI 智能回复","连续上下文对话 · 私聊直接应答", 'p'); }
 function renderBotGroup(){  renderBotConvs("群聊 @ 应答","群里 @机器人 才响应，不打扰", 'g'); }
-function renderBotMsg(){    renderBotConvs("多类型消息","识别文本/图片/语音/视频/表情/链接/小程序", null,
-  `<div class="msg-types">${["文本","图片","语音","视频","表情","链接","小程序"].map(t=>`<span>${t}</span>`).join("")}</div>`); }
 
-/* 记忆学习页：长期记忆库列表 */
+/* 多类型消息页：展示真实落库的消息类型流（文本/图片/语音/视频/表情/链接/小程序/文件） */
+function renderBotMsg(){
+  $("#screen").innerHTML = botPageHead("多类型消息","识别文本/图片/语音/视频/表情/链接/小程序/文件")
+    + `<div style="margin-top:16px">
+      <div class="msg-types">${["文本","图片","语音","视频","表情","链接","小程序","文件"].map(t=>`<span>${t}</span>`).join("")}</div>
+      <div class="panel" id="w-msg">${botSuffix("加载中…",'off')}</div>
+    </div>`;
+
+  (async ()=>{
+    const el=$("#w-msg");
+    try{ const list = await api.messages(50); const arr=(list||[]).slice().reverse();
+      if(!arr.length){ el.innerHTML=`<div class="empty">暂无消息，收到新消息后这里会实时展示</div>`; return; }
+      el.innerHTML = arr.map(mm=>{
+        const meta = mm.meta||{};
+        return `<div class="mrow mrow-msg" data-c="${esc(mm.contactId||'')}" data-r="${esc(mm.roomId||'')}">
+          <span class="role msg-type">${esc(mm.type||'')}</span>
+          <span class="who">${esc(mm.contactId||'匿名')}${mm.roomId?'<i class="grp">群</i>':''}</span>
+          <span class="txt">${esc(meta.text||meta.title||meta.url||'')}</span>
+          <span class="muted">${fmtDateTime(mm.createdAt)}</span></div>`;
+      }).join("");
+      el.querySelectorAll(".mrow-msg").forEach(row=>{ row.onclick=()=>openConv(row.dataset.c, row.dataset.r||null); });
+    }catch(e){ botFail(el); }
+  })();
+  $("#bot-back").onclick = ()=>go('bot');
+}
+function fmtDateTime(ts){
+  return new Date(ts).toLocaleString("zh-CN",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"});
+}
+
+/* 记忆学习页：长期记忆库列表 + 手动新增表单 + 删除 */
 function renderBotMem(){
   $("#screen").innerHTML = botPageHead("记忆学习","发『记住 事项』即写入长期记忆")
-    + `<div style="margin-top:16px"><div class="panel" id="w-mem">${botSuffix("加载中…",'off')}</div></div>`;
+    + `<div style="margin-top:16px">
+      <div class="panel" id="w-mem-form">
+        <div class="sec-title">手动新增记忆 <span class="stip">填用户标识与内容，保存后同步向量化</span></div>
+        <div class="field"><label>用户标识 contactId</label><input id="mem-contact" placeholder="微信号 / 联系人 id"/></div>
+        <div class="field"><label>记忆内容</label><textarea id="mem-content" placeholder="例如：用户喜欢喝美式，不加糖"></textarea></div>
+        <button class="btn" id="mem-save">${icon("plus",15,2.2)} 保存记忆</button>
+        <div class="lineq" id="mem-msg" style="display:none"></div>
+      </div>
+      <div class="sec-title">记忆库</div>
+      <div class="panel" id="w-mem">${botSuffix("加载中…",'off')}</div>
+    </div>`;
 
   const load = async ()=>{
     const el=$("#w-mem");
     try{ const list = await api.memories();
-      if(!list.length){ el.innerHTML=`<div class="empty">暂无记忆</div>`; return; }
+      if(!list.length){ el.innerHTML=`<div class="empty">暂无记忆，填写上方表单或在聊天里说『记住 事项』</div>`; return; }
       el.innerHTML = list.map(mm=>`<div class="mrow mrow-mem"><div class="who">${esc(mm.contactId||'匿名')}</div>
         <div class="txt">${esc(mm.content)}</div>
         <span class="muted">${new Date(mm.created_at).toLocaleDateString("zh-CN")}</span>
@@ -1003,20 +1044,42 @@ function renderBotMem(){
     }catch(e){ botFail(el); }
   };
   load();
+
+  const msg=(txt,ok)=>{ const m=$("#mem-msg"); m.style.display="block"; m.innerHTML=botSuffix(txt,ok?'ok':'off'); };
+  $("#mem-save").onclick=async()=>{
+    const contactId=$("#mem-contact").value.trim();
+    const content=$("#mem-content").value.trim();
+    if(!contactId||!content){ msg("请填写用户标识和内容",false); return; }
+    try{ await api.addMemory({ contactId, content }); $("#mem-contact").value=""; $("#mem-content").value=""; msg("已保存",true); load(); }
+    catch(e){ msg("保存失败："+(e&&e.message||e),false); }
+  };
   $("#bot-back").onclick = ()=>go('bot');
 }
 
-/* 向量召回页：记忆检索命中，注入上下文 */
+/* 向量召回页：真实召回埋点数据 + 记忆库来源 */
 function renderBotRecall(){
   $("#screen").innerHTML = botPageHead("向量召回","提问时自动检索相关记忆注入上下文")
     + `<div style="margin-top:16px">
-      <div class="panel"><div class="mrow mrow-inf">${icon("target",15)} 机器人提问时会把临近相关记忆当作上下文一并交给模型，让回答「记得你」。</div></div>
-      <div class="sec-title">记忆库（召回来源）</div>
+      <div class="panel"><div class="mrow mrow-inf">${icon("target",15)} 机器人提问时会把临近相关记忆当作上下文一并交给模型，让回答「记得你」。以下为真实召回命中记录。</div></div>
+      <div class="sec-title">召回命中记录</div>
       <div class="panel" id="w-recall">${botSuffix("加载中…",'off')}</div>
+      <div class="sec-title">记忆库（召回来源）</div>
+      <div class="panel" id="w-recall-src">${botSuffix("加载中…",'off')}</div>
     </div>`;
 
-  const load = async ()=>{
+  const loadHits = async ()=>{
     const el=$("#w-recall");
+    try{ const list = await api.recalls(20);
+      if(!list.length){ el.innerHTML=`<div class="empty">暂无召回记录，机器人被提问并命中记忆后会在这里展示</div>`; return; }
+      el.innerHTML = list.map(rr=>`<div class="mrow mrow-mem" data-c="${esc(rr.contactId||'')}" data-r="${esc(rr.roomId||'')}">
+        <span class="role msg-type">${rr.hitCount} 命中</span>
+        <div class="txt"><b>${esc(rr.query)}</b>${rr.roomId?'<i class="grp">群</i>':''}</div>
+        <span class="muted">${fmtDateTime(rr.createdAt)}</span></div>`).join("");
+      el.querySelectorAll(".mrow-mem").forEach(row=>{ row.onclick=()=>openConv(row.dataset.c, row.dataset.r||null); });
+    }catch(e){ botFail(el); }
+  };
+  const loadSrc = async ()=>{
+    const el=$("#w-recall-src");
     try{ const list = await api.memories();
       if(!list.length){ el.innerHTML=`<div class="empty">暂无记忆</div>`; return; }
       el.innerHTML = list.map(mm=>`<div class="mrow mrow-mem"><div class="who">${esc(mm.contactId||'匿名')}</div>
@@ -1024,7 +1087,8 @@ function renderBotRecall(){
         <span class="muted">${new Date(mm.created_at).toLocaleDateString("zh-CN")}</span></div>`).join("");
     }catch(e){ botFail(el); }
   };
-  load();
+  loadHits();
+  loadSrc();
   $("#bot-back").onclick = ()=>go('bot');
 }
 

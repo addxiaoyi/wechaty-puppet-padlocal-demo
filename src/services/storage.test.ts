@@ -32,6 +32,10 @@ import {
   listMemories,
   allMemories,
   deleteMemory,
+  addMessageRecord,
+  recentMessageTypes,
+  addRecall,
+  recentRecalls,
   closeDb,
 } from './storage'
 
@@ -217,6 +221,55 @@ describe('Storage: memories', () => {
 
   it('deleteMemory 不存在的 id 静默成功', () => {
     expect(() => deleteMemory(99999)).not.toThrow()
+  })
+})
+
+describe('Storage: messages (多类型消息流)', () => {
+  beforeEach(() => {
+    db.exec('DELETE FROM messages;')
+  })
+
+  it('recentMessageTypes 按 id 倒序返回消息类型与元信息', () => {
+    addMessageRecord({ contactId: 'a', roomId: null, type: '文本', meta: { text: '你好' } })
+    addMessageRecord({ contactId: 'a', roomId: null, type: '图片' })
+
+    const list = recentMessageTypes(50)
+    expect(list).toHaveLength(2)
+    expect(list[0].type).toBe('图片')
+    expect(list[0].meta).toBeNull()
+    expect(list[1].type).toBe('文本')
+    expect(list[1].meta).toEqual({ text: '你好' })
+  })
+
+  it('recentMessageTypes 遵守 limit', () => {
+    for (let i = 0; i < 5; i++) addMessageRecord({ contactId: 'a', roomId: null, type: '文本' })
+    expect(recentMessageTypes(3)).toHaveLength(3)
+  })
+})
+
+describe('Storage: recall_log (向量召回埋点)', () => {
+  beforeEach(() => {
+    db.exec('DELETE FROM recall_log;')
+  })
+
+  it('recentRecalls 倒序返回 hitIds 与 hitCount', () => {
+    addRecall({ contactId: 'a', roomId: null, query: '我喜欢什么', hitIds: [1, 2] })
+    addRecall({ contactId: 'a', roomId: null, query: '我的生日', hitIds: [3] })
+
+    const list = recentRecalls(20)
+    expect(list).toHaveLength(2)
+    // 最新插入的「我的生日」排在最前
+    expect(list[0].query).toBe('我的生日')
+    expect(list[0].hitCount).toBe(1)
+    expect(list[1].hitIds).toEqual([1, 2])
+  })
+
+  it('recentRecalls 还原 hitIds 数组与命中数', () => {
+    addRecall({ contactId: 'a', roomId: 'r1', query: 'q', hitIds: [10, 20, 30] })
+    const [row] = recentRecalls(20)
+    expect(row.hitIds).toEqual([10, 20, 30])
+    expect(row.hitCount).toBe(3)
+    expect(row.roomId).toBe('r1')
   })
 })
 

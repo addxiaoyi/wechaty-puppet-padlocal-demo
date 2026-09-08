@@ -44,6 +44,39 @@ export interface ConversationRow {
   createdAt: number
 }
 
+export interface MessageRecord {
+  contactId: string
+  roomId: string | null
+  type: string
+  meta?: Record<string, unknown> | null
+}
+
+export interface MessageRow {
+  id: number
+  contactId: string
+  roomId: string | null
+  type: string
+  meta: Record<string, unknown> | null
+  createdAt: number
+}
+
+export interface RecallRecord {
+  contactId: string
+  roomId: string | null
+  query: string
+  hitIds: number[]
+}
+
+export interface RecallRow {
+  id: number
+  contactId: string
+  roomId: string | null
+  query: string
+  hitIds: number[]
+  hitCount: number
+  createdAt: number
+}
+
 // 确保 db 文件所在目录存在，避免 better-sqlite3 打开失败
 mkdirSync(dirname(config.dbPath), { recursive: true })
 
@@ -81,12 +114,35 @@ db.exec(`
     created_at INTEGER NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    contact_id TEXT NOT NULL,
+    room_id TEXT,
+    type TEXT NOT NULL,
+    meta TEXT,
+    created_at INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS recall_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    contact_id TEXT NOT NULL,
+    room_id TEXT,
+    query TEXT NOT NULL,
+    hit_ids TEXT NOT NULL,
+    hit_count INTEGER NOT NULL,
+    created_at INTEGER NOT NULL
+  );
+
   CREATE INDEX IF NOT EXISTS idx_conv_lookup
     ON conversations(contact_id, room_id, id);
   CREATE INDEX IF NOT EXISTS idx_usage_lookup
     ON usage_log(created_at);
   CREATE INDEX IF NOT EXISTS idx_mem_lookup
     ON memories(contact_id, room_id);
+  CREATE INDEX IF NOT EXISTS idx_msg_lookup
+    ON messages(created_at);
+  CREATE INDEX IF NOT EXISTS idx_recall_lookup
+    ON recall_log(created_at);
 `)
 
 // 兼容旧库：自 0.3.0 起 memories 增加 content_vector 列，老库通过迁移补齐
@@ -281,4 +337,75 @@ export function usageByContact(limit = 20): ContactUsage[] {
 
 export function closeDb(): void {
   db.close()
+}
+
+// 记录一条收到消息的类型与元信息（图片/语音/视频等非文本消息也落库，供前端消息流展示）
+export function addMessageRecord(rec: MessageRecord): void {
+  db.prepare(
+    `INSERT INTO messages(contact_id, room_id, type, meta, created_at)
+     VALUES (?, ?, ?, ?, ?)`
+  ).run(
+    rec.contactId,
+    rec.roomId,
+    rec.type,
+    rec.meta ? JSON.stringify(rec.meta) : null,
+    Date.now()
+  )
+}
+
+// 最近收到的消息流（含类型），供「多类型消息」页展示
+export function recentMessageTypes(limit = 50): MessageRow[] {
+  const rows = db
+    .prepare(
+      `SELECT id, contact_id as contactId, room_id as roomId, type, meta, created_at
+       FROM messages ORDER BY id DESC LIMIT ?`
+    )
+    .all(limit) as unknown as Array<Omit<MessageRow, 'meta'> & { meta: string | null }>
+  return rows.map((r) => ({ ...r, meta: safeParseMeta(r.meta) }))
+}
+
+function safeParseMeta(raw: string | null): Record<string, unknown> | null {
+  if (!raw) return null
+  try {
+    const v = JSON.parse(raw)
+    return v && typeof v === 'object' ? (v as Record<string, unknown>) : null
+  } catch {
+    return null
+  }
+}
+
+// 埋一条向量召回命中记录：查询词 + 命中记忆 id 列表
+export function addRecall(rec: RecallRecord): void {
+  db.prepare(
+    `INSERT INTO recall_log(contact_id, room_id, query, hit_ids, hit_count, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(
+    rec.contactId,
+    rec.roomId,
+    rec.query,
+    JSON.stringify(rec.hitIds),
+    rec.hitIds.length,
+    Date.now()
+  )
+}
+
+// 最近召回记录，供「向量召回」页展示
+export function recentRecalls(limit = 20): RecallRow[] {
+  const rows = db
+    .prepare(
+      `SELECT id, contact_id as contactId, room_id as roomId, query, hit_ids as hitIds, hit_count as hitCount, created_at
+       FROM recall_log ORDER BY id DESC LIMIT ?`
+    )
+    .all(limit) as unknown as Array<Omit<RecallRow, 'hitIds'> & { hitIds: string }>
+  return rows.map((r) => ({ ...r, hitIds: safeParseIds(r.hitIds) }))
+}
+
+function safeParseIds(raw: string | null): number[] {
+  if (!raw) return []
+  try {
+    const v = JSON.parse(raw)
+    return Array.isArray(v) ? (v as number[]) : []
+  } catch {
+    return []
+  }
 }

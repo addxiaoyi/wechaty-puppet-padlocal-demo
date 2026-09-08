@@ -2,6 +2,7 @@ import { log } from 'wechaty'
 import type { Message } from 'wechaty'
 import * as PUPPET from 'wechaty-puppet'
 import { askAgent } from '../services/agent'
+import { addMessageRecord } from '../services/storage'
 
 export const LOGPRE = '[PadLocalDemo]'
 
@@ -42,6 +43,19 @@ async function reply(message: Message): Promise<void> {
 }
 
 async function logPayload(message: Message): Promise<void> {
+  // 落库消息类型与元信息，供 WebUI「多类型消息」页展示真实消息流
+  const roomId = message.room()?.id ?? null
+  const talkerId = message.talker().id
+  const typeLabel = typeLabelOf(message.type())
+  if (typeLabel) {
+    addMessageRecord({
+      contactId: talkerId,
+      roomId,
+      type: typeLabel,
+      meta: await typeMeta(message),
+    })
+  }
+
   switch (message.type()) {
     case PUPPET.types.Message.Text:
       log.silly(LOGPRE, `get message text: ${message.text()}`)
@@ -103,5 +117,40 @@ async function logPayload(message: Message): Promise<void> {
       log.info(LOGPRE, `MiniProgramPayload: ${JSON.stringify(miniProgram)}`)
       break
     }
+  }
+}
+
+// 归一化微信消息类型为中文可读标签；未知类型返回 null（不落库）
+function typeLabelOf(type: PUPPET.types.Message): string | null {
+  switch (type) {
+    case PUPPET.types.Message.Text: return '文本'
+    case PUPPET.types.Message.Image: return '图片'
+    case PUPPET.types.Message.Audio: return '语音'
+    case PUPPET.types.Message.Video: return '视频'
+    case PUPPET.types.Message.Emoticon: return '表情'
+    case PUPPET.types.Message.Url: return '链接'
+    case PUPPET.types.Message.MiniProgram: return '小程序'
+    case PUPPET.types.Message.Attachment: return '文件'
+    default: return null
+  }
+}
+
+// 提取消息元信息（文本内容 / 链接地址 / 小程序标题等），失败时可空，不阻塞落库
+async function typeMeta(message: Message): Promise<Record<string, unknown> | null> {
+  try {
+    switch (message.type()) {
+      case PUPPET.types.Message.Text:
+        return { text: message.text() }
+      case PUPPET.types.Message.Url:
+        return { url: (await message.toUrlLink()).url }
+      case PUPPET.types.Message.MiniProgram: {
+        const mp = await message.toMiniProgram()
+        return { title: mp.title, appid: mp.appid }
+      }
+      default:
+        return null
+    }
+  } catch {
+    return null
   }
 }
