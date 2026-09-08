@@ -9,6 +9,7 @@ import {
   usageSummary,
   allMemories,
   deleteMemory,
+  updateMemory,
   memoriesByIds,
   recentConversations,
   listConversations,
@@ -93,6 +94,27 @@ export function startWebServer(status: StatusHub): Server {
     }
     try {
       await addMemoryManually({ contactId, roomId, content })
+      res.json({ ok: true })
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e) })
+    }
+  })
+
+  // 更新记忆内容
+  app.put('/api/memories/:id', (req: Request, res: Response) => {
+    const rawId = req.params.id
+    const id = typeof rawId === 'string' && rawId ? Number.parseInt(rawId, 10) : NaN
+    if (Number.isNaN(id)) {
+      res.status(400).json({ ok: false, error: '无效的记忆 id' })
+      return
+    }
+    const content = typeof req.body?.content === 'string' ? req.body.content.trim() : ''
+    if (!content) {
+      res.status(400).json({ ok: false, error: '缺少 content' })
+      return
+    }
+    try {
+      updateMemory(id, content)
       res.json({ ok: true })
     } catch (e) {
       res.status(500).json({ ok: false, error: String(e) })

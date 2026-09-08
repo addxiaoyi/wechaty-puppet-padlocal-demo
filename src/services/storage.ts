@@ -271,6 +271,10 @@ export function deleteMemory(id: number): void {
   db.prepare('DELETE FROM memories WHERE id = ?').run(id)
 }
 
+export function updateMemory(id: number, content: string): void {
+  db.prepare('UPDATE memories SET content = ? WHERE id = ?').run(content, id)
+}
+
 // 按一组 id 取记忆（召回命中明细用）；id 列表为空时返回空数组
 export function memoriesByIds(ids: number[]): MemoryRow[] {
   if (!ids.length) return []
