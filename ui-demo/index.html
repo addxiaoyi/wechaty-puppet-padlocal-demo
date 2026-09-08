@@ -886,6 +886,32 @@ function renderInsight(){
   $("#screen").querySelectorAll("[data-open]").forEach(el=>el.onclick=()=>go(el.dataset.open));
 }
 
+/* ---------- BOT VIEW 统一渲染状态组件 ---------- */
+// 加载中占位
+function renderLoading(el){ if(!el) return; el.innerHTML = botSuffix("加载中…",'off'); }
+// 成功占位（可选文字）
+function renderSuccess(el, txt){ if(!el) return; el.innerHTML = botSuffix(txt||'已连接','ok'); }
+// 空态：text 与 icon 可选，action 支持自定义按钮 HTML
+function renderEmpty(el, { text='暂无数据', icon=icon("alert",24), action='' } = {}){
+  if(!el) return;
+  el.innerHTML = `<div class="empty"><span class="e">${icon}</span><div>${text}</div>${action?`<div style="margin-top:10px">${action}</div>`:''}</div>`;
+}
+// 错误/失败态：默认「机器人服务未连接」，可传自定义 message
+function botFail(el, msg){
+  if(!el) return;
+  const txt = msg || '机器人服务未连接';
+  const icn = msg ? icon("alert",20) : icon("refresh",24);
+  el.innerHTML = `<div class="empty"><span class="e">${icn}</span><div>${txt}</div>
+    <div style="margin-top:10px"><button class="btn" data-retry style="max-width:120px">重试</button></div></div>`;
+}
+// 为容器内「[data-retry]」按钮统一绑定重试回调；无回调则把容器整体当作触发目标
+function wireRetry(el, retry){ if(!el) return; el.querySelectorAll("[data-retry]").forEach(b=>b.onclick=()=> (retry||render)()); }
+// 快捷：展示错误 + 绑定重试（兼容旧用法）
+function showError(el, err, retryF){
+  botFail(el, err?.message || err || '加载失败');
+  wireRetry(el, retryF);
+}
+
 /* ---------- BOT VIEW (微信机器人：走同源 /api，不落本地存储) ---------- */
 const ROLE_LABEL = { user:'我', assistant:'机器人' };
 const CAP = [
@@ -897,9 +923,6 @@ const CAP = [
   { i:"chart",  t:"Token 用量",   d:"记录每轮输入/输出 Token 并统计",    page:"usage" },
 ];
 function botSuffix(txt, cls){ const s={ ok:'ok', off:'off', scan:'scan' }[cls]||'off'; return `<div class="lineq"><div class="mstate ${s}"></div><span>${txt}</span></div>`; }
-const botFail = (el)=>{ if(el) el.innerHTML = `<div class="empty"><span class="e">${icon("refresh",24)}</span><div>机器人服务未连接</div><div style="margin-top:10px"><button class="btn" data-retry style="max-width:120px">重试</button></div></div>`; };
-// 给失败占位里的「重试」按钮绑定回调；无回调时整页重渲染
-function wireRetry(el, retry){ el.querySelectorAll("[data-retry]").forEach(b=>b.onclick=()=> (retry||render)()); }
 
 /* ---------- API Client 抽象层：端点集中定义，前端不再感知路径拼接 ---------- */
 const BOT_BASE = (CONFIG.modules.find(x=>x.key==="bot")||{}).api||"/api";
@@ -952,7 +975,7 @@ function renderBotHome(m){
       el.innerHTML = botSuffix(txt, cls) + qr;
       if(d.state==='scanning'){ if(!pollTimer) pollTimer=setInterval(run, 2000); }
       else if(pollTimer){ clearInterval(pollTimer); pollTimer=null; }
-    }catch(e){ botFail(el); wireRetry(el, run); }
+    }catch(e){ showError(el, e, run); }
   };
   run();
   $("#bot-refresh").onclick = ()=>{ stopPoll(); run(); };
@@ -988,9 +1011,9 @@ function renderBotUsage(){
     const tel=$("#w-trend");
     try{
       const d = await api.usageDaily(rangeDays); const arr=(d.data||[]);
-      tel.innerHTML = arr.length ? botTrendSVG(arr) : `<div class="empty">暂无用量数据</div>`;
+      tel.innerHTML = arr.length ? botTrendSVG(arr) : `<div class="empty"><span class="e">${icon("chart",24)}</span><div>暂无用量数据</div></div>`;
       wireTrendHover(tel, arr);
-    }catch(e){ botFail(tel); wireRetry(tel, retry); }
+    }catch(e){ showError(tel, e, retry); }
   };
 
   $("#range-seg").addEventListener("click", (e)=>{
@@ -1008,16 +1031,16 @@ function renderBotUsage(){
       $("#v-in").textContent=(d.totalIn??0).toLocaleString();
       $("#v-out").textContent=(d.totalOut??0).toLocaleString();
       $("#v-total").textContent=((d.totalIn??0)+(d.totalOut??0)).toLocaleString();
-    }catch(e){ botFail($("#v-calls").parentElement); wireRetry($("#v-calls").parentElement, retry); }
+    }catch(e){ showError($("#v-calls").parentElement, e, retry); }
     loadTrend();
     const rel=$("#w-rank");
     try{ const list = await api.usageByContact();
-      if(!list.length){ rel.innerHTML=`<div class="empty">暂无用户用量</div>`; return; }
+      if(!list.length){ rel.innerHTML=`<div class="empty"><span class="e">${icon("user",24)}</span><div>暂无用户用量</div></div>`; return; }
       rel.innerHTML = list.map((u,i)=>`<div class="mrow mrow-link" data-c="${esc(u.contactId||'')}">
         <span class="idx">${i+1}</span><span class="who">${esc(u.contactId||'匿名')}</span>
         <span class="muted">${u.calls} 次</span><b class="tk">${(u.totalTokens||0).toLocaleString()}</b></div>`).join("");
       rel.querySelectorAll(".mrow-link").forEach(row=>{ row.onclick=()=>openConv(row.dataset.c, null); });
-    }catch(e){ botFail(rel); wireRetry(rel, retry); }
+    }catch(e){ showError(rel, e, retry); }
   })();
   $("#bot-back").onclick = ()=>go('bot');
 }
@@ -1033,14 +1056,14 @@ function renderBotConvs(title, sub, filter, extra){
       let arr=list.slice().reverse();
       if(filter==='p') arr=arr.filter(mm=>!mm.roomId);
       else if(filter==='g') arr=arr.filter(mm=>!!mm.roomId);
-      if(!arr.length){ el.innerHTML=`<div class="empty">暂无对话</div>`; return; }
+      if(!arr.length){ el.innerHTML=`<div class="empty"><span class="e">${icon("msg",24)}</span><div>暂无对话</div></div>`; return; }
       el.innerHTML = arr.map(mm=>`<div class="mrow mrow-msg mrow-link" data-c="${esc(mm.contactId||'')}" data-r="${esc(mm.roomId||'')}" data-role="${mm.role}">
         <span class="role ${mm.role}">${ROLE_LABEL[mm.role]||mm.role}</span>
         <span class="who">${esc(mm.contactId||'匿名')}${mm.roomId?'<i class="grp">群</i>':''}</span>
         <span class="txt">${esc(mm.content)}</span>
         <span class="muted">${new Date(mm.created_at).toLocaleString("zh-CN",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</span></div>`).join("");
       el.querySelectorAll(".mrow-link").forEach(row=>{ row.onclick=()=>openConv(row.dataset.c, row.dataset.r||null); });
-    }catch(e){ botFail(el); wireRetry(el, load); }
+    }catch(e){ showError(el, e, load); }
   };
   load();
   $("#bot-refer").onclick = load;
@@ -1077,7 +1100,7 @@ function renderBotMsg(){
   (async ()=>{
     const el=$("#w-msg");
     try{ const list = await api.messages(50, activeType); const arr=(list||[]).slice().reverse();
-      if(!arr.length){ el.innerHTML=`<div class="empty">暂无消息，收到新消息后这里会实时展示</div>`; return; }
+      if(!arr.length){ el.innerHTML=`<div class="empty"><span class="e">${icon("msg",24)}</span><div>暂无消息，收到新消息后这里会实时展示</div></div>`; return; }
       el.innerHTML = arr.map(mm=>{
         const meta = mm.meta||{};
         return `<div class="mrow mrow-msg" data-c="${esc(mm.contactId||'')}" data-r="${esc(mm.roomId||'')}">
@@ -1087,7 +1110,7 @@ function renderBotMsg(){
           <span class="muted">${fmtDateTime(mm.createdAt)}</span></div>`;
       }).join("");
       el.querySelectorAll(".mrow-msg").forEach(row=>{ row.onclick=()=>openConv(row.dataset.c, row.dataset.r||null); });
-    }catch(e){ botFail(el); wireRetry(el, retry); }
+    }catch(e){ showError(el, e, retry); }
   })();
   $("#bot-back").onclick = ()=>go('bot');
 }
@@ -1122,7 +1145,7 @@ function renderBotMem(){
   const load = async ()=>{
     const el=$("#w-mem");
     try{ const list = await api.memories();
-      if(!list.length){ el.innerHTML=`<div class="empty">暂无记忆，填写上方表单或在聊天里说『记住 事项』</div>`; return; }
+      if(!list.length){ el.innerHTML=`<div class="empty"><span class="e">${icon("leaf",24)}</span><div>暂无记忆，填写上方表单或在聊天里说『记住 事项』</div></div>`; return; }
       el.innerHTML = list.map(mm=>`<div class="mrow mrow-mem" data-id="${mm.id}">
         <div class="who">${esc(mm.contactId||'匿名')}</div>
         <div class="txt">${editingId === mm.id ? '<textarea class="mem-edit-box" rows="2">' + esc(mm.content) + '</textarea>' : esc(mm.content)}</div>
@@ -1137,7 +1160,7 @@ function renderBotMem(){
       el.querySelectorAll(".js-mem-edit").forEach(btn=>{ btn.onclick=(e)=>{ e.stopPropagation(); editingId = Number(btn.dataset.id); load(); }; });
       el.querySelectorAll(".js-mem-save").forEach(btn=>{ btn.onclick=async(e)=>{ e.stopPropagation(); const row = btn.closest(".mrow-mem"); if(!row) return; const box=row.querySelector(".mem-edit-box"); const newContent=box.value.trim(); if(!newContent){ alert("内容不能为空"); return; } btn.disabled=true; btn.style.opacity=".7"; try{ await api.updateMemory(Number(btn.dataset.id), newContent); msg("已更新",true); load(); }catch(err){ alert("更新失败："+(err?.message||err)); } }; });
       el.querySelectorAll(".js-mem-cancel").forEach(btn=>{ btn.onclick=(e)=>{ e.stopPropagation(); cancelEdit(); }; });
-    }catch(e){ botFail(el); wireRetry(el, retry); }
+    }catch(e){ showError(el, e, retry); }
   };
   load();
 
@@ -1193,7 +1216,7 @@ function renderBotRecall(){
   const loadHits = async ()=>{
     const el=$("#w-recall");
     try{ const list = await api.recalls(20);
-      if(!list.length){ el.innerHTML=`<div class="empty">暂无召回记录，机器人被提问并命中记忆后会在这里展示</div>`; return; }
+      if(!list.length){ el.innerHTML=`<div class="empty"><span class="e">${icon("target",24)}</span><div>暂无召回记录，机器人被提问并命中记忆后会在这里展示</div></div>`; return; }
       el.innerHTML = list.map(rr=>`<div class="mrow mrow-mem recall-hit" data-ids="${esc((rr.hitIds||[]).join(','))}">
         <span class="role msg-type">${rr.hitCount} 命中</span>
         <div class="txt"><b>${esc(rr.query)}</b>${rr.roomId?'<i class="grp">群</i>':''}</div>
@@ -1218,16 +1241,16 @@ function renderBotRecall(){
           finally { row.style.pointerEvents=""; row.style.opacity=""; }
         };
       });
-    }catch(e){ botFail(el); wireRetry(el, retry); }
+    }catch(e){ showError(el, e, retry); }
   };
   const loadSrc = async ()=>{
     const el=$("#w-recall-src");
     try{ const list = await api.memories();
-      if(!list.length){ el.innerHTML=`<div class="empty">暂无记忆</div>`; return; }
+      if(!list.length){ el.innerHTML=`<div class="empty"><span class="e">${icon("leaf",24)}</span><div>暂无记忆</div></div>`; return; }
       el.innerHTML = list.map(mm=>`<div class="mrow mrow-mem"><div class="who">${esc(mm.contactId||'匿名')}</div>
         <div class="txt">${esc(mm.content)}</div>
         <span class="muted">${new Date(mm.created_at).toLocaleDateString("zh-CN")}</span></div>`).join("");
-    }catch(e){ botFail(el); wireRetry(el, retry); }
+    }catch(e){ showError(el, e, retry); }
   };
   loadHits();
   loadSrc();
@@ -1313,7 +1336,6 @@ function wireTrendHover(container, data){
   });
 
   svg.addEventListener("mouseleave", ()=>{ tip.style.opacity = "0"; });
-}
 }
 
 function openConv(contactId, roomId){
