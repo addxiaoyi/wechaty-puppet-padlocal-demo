@@ -10,61 +10,61 @@
      THEME TOKENS — 一处改色，整站换肤（简约·墨色中性默认）
      ============================================================ */
   :root {
-    /* ---- 玻璃拟态 · 植物呼吸色板：纸白打底，半透明玻璃承载，鼠尾草绿+陶土为模块强调 ---- */
+    /* ---- 深空玻璃拟态 · 墨色打底，霓虹青+暖金勾勒，专业机器人看板 ---- */
     --page-bg: transparent;              /* 页面底色交给 .blob-field 承载 */
-    --surface-card: color-mix(in oklab, white 64%, transparent);  /* 磨砂玻璃卡片 */
-    --surface-nested: color-mix(in oklab, white 46%, transparent); /* 嵌套区更深层玻璃 */
+    --surface-card: color-mix(in oklab, oklch(20% 0.03 240) 74%, transparent);  /* 磨砂玻璃卡片 */
+    --surface-nested: color-mix(in oklab, oklch(24% 0.035 240) 58%, transparent); /* 嵌套区更深层玻璃 */
 
     /* ---- 边框 ---- */
-    --border: rgba(255,255,255,.55);
-    --border-input: oklch(80% 0.03 78);
+    --border: rgba(255,255,255,.10);
+    --border-input: oklch(40% 0.03 240);
 
-    /* ---- 文本层级（纸墨暖调，保证 AA 对比） ---- */
-    --text: oklch(24% 0.025 42);
-    --text-secondary: oklch(44% 0.03 50);
-    --text-tertiary: oklch(56% 0.025 52);
+    /* ---- 文本层级（冷灰蓝调，保证 AA 对比） ---- */
+    --text: oklch(93% 0.01 230);
+    --text-secondary: oklch(72% 0.02 230);
+    --text-tertiary: oklch(58% 0.02 235);
 
-    /* ---- 主色（鼠尾草绿） ---- */
-    --accent: oklch(44% 0.09 158);
-    --accent-muted: oklch(91% 0.03 150);
-    --on-accent: oklch(97% 0.012 80);
+    /* ---- 主色（霓虹青） ---- */
+    --accent: oklch(72% 0.16 190);
+    --accent-muted: oklch(30% 0.05 190);
+    --on-accent: oklch(16% 0.03 240);
 
-    /* ---- 模块色（植物呼吸：苔绿/深苔/陶土/砖土/雾芽） ---- */
-    --module-1: oklch(46% 0.08 152);     /* 苔绿 — 打卡/完成 */
-    --module-2: oklch(42% 0.06 150);     /* 深苔 — 阅读/专注 */
-    --module-3: oklch(55% 0.105 42);     /* 陶土 — 运动/连续 */
-    --module-4: oklch(56% 0.09 55);      /* 砖土 — 记账 */
-    --module-5: oklch(52% 0.06 120);     /* 雾芽 — 笔记/日记 */
+    /* ---- 模块色（光谱层次：青/蓝/暖金/洋红/紫） ---- */
+    --module-1: oklch(74% 0.15 170);     /* 青 — 完成/在线 */
+    --module-2: oklch(66% 0.14 250);     /* 蓝 — 专注/群聊 */
+    --module-3: oklch(76% 0.13 78);      /* 暖金 — 用量/强调 */
+    --module-4: oklch(70% 0.17 20);      /* 洋红 — 记忆 */
+    --module-5: oklch(70% 0.13 300);     /* 紫 — 召回/向量 */
 
     /* ---- 危险色 ---- */
-    --danger: oklch(50% 0.12 28);
-    --danger-muted: oklch(94% 0.03 30);
+    --danger: oklch(68% 0.18 25);
+    --danger-muted: oklch(28% 0.06 25);
 
-    /* ---- 抽屉（深苔暖调） ---- */
-    --drawer-bg: oklch(23% 0.035 150);
-    --drawer-bg-top: oklch(28% 0.04 150);
-    --drawer-text: oklch(96% 0.015 90);
-    --drawer-text-mute: rgba(246,242,236,.55);
-    --drawer-hover: rgba(246,242,236,.1);
-    --drawer-active: rgba(246,242,236,.09);
+    /* ---- 抽屉（同色系深空） ---- */
+    --drawer-bg: oklch(15% 0.025 240);
+    --drawer-bg-top: oklch(20% 0.03 240);
+    --drawer-text: oklch(95% 0.01 230);
+    --drawer-text-mute: rgba(220,230,240,.55);
+    --drawer-hover: rgba(220,230,240,.09);
+    --drawer-active: rgba(220,230,240,.08);
 
-    /* ---- 背景图 ---- */
-    --greet-image: url("assets/greet-banner.jpg");
+    /* ---- 背景图（改用深色渐变，去除纸白暖调） ---- */
+    --greet-image: none;
     --page-texture: none;
 
     /* ---- 圆角 ---- */
-    --radius-control: 8px;
-    --radius-tile: 12px;
-    --radius-card: 18px;
-    --radius-sheet: 22px;
+    --radius-control: 9px;
+    --radius-tile: 13px;
+    --radius-card: 20px;
+    --radius-sheet: 24px;
 
-    /* ---- 阴影 ---- */
-    --shadow-card: 0 1px 2px oklab(0.35 0 0/.05), 0 10px 30px -16px oklab(0.35 0 0/.16);
-    --shadow-overlay: 0 18px 44px -18px oklab(0.35 0 0/.28);
+    /* ---- 阴影（深色环境用更通透的黑影） ---- */
+    --shadow-card: 0 1px 0 oklab(0.8 0 0/.04) inset, 0 12px 32px -18px oklab(0.1 0 0/.5);
+    --shadow-overlay: 0 20px 50px -20px oklab(0.1 0 0/.6);
 
     /* ---- 字体与布局 ---- */
     --font: "Instrument Sans", -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-    --nav-h: 62px;
+    --nav-h: 64px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   :focus-visible { outline: 2px solid var(--module-2); outline-offset: 2px; border-radius: 4px; }
@@ -80,13 +80,13 @@
   body::before { content:""; position:fixed; inset:0; z-index:-2; pointer-events:none;
     background-image: var(--page-texture); background-size: cover; background-position: center; opacity:.5; }
 
-  /* -- fluid glass backdrop (paper gradient + slow-moving plant blobs) -- */
+  /* -- fluid glass backdrop (deep space gradient + slow aurora blobs) -- */
   .blob-field{position:fixed;inset:0;z-index:-3;overflow:hidden;pointer-events:none;
-    background:linear-gradient(180deg,oklch(97% 0.013 82) 0%,oklch(94% 0.016 88) 100%)}
-  .blob{position:absolute;border-radius:50%;filter:blur(72px);mix-blend-mode:multiply;animation:drift 22s ease-in-out infinite alternate}
-  .bg1{width:140vmax;height:140vmax;left:-46vmax;top:-52vmax;background:radial-gradient(circle at 34% 30%,oklch(91% 0.04 150),transparent 66%)}
-  .bg2{width:120vmax;height:120vmax;right:-44vmax;top:4vmax;background:radial-gradient(circle at 60% 40%,oklch(93% 0.045 48),transparent 66%);animation-duration:28s}
-  .bg3{width:100vmax;height:100vmax;left:-30vmax;bottom:-48vmax;background:radial-gradient(circle at 50% 50%,oklch(90% 0.05 130),transparent 64%);animation-duration:34s}
+    background:linear-gradient(180deg,oklch(14% 0.02 245) 0%,oklch(10% 0.03 250) 100%)}
+  .blob{position:absolute;border-radius:50%;filter:blur(76px);mix-blend-mode:screen;animation:drift 22s ease-in-out infinite alternate}
+  .bg1{width:140vmax;height:140vmax;left:-46vmax;top:-52vmax;background:radial-gradient(circle at 34% 30%,oklch(30% 0.08 190),transparent 66%)}
+  .bg2{width:120vmax;height:120vmax;right:-44vmax;top:4vmax;background:radial-gradient(circle at 60% 40%,oklch(28% 0.09 270),transparent 66%);animation-duration:28s}
+  .bg3{width:100vmax;height:100vmax;left:-30vmax;bottom:-48vmax;background:radial-gradient(circle at 50% 50%,oklch(26% 0.07 320),transparent 64%);animation-duration:34s}
   @keyframes drift{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(2.5vmax,-2vmax,0) scale(1.05)}}
 
   /* frosted glass surfaces */
@@ -97,8 +97,8 @@
 
   /* ---------- top bar ---------- */
   .topbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 12px;
-    padding: 14px 2px 12px; backdrop-filter: blur(10px);
-    background: linear-gradient(180deg, color-mix(in srgb, var(--page-bg) 94%, transparent), color-mix(in srgb, var(--page-bg) 50%, transparent)); }
+    padding: 14px 2px 12px; backdrop-filter: blur(12px);
+    background: linear-gradient(180deg, color-mix(in srgb, oklch(14% 0.02 245) 88%, transparent), color-mix(in srgb, oklch(12% 0.02 245) 46%, transparent)); }
   .topbar .menu-btn { width: 38px; height: 38px; border: none; border-radius: var(--radius-tile); background: var(--surface-card);
     box-shadow: var(--shadow-card); display: grid; place-items: center; cursor: pointer; color: var(--text); }
   .topbar .title { font-size: 16px; font-weight: 700; letter-spacing: -.01em; flex: 1; line-height: 1.2; }
@@ -268,9 +268,9 @@
 
   /* ---------- bottom nav ---------- */
   .nav { position: fixed; left: 50%; transform: translateX(-50%); bottom: 0; width: 100%; max-width: 480px; height: var(--nav-h);
-    background: rgba(252,251,248,.92); backdrop-filter: blur(14px); border-top: 1px solid var(--border);
+    background: color-mix(in oklab, oklch(15% 0.02 245) 88%, transparent); backdrop-filter: blur(16px); border-top: 1px solid var(--border);
     display: grid; grid-template-columns: repeat(3,1fr); align-items: center; z-index: 30; padding-bottom: env(safe-area-inset-bottom); }
-  .nav .n { display:flex; flex-direction:column; align-items:center; gap: 4px; cursor:pointer; color: var(--text-tertiary); font-size: 10px; font-weight: 500; }
+  .nav .n { display:flex; flex-direction:column; align-items:center; gap: 4px; cursor:pointer; color: var(--text-tertiary); font-size: 10px; font-weight: 500; transition: color .18s; }
   .nav .n.active { color: var(--accent); font-weight: 700; }
 
   /* ---------- drawer ---------- */
