@@ -450,8 +450,35 @@
   .mrow-msg .btn-refresh{color:var(--accent);background:var(--surface-nested);border:1px solid var(--border);min-width:32px;width:32px}
   .loading-dots{animation:dots 1s infinite;opacity:.7}
   @keyframes dots{0%{content:"·"}25%{content:"··"}50%{content:"···"}75%{content:"··"}}
-  .load-fail{width:100%;text-align:center;line-height:1.6;color:var(--danger-muted)}
-  .load-fail .retry-btn{margin-top:8px}
+  /* ---------- loading states ---------- */
+.spinner { display:inline-block; width:18px; height:18px; border:2px solid var(--border); border-top-color:var(--accent);
+  border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle; margin-right:8px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.btn-loading { position:relative; color:transparent!important; pointer-events:none; }
+.btn-loading::after { content:""; position:absolute; inset:0; margin:auto; width:18px; height:18px; border:2px solid transparent;
+  border-top-color:currentColor; border-radius:50%; animation:spin .7s linear infinite; }
+.skeleton { background:linear-gradient(90deg,var(--surface-nested) 25%,var(--surface-card) 50%,var(--surface-nested) 75%);
+  background-size:200% 100%; animation:shimmer 1.5s infinite; border-radius:var(--radius-control); }
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+/* ---------- toast notifications ---------- */
+.toast-container { position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index:100; display:flex; flex-direction:column; gap:8px; pointer-events:none; }
+.toast { padding:12px 20px; border-radius:var(--radius-tile); font-size:13px; font-weight:600; color:#fff; display:flex; align-items:center; gap:8px;
+  box-shadow:var(--shadow-overlay); animation:toastIn .25s ease, toastOut .25s ease 3s forwards; pointer-events:auto; max-width:90vw; }
+.toast.success { background:var(--module-1); }
+.toast.error { background:var(--danger); }
+.toast.info { background:var(--module-2); }
+.toast.warning { background:var(--module-3); color:var(--on-accent); }
+@keyframes toastIn { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
+@keyframes toastOut { to{opacity:0;transform:translateY(-10px)} }
+
+/* ---------- network status ---------- */
+.net-status { position:fixed; top:0; left:0; right:0; padding:8px 16px; font-size:12px; font-weight:600; text-align:center; z-index:200;
+  transform:translateY(-100%); transition:transform .3s ease; }
+.net-status.show { transform:translateY(0); }
+.net-status.offline { background:var(--danger); color:#fff; }
+.net-status.online { background:var(--module-1); color:#fff; }
+</style>
   .sec-title { display:flex; align-items:center; justify-content:space-between; margin:18px 0 10px; }
   .seg { display:inline-flex; background:var(--surface-nested); border:1px solid var(--border); border-radius:999px; padding:2px; gap:2px; }
   .seg-item { border:none; background:transparent; color:var(--text-tertiary); border-radius:999px; padding:4px 12px; font-size:12px; cursor:pointer; transition:.15s; }
@@ -602,6 +629,16 @@ const ICONS = {
   sun:'<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/>',
   moon:'<path d="M20 14.5A8 8 0 1 1 9.5 4 6.5 6.5 0 0 0 20 14.5z"/>',
   refresh:'<path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v4h-4"/>',
+  msg:'<path d="M4 7h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z"/><path d="M4 11.5 12 5l8 6.5"/><path d="M12 7v10"/>',
+  img:'<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="2"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>',
+  video:'<rect x="4" y="4" width="16" height="10" rx="2" ry="2"/><circle cx="8" cy="9" r="1"/><path d="M15 9l-4 4 4 4v-8z"/>',
+  mic:'<path d="M12 15v4"/><path d="M9 12a3 3 0 0 1 6 0v4H9"/><ellipse cx="12" cy="9" rx="3" ry="2"/><circle cx="12" cy="6" r="2"/>',
+  link:'<path d="M10 6l6 6-6 6"/><path d="M14 6l-6 6 6 6"/>',
+  app:'<rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><path d="M8 8h8v8H8z"/>',
+  file:'<path d="M14 2H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><polyline points="3 13 7 13 12 8 12 20"/><circle cx="9" cy="9" r="1"/>',
+  alert:'<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+  edit:'<path d="M12 20h9"/><path d="M16.5 3a4.2 4.2 0 0 1 3.37 1.37l-6.74 6.74"/><path d="M9.5 11.5l4.75-4.75"/><path d="M6 15v4a2 2 0 0 0 2 2h4"/>',
+  emoji:'<circle cx="12" cy="8" r="4"/><path d="M8 17l4 4 8-4"/>'
 };
 function icon(name, size=22, sw=1.7){
   const path = ICONS[name] || ICONS.grid;
@@ -887,8 +924,8 @@ function renderInsight(){
 }
 
 /* ---------- BOT VIEW 统一渲染状态组件 ---------- */
-// 加载中占位
-function renderLoading(el){ if(!el) return; el.innerHTML = botSuffix("加载中…",'off'); }
+// 加载中占位（带旋转动画）
+function renderLoading(el, text='加载中…'){ if(!el) return; el.innerHTML = `<div class="lineq"><span class="spinner"></span><span>${text}</span></div>`; }
 // 成功占位（可选文字）
 function renderSuccess(el, txt){ if(!el) return; el.innerHTML = botSuffix(txt||'已连接','ok'); }
 // 空态：text 与 icon 可选，action 支持自定义按钮 HTML
@@ -906,10 +943,61 @@ function botFail(el, msg){
 }
 // 为容器内「[data-retry]」按钮统一绑定重试回调；无回调则把容器整体当作触发目标
 function wireRetry(el, retry){ if(!el) return; el.querySelectorAll("[data-retry]").forEach(b=>b.onclick=()=> (retry||render)()); }
-// 快捷：展示错误 + 绑定重试（兼容旧用法）
+// 快捷：展示错误 + 绑定重试（兼容旧用法），附带全局错误提示
 function showError(el, err, retryF){
-  botFail(el, err?.message || err || '加载失败');
+  const msg = err?.message || err || '加载失败';
+  botFail(el, msg);
   wireRetry(el, retryF);
+  if(!window._lastErrMsg || window._lastErrMsg !== msg){
+    window._lastErrMsg = msg;
+    toast.error(msg);
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+/* ---------- Toast 通知系统 ---------- */
+function toast(msg, type='info'){
+  if(!msg) return;
+  let container = document.querySelector('.toast-container');
+  if(!container){
+    container = document.createElement('div');
+    container.className = 'toast-container';
+    document.body.appendChild(container);
+  }
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  const iconMap = { success:'check', error:'alert', info:'msg', warning:'alert' };
+  el.innerHTML = `${icon(iconMap[type]||'msg',15)}<span>${esc(msg)}</span>`;
+  container.appendChild(el);
+  const remove = ()=>{ el.remove(); if(!container.children.length) container.remove(); };
+  el.querySelector('.toast');
+  setTimeout(remove, 3200);
+}
+toast.success = (msg)=>toast(msg, 'success');
+toast.error = (msg)=>toast(msg, 'error');
+toast.info = (msg)=>toast(msg, 'info');
+toast.warning = (msg)=>toast(msg, 'warning');
+
+/* ---------- 网络状态监听 ---------- */
+function initNetworkMonitor(){
+  let statusEl = document.querySelector('.net-status');
+  if(!statusEl){
+    statusEl = document.createElement('div');
+    statusEl.className = 'net-status';
+    document.body.appendChild(statusEl);
+  }
+  const showOffline = ()=>{
+    statusEl.className = 'net-status offline show';
+    statusEl.textContent = '网络连接已断开，请检查网络';
+  };
+  const showOnline = ()=>{
+    statusEl.className = 'net-status online show';
+    statusEl.textContent = '网络已恢复连接';
+    setTimeout(()=>statusEl.classList.remove('show'), 2000);
+  };
+  if(!navigator.onLine) showOffline();
+  window.addEventListener('offline', showOffline);
+  window.addEventListener('online', showOnline);
 }
 
 /* ---------- BOT VIEW (微信机器人：走同源 /api，不落本地存储) ---------- */
@@ -922,13 +1010,29 @@ const CAP = [
   { i:"camera", t:"多类型消息",   d:"识别文本/图片/语音/视频/表情/链接/小程序", page:"msg" },
   { i:"chart",  t:"Token 用量",   d:"记录每轮输入/输出 Token 并统计",    page:"usage" },
 ];
-function botSuffix(txt, cls){ const s={ ok:'ok', off:'off', scan:'scan' }[cls]||'off'; return `<div class="lineq"><div class="mstate ${s}"></div><span>${txt}</span></div>`; }
+function botSuffix(txt, cls){ const s={ ok:'ok', off:'off', scan:'scan' }[cls]||'off'; const loading=cls==='off'; return `<div class="lineq"><div class="mstate ${s}"></div>${loading?`<span class="spinner"></span>`:''}<span>${txt}</span></div>`; }
 
 /* ---------- API Client 抽象层：端点集中定义，前端不再感知路径拼接 ---------- */
 const BOT_BASE = (CONFIG.modules.find(x=>x.key==="bot")||{}).api||"/api";
 function apiUrl(path, params){ const u=new URL(BOT_BASE+path, location.origin); Object.entries(params||{}).forEach(([k,v])=>{ if(v!=null) u.searchParams.set(k,v); }); return u; }
-async function apiGet(path, params){ const r=await fetch(apiUrl(path, params)); if(!r.ok) throw new Error(String(r.status)); return r.json(); }
-async function apiSend(path, params, opts){ const r=await fetch(apiUrl(path, params), opts||{}); if(!r.ok) throw new Error(String(r.status)); return r.json(); }
+async function apiGet(path, params){
+  const r=await fetch(apiUrl(path, params));
+  if(!r.ok){
+    let msg = `请求失败 (${r.status})`;
+    try{ const err = await r.json(); if(err.message) msg = err.message; }catch(e){}
+    throw new Error(msg);
+  }
+  return r.json();
+}
+async function apiSend(path, params, opts={}){
+  const r=await fetch(apiUrl(path, params), opts);
+  if(!r.ok){
+    let msg = `请求失败 (${r.status})`;
+    try{ const err = await r.json(); if(err.message) msg = err.message; }catch(e){}
+    throw new Error(msg);
+  }
+  return r.json();
+}
 const api = {
   status:        ()       => apiGet("/bot/status"),
   usageSummary:  ()       => apiGet("/usage/summary"),
@@ -977,8 +1081,25 @@ function renderBotHome(m){
       else if(pollTimer){ clearInterval(pollTimer); pollTimer=null; }
     }catch(e){ showError(el, e, run); }
   };
+  let isLoading = false;
+  const showLoading = ()=>{ const el=$("#bot-status"); if(el){ el.innerHTML=`<div class="lineq"><span class="spinner"></span><span>刷新中…</span></div>`; } };
+  const run = async ()=>{
+    const el=$("#bot-status");
+    if(!el) return;
+    if(isLoading) return;
+    isLoading = true;
+    try{ const d = await api.status();
+      const map = { idle:['初始化中','off'], scanning:['等待扫码','scan'], 'logged-in':['在线 · '+(d.userName||'—'),'ok'], 'logged-out':['已登出','off'] };
+      const [txt,cls] = map[d.state] || ['连接中…','off'];
+      const qr = d.state==='scanning' && d.qrcodeUrl ? `<img class="bot-qr" src="${d.qrcodeUrl}" alt="扫码登录二维码"/>` : '';
+      el.innerHTML = botSuffix(txt, cls) + qr;
+      if(d.state==='scanning'){ if(!pollTimer) pollTimer=setInterval(run, 2000); }
+      else if(pollTimer){ clearInterval(pollTimer); pollTimer=null; }
+    }catch(e){ showError(el, e, run); }
+    finally{ isLoading = false; }
+  };
   run();
-  $("#bot-refresh").onclick = ()=>{ stopPoll(); run(); };
+  $("#bot-refresh").onclick = ()=>{ stopPoll(); isLoading=false; run(); };
   $("#screen").querySelectorAll(".cap-link").forEach(card=>{ card.onclick = ()=>go('bot-'+card.dataset.page); });
 }
 
@@ -1087,6 +1208,7 @@ function renderBotMsg(){
   const retry = ()=>{ renderBotMsg(); };
   const refresh = ()=>{ renderBotMsg(); };
   $("#bot-refer").onclick = refresh;
+  document.addEventListener('keydown',(e)=>{ if(e.ctrlKey && e.key==='r'){ e.preventDefault(); refresh(); } });
 
   $("#msg-types-bar").addEventListener("click", (e)=>{
     const span = e.target.closest("[data-type]");
@@ -1102,11 +1224,11 @@ function renderBotMsg(){
     try{ const list = await api.messages(50, activeType); const arr=(list||[]).slice().reverse();
       if(!arr.length){ el.innerHTML=`<div class="empty"><span class="e">${icon("msg",24)}</span><div>暂无消息，收到新消息后这里会实时展示</div></div>`; return; }
       el.innerHTML = arr.map(mm=>{
-        const meta = mm.meta||{};
+        const type = mm.type||'';
         return `<div class="mrow mrow-msg" data-c="${esc(mm.contactId||'')}" data-r="${esc(mm.roomId||'')}">
-          <span class="role msg-type">${esc(mm.type||'')}</span>
+          <span class="role msg-type">${icon("msg",12)} ${esc(type)}</span>
           <span class="who">${esc(mm.contactId||'匿名')}${mm.roomId?'<i class="grp">群</i>':''}</span>
-          <span class="txt">${esc(meta.text||meta.title||meta.url||'')}</span>
+          <span class="txt">${fmtMsgContent(mm)}</span>
           <span class="muted">${fmtDateTime(mm.createdAt)}</span></div>`;
       }).join("");
       el.querySelectorAll(".mrow-msg").forEach(row=>{ row.onclick=()=>openConv(row.dataset.c, row.dataset.r||null); });
@@ -1114,6 +1236,22 @@ function renderBotMsg(){
   })();
   $("#bot-back").onclick = ()=>go('bot');
 }
+function fmtMsgContent(mm){
+  const meta = mm?.meta||{};
+  const type = (mm?.type||'').trim();
+  const fileName = (meta?.url||meta?.file||meta?.path||'').split('/').pop()||'';
+  if(!type) return esc(meta?.text||mm?.content||'');
+  if(type==='文本') return esc(meta?.text||mm?.content||'');
+  if(type==='图片') return `<i class="muted">${icon("img",14)} 图片 ${fileName||'图片'}</i>`;
+  if(type==='视频') return `<i class="muted">${icon("video",14)} 视频 ${fileName||'视频'}</i>`;
+  if(type==='语音') return `<i class="muted">${icon("mic",14)} 语音 ${(meta?.duration||'') }s ${fileName||'语音文件'}</i>`;
+  if(type==='链接') return `<a class="link" href="${esc(meta?.url||'')}" target="_blank">${icon("link",12)} ${esc(meta?.title||meta?.url||'')}</a>`;
+  if(type==='小程序') return `<i class="muted">${icon("app",14)} ${esc(meta?.title||'小程序')}</i>`;
+  if(type==='文件') return `<i class="muted">${icon("file",14)} ${fileName||'文件'}</i>`;
+  if(type==='表情') return `<i class="muted">${icon("emoji",14)} 表情</i>`;
+  return esc(meta?.text||meta?.title||mm?.content||'');
+}
+
 function fmtDateTime(ts){
   return new Date(ts).toLocaleString("zh-CN",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"});
 }
@@ -1134,7 +1272,10 @@ function renderBotMem(){
         <button class="btn" id="mem-save" disabled>${icon("plus",15,2.2)} 保存记忆</button>
         <div class="lineq" id="mem-msg" style="display:none"></div>
       </div>
-      <div class="sec-title">记忆库</div>
+      <div class="sec-title">
+        记忆库
+        <span class="seg"><input id="mem-search" type="text" placeholder="搜索关键字…" style="flex:1"/></span>
+      </div>
       <div class="panel" id="w-mem">${botSuffix("加载中…",'off')}</div>
     </div>`;
 
@@ -1142,11 +1283,15 @@ function renderBotMem(){
   const refresh = ()=>{ renderBotMem(); };
   $("#bot-refer").onclick = refresh;
 
+  let searchKey = '';
   const load = async ()=>{
     const el=$("#w-mem");
     try{ const list = await api.memories();
-      if(!list.length){ el.innerHTML=`<div class="empty"><span class="e">${icon("leaf",24)}</span><div>暂无记忆，填写上方表单或在聊天里说『记住 事项』</div></div>`; return; }
-      el.innerHTML = list.map(mm=>`<div class="mrow mrow-mem" data-id="${mm.id}">
+      const filtered = list.filter(mm =>
+        mm.contactId.includes(searchKey) || mm.content.includes(searchKey)
+      );
+      if(!filtered.length){ el.innerHTML=`<div class="empty"><span class="e">${icon("leaf",24)}</span><div>${searchKey?'没有匹配『'+searchKey+'』的记忆，清除搜索词或再试':list.length?'暂无记忆，填写上方表单或在聊天里说『记住 事项』':'暂无记忆'}</div></div>`; return; }
+      el.innerHTML = filtered.map(mm=>`<div class="mrow mrow-mem" data-id="${mm.id}">
         <div class="who">${esc(mm.contactId||'匿名')}</div>
         <div class="txt">${editingId === mm.id ? '<textarea class="mem-edit-box" rows="2">' + esc(mm.content) + '</textarea>' : esc(mm.content)}</div>
         <span class="muted">${new Date(mm.created_at).toLocaleDateString("zh-CN")}</span>
@@ -1156,13 +1301,30 @@ function renderBotMem(){
           : `<button class="btn-edit js-mem-edit" data-id="${mm.id}">${icon("edit",14)}</button>
              <button class="btn-del js-mem-del" data-id="${mm.id}">${icon("trash",14)}</button>`}
       </div>`).join("");
-      el.querySelectorAll(".js-mem-del").forEach(b=>{ b.onclick=async(e)=>{ e.stopPropagation(); b.disabled=true; b.style.opacity=".7"; await api.deleteMemory(b.dataset.id); load(); }; });
+      el.querySelectorAll(".js-mem-del").forEach(b=>{ b.onclick=async(e)=>{ e.stopPropagation(); b.disabled=true; b.style.opacity=".7"; b.innerHTML = icon("refresh",14);
+        try{ await api.deleteMemory(b.dataset.id); toast.success("已删除记忆"); load(); }catch(err){ toast.error("删除失败："+(err?.message||err)); }
+        finally{ b.disabled=false; b.style.opacity="1"; b.innerHTML = icon("trash",14); };
+      }; });
       el.querySelectorAll(".js-mem-edit").forEach(btn=>{ btn.onclick=(e)=>{ e.stopPropagation(); editingId = Number(btn.dataset.id); load(); }; });
-      el.querySelectorAll(".js-mem-save").forEach(btn=>{ btn.onclick=async(e)=>{ e.stopPropagation(); const row = btn.closest(".mrow-mem"); if(!row) return; const box=row.querySelector(".mem-edit-box"); const newContent=box.value.trim(); if(!newContent){ alert("内容不能为空"); return; } btn.disabled=true; btn.style.opacity=".7"; try{ await api.updateMemory(Number(btn.dataset.id), newContent); msg("已更新",true); load(); }catch(err){ alert("更新失败："+(err?.message||err)); } }; });
+      el.querySelectorAll(".js-mem-save").forEach(btn=>{ btn.onclick=async(e)=>{ e.stopPropagation(); const row = btn.closest(".mrow-mem"); if(!row) return; const box=row.querySelector(".mem-edit-box"); const newContent=box.value.trim(); if(!newContent){ toast.warning("内容不能为空"); return; } btn.disabled=true; btn.innerHTML = icon("refresh",14);
+        try{ await api.updateMemory(Number(btn.dataset.id), newContent); toast.success("已更新记忆"); load(); }catch(err){ toast.error("更新失败："+(err?.message||err)); }
+        finally{ btn.disabled=false; btn.innerHTML = icon("check",14); };
+      }; });
       el.querySelectorAll(".js-mem-cancel").forEach(btn=>{ btn.onclick=(e)=>{ e.stopPropagation(); cancelEdit(); }; });
     }catch(e){ showError(el, e, retry); }
   };
   load();
+
+  // 搜索框防抖过滤
+  let searchTimer = null;
+  $("#mem-search").addEventListener('input', ()=>{
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(()=>{
+      searchKey = $("#mem-search").value.trim();
+      cancelEdit();
+      load();
+    }, 300);
+  });
 
   const msg=(txt,ok)=>{ const m=$("#mem-msg"); m.style.display="block"; m.innerHTML=botSuffix(txt,ok?'ok':'off'); };
   let saving = false, debounceTimer = null;
@@ -1172,16 +1334,31 @@ function renderBotMem(){
     const content=$("#mem-content").value.trim();
     if(!contactId||!content){ msg("请填写用户标识和内容",false); return; }
     saving = true;
-    $("#mem-save").innerHTML = `<span class="loading-dots">${icon("check",15,1.8)}</span> 保存中`;
-    $("#mem-save").disabled = true;
-    try{ await api.addMemory({ contactId, content }); $("#mem-contact").value=""; $("#mem-content").value=""; msg("已保存",true); load(); }
-    catch(e){ msg("保存失败："+(e&&e.message||e),false); }
-    finally{ saving = false; $("#mem-save").innerHTML = icon("plus",15,2.2); $("#mem-save").disabled = false; }
+    const btn = $("#mem-save");
+    btn.classList.add('btn-loading');
+    btn.disabled = true;
+    try{ 
+      await api.addMemory({ contactId, content }); 
+      $("#mem-contact").value=""; 
+      $("#mem-content").value=""; 
+      msg("已保存",true);
+      load();
+    }catch(e){ 
+      const errTip = (e && e.message) || e || '保存失败';
+      msg(errTip,false);
+      toast.error(errTip);
+    }
+    finally{ 
+      saving = false; 
+      btn.classList.remove('btn-loading');
+      btn.disabled = false;
+    }
   };
   $("#mem-save").onclick=doSave;
-  // Enter 键提交（保留 Shift+Enter 换行）
   $("#mem-contact").addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); doSave(); } });
   $("#mem-content").addEventListener('keydown',(e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); doSave(); } });
+  document.addEventListener('keydown',(e)=>{ if(e.ctrlKey && e.key==='s'){ e.preventDefault(); doSave(); } });
+  document.addEventListener('keydown',(e)=>{ if(e.ctrlKey && e.key==='d'){ e.preventDefault(); closeDrawer(); openDrawer(); } });
   // 输入变化时防抖启用保存按钮
   ["#mem-contact","#mem-content"].forEach(sel=>{
     $(sel).addEventListener('input',()=>{
@@ -1212,6 +1389,7 @@ function renderBotRecall(){
   const retry = ()=>{ renderBotRecall(); };
   const refresh = ()=>{ renderBotRecall(); };
   $("#bot-refer").onclick = refresh;
+  document.addEventListener('keydown',(e)=>{ if(e.ctrlKey && e.key==='r'){ e.preventDefault(); refresh(); } });
 
   const loadHits = async ()=>{
     const el=$("#w-recall");
@@ -1342,26 +1520,41 @@ function openConv(contactId, roomId){
   const mask=document.createElement("div"); mask.className="sheet-mask";
   const sheet=document.createElement("div"); sheet.className="sheet";
   sheet.innerHTML=`<div class="sh-h"><b>${esc(contactId||'匿名')}${roomId?' · 群聊':''}</b><button class="btn-close">${icon("close",16)}</button></div>
-    <div class="sh-b"><div class="lineq">加载中…</div></div>`;
+    <div class="sh-b"><div class="lineq"><span class="spinner"></span><span>加载中…</span></div></div>`;
   mask.appendChild(sheet); document.body.appendChild(mask);
   sheet.querySelector(".btn-close").onclick=()=>mask.remove();
   mask.onclick=(e)=>{ if(e.target===mask) mask.remove(); };
   const box=sheet.querySelector(".sh-b");
-  
-  const retry = async()=>{ try{ await load(); }catch(e){ showError(e); } };
+
+  const retry = async()=>{ try{ await load(); }catch(e){ showError(box, e, retry); } };
   const load = async()=>{
     try{
       const list = await api.conversations(contactId, roomId || null);
       const arr = list.slice().reverse();
-      box.innerHTML = arr.length ? arr.map(mm=>`<div class="bmsg ${mm.role}"><div class="nm">${ROLE_LABEL[mm.role]||mm.role} · ${new Date(mm.created_at).toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"})}</div><div class="bd">${esc(mm.content)}</div></div>`).join("")
-        : `<div class="empty">暂无历史会话</div>`;
-    }catch(e){ showError(e); }
+      box.innerHTML = arr.length ? arr.map(mm=>{
+        const meta = mm.meta||{};
+        return `<div class="bmsg ${mm.role}"><div class="nm">${ROLE_LABEL[mm.role]||mm.role} · ${new Date(mm.created_at).toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"})}</div><div class="bd">${escFmtMsg(mm)}</div></div>`;
+      }).join("")
+        : `<div class="empty"><span class="e">${icon("msg",24)}</span><div>暂无历史会话</div></div>`;
+    }catch(e){ showError(box, e, retry); }
   };
-  const showError=(e)=>{ box.innerHTML=`<div class="load-fail text-center" style="padding:24px 16px">
-    <div class="error-msg">${esc(e?.message||'加载失败')}</div>
-    <button class="btn retry-btn" data-retry>重新加载</button>
-  </div>`; wireRetry(sheet, retry); };
-  
+
+  // 辅助：格式化消息内容（文本直接字，其他带图标）
+  const escFmtMsg = (mm)=>{
+    const meta = mm?.meta||{};
+    const t = (mm?.type||'').trim();
+    const fileName = (meta?.url||meta?.file||meta?.path||'').split('/').pop()||'';
+    if(!t) return esc(meta?.text||mm?.content||'');
+    if(t==='图片') return `<i class="muted">${icon("img",14)} 图片 ${fileName||'图片'}</i>`;
+    if(t==='视频') return `<i class="muted">${icon("video",14)} 视频 ${fileName||'视频'}</i>`;
+    if(t==='语音') return `<i class="muted">${icon("mic",14)} 语音 ${(meta?.duration||'') }s ${fileName||'语音文件'}</i>`;
+    if(t==='链接') return `<a class="link" href="${esc(meta?.url||'')}" target="_blank">${icon("link",12)} ${esc(meta?.title||meta?.url||'')}</a>`;
+    if(t==='小程序') return `<i class="muted">${icon("app",14)} ${esc(meta?.title||'小程序')}</i>`;
+    if(t==='文件') return `<i class="muted">${icon("file",14)} ${fileName||'文件'}</i>`;
+    if(t==='表情') return `<i class="muted">${icon("emoji",14)} 表情</i>`;
+    return esc(meta?.text||mm?.content||'');
+  };
+
   load();
 }
 
@@ -1693,6 +1886,7 @@ function attr(s){ return esc(s).replace(/"/g,'&quot;'); }
 
 buildDrawer();
 render();
+initNetworkMonitor();
 </script>
 </body>
 </html>
