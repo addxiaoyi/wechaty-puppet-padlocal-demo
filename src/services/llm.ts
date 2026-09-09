@@ -1,4 +1,5 @@
 import { config } from '../config'
+import { getRuntimeConfig } from './runtime-config'
 
 export interface ChatMsg {
   role: 'system' | 'user' | 'assistant'
@@ -16,9 +17,6 @@ export class LlmError extends Error {}
 export class Llm {
   private readonly apiBase: string
   private readonly apiKey: string
-  private readonly model: string
-  private readonly embeddingModel: string
-  private readonly systemPrompt: string
 
   constructor() {
     const c = config.llm
@@ -27,15 +25,14 @@ export class Llm {
     }
     this.apiBase = c.apiBase.replace(/\/$/, '') // 去掉末尾斜杠便于拼接
     this.apiKey = c.apiKey
-    this.model = c.model
-    this.embeddingModel = c.embeddingModel
-    this.systemPrompt = c.systemPrompt
   }
 
   async chat(messages: ChatMsg[]): Promise<LlmResult> {
+    // 每次调用动态读取运行时配置，实现在线改模型/提示词即时生效
+    const rt = getRuntimeConfig()
     const body = {
-      model: this.model,
-      messages: [{ role: 'system', content: this.systemPrompt }, ...messages],
+      model: rt.model,
+      messages: [{ role: 'system', content: rt.systemPrompt }, ...messages],
     }
 
     let res: Response
@@ -83,7 +80,7 @@ export class Llm {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${this.apiKey}`,
         },
-        body: JSON.stringify({ model: this.embeddingModel, input: text }),
+        body: JSON.stringify({ model: getRuntimeConfig().embeddingModel, input: text }),
       })
     } catch (e) {
       throw new LlmError(`请求 Embedding 失败: ${e}`)

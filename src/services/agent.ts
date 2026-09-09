@@ -10,6 +10,7 @@ import {
 import type { MemoryRow } from './storage'
 import { llm, Llm, LlmError } from './llm'
 import type { ChatMsg } from './llm'
+import { getRuntimeConfig } from './runtime-config'
 
 export interface AskParams {
   contactId: string
@@ -19,9 +20,6 @@ export interface AskParams {
 
 // 学习指令：命中即以"记笔记"方式持久化一段用户告知的信息
 const LEARN_RE = /^\s*(记住|记一下|记忆|记得|learn)[:：]?\s+(.+?)\s*$/
-
-// 最多注入的相似记忆条数
-const MEMORY_TOP_K = 3
 
 function tryLearn(text: string): string | null {
   const m = LEARN_RE.exec(text)
@@ -60,13 +58,14 @@ async function retrieveMemory(
     return []
   }
 
-  let hits: MemoryRow[] = rows.slice(-MEMORY_TOP_K) // 兜底：最近几条
+  const topK = getRuntimeConfig().memoryTopK
+  let hits: MemoryRow[] = rows.slice(-topK) // 兜底：最近几条
   try {
     const qVec = await client.embed(query)
     const ranked = rows
       .map((r) => ({ r, score: cosine(qVec, safeVector(r)) }))
       .sort((a, b) => b.score - a.score)
-    hits = ranked.slice(0, MEMORY_TOP_K).map((x) => x.r)
+    hits = ranked.slice(0, topK).map((x) => x.r)
   } catch {
     // embedding 不可用，保留兜底结果
   }

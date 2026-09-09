@@ -18,8 +18,16 @@ import {
   recentRecalls,
 } from '../services/storage'
 import { addMemoryManually } from '../services/agent'
+import { getRuntimeConfig, updateRuntimeConfig, isLlmConfigured } from '../services/runtime-config'
 
-export function startWebServer(status: StatusHub): Server {
+// 机器人控制器：仅在完整模式（main.ts）下注入，web:dev 模式下为 undefined
+export interface BotController {
+  logout(): Promise<unknown>
+  stop(): Promise<unknown>
+  start(): Promise<unknown>
+}
+
+export function startWebServer(status: StatusHub, bot?: BotController): Server {
   const app = express()
   app.use(express.json())
 
@@ -143,6 +151,66 @@ export function startWebServer(status: StatusHub): Server {
       .map((s) => Number.parseInt(s.trim(), 10))
       .filter((n) => !Number.isNaN(n))
     res.json(memoriesByIds(ids))
+  })
+
+  // ===== 运行时配置 =====
+  // 读取当前生效配置（含 .env 默认 + 在线覆盖），并附带 llmConfigured 标记
+  app.get('/api/config', (_req: Request, res: Response) => {
+    res.json({ ...getRuntimeConfig(), llmConfigured: isLlmConfigured() })
+  })
+
+  // 更新配置（部分字段），做白名单校验后落库，实时生效
+  app.put('/api/config', (req: Request, res: Response) => {
+    const patch = (req.body ?? {}) as Record<string, unknown>
+    try {
+      const next = updateRuntimeConfig(patch)
+      res.json({ ok: true, config: { ...next, llmConfigured: isLlmConfigured() } })
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e) })
+    }
+  })
+
+  // ===== 机器人控制 =====
+  // 登出当前账号（回到扫码状态），需要完整模式的 bot 控制器
+  app.post('/api/bot/logout', async (_req: Request, res: Response) => {
+    if (!bot) {
+      res.status(400).json({ ok: false, error: '当前为 WebUI-only 模式，无机器人实例' })
+      return
+    }
+    try {
+      await bot.logout()
+      res.json({ ok: true })
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e) })
+    }
+  })
+
+  // 停止机器人（不退出进程）
+  app.post('/api/bot/stop', async (_req: Request, res: Response) => {
+    if (!bot) {
+      res.status(400).json({ ok: false, error: '当前为 WebUI-only 模式，无机器人实例' })
+      return
+    }
+    try {
+      await bot.stop()
+      res.json({ ok: true })
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e) })
+    }
+  })
+
+  // 启动/重启机器人（停止后再启动）
+  app.post('/api/bot/start', async (_req: Request, res: Response) => {
+    if (!bot) {
+      res.status(400).json({ ok: false, error: '当前为 WebUI-only 模式，无机器人实例' })
+      return
+    }
+    try {
+      await bot.start()
+      res.json({ ok: true })
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e) })
+    }
   })
 
   // 根路径 / 由上方 express.static 托管工作台 index.html

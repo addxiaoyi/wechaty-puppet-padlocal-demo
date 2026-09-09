@@ -3,6 +3,7 @@ import type { Message } from 'wechaty'
 import * as PUPPET from 'wechaty-puppet'
 import { askAgent } from '../services/agent'
 import { addMessageRecord } from '../services/storage'
+import { getRuntimeConfig } from '../services/runtime-config'
 
 export const LOGPRE = '[PadLocalDemo]'
 
@@ -26,8 +27,19 @@ async function reply(message: Message): Promise<void> {
   if (message.self()) {
     return
   }
-  // 群聊：仅在 @机器人 时回复，避免刷屏
-  if (roomId && !(await message.mentionSelf())) {
+
+  const rt = getRuntimeConfig()
+
+  // 总开关关闭：只落库不回复
+  if (!rt.autoReply) {
+    return
+  }
+  // 私聊：未开启私聊回复则跳过
+  if (!roomId && !rt.replyPrivate) {
+    return
+  }
+  // 群聊：未开启群聊回复，或未 @机器人 时跳过
+  if (roomId && (!rt.replyGroup || !(await message.mentionSelf()))) {
     return
   }
 

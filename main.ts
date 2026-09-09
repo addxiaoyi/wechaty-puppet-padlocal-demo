@@ -9,7 +9,7 @@ const status = createStatusHub()
 const bot = createBot(status)
 
 // WebUI 与机器人并行启动，WebUI 失败不阻断 bot 运行
-const server = startWebServer(status)
+const server = startWebServer(status, bot)
 
 bot
   .start()

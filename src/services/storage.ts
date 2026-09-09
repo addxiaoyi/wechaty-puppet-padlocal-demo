@@ -133,6 +133,11 @@ db.exec(`
     created_at INTEGER NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS kv_config (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
+
   CREATE INDEX IF NOT EXISTS idx_conv_lookup
     ON conversations(contact_id, room_id, id);
   CREATE INDEX IF NOT EXISTS idx_usage_lookup
@@ -353,6 +358,35 @@ export function usageByContact(limit = 20): ContactUsage[] {
 
 export function closeDb(): void {
   db.close()
+}
+
+// ===== 运行时配置（kv_config）=====
+
+// 读取全部运行时配置，返回 key -> 原始字符串
+export function loadRuntimeConfig(): Record<string, string> {
+  const rows = db.prepare('SELECT key, value FROM kv_config').all() as Array<{
+    key: string
+    value: string
+  }>
+  const out: Record<string, string> = {}
+  for (const r of rows) out[r.key] = r.value
+  return out
+}
+
+// 写入/更新一组运行时配置项；空值视为删除
+export function saveRuntimeConfig(patch: Record<string, string>): void {
+  const upsert = db.prepare(
+    `INSERT INTO kv_config(key, value) VALUES (?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+  )
+  const del = db.prepare('DELETE FROM kv_config WHERE key = ?')
+  const tx = db.transaction(() => {
+    for (const [k, v] of Object.entries(patch)) {
+      if (v === '') del.run(k)
+      else upsert.run(k, v)
+    }
+  })
+  tx()
 }
 
 // 记录一条收到消息的类型与元信息（图片/语音/视频等非文本消息也落库，供前端消息流展示）

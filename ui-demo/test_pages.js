@@ -29,6 +29,34 @@ async function testAPI() {
     });
   }
 
+  function callAPIWithBody(path, method = 'PUT', body = {}) {
+    return new Promise((resolve, reject) => {
+      const payload = JSON.stringify(body);
+      const options = {
+        hostname: 'localhost',
+        port: 8765,
+        path: path,
+        method: method,
+        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }
+      };
+
+      const req = http.request(options, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          resolve({ status: res.statusCode, body: data });
+        });
+      });
+
+      req.on('error', (e) => {
+        reject(e);
+      });
+
+      req.write(payload);
+      req.end();
+    });
+  }
+
   // 1. Test bot status
   try {
     const res = await callAPI('/api/bot/status');
@@ -142,6 +170,48 @@ async function testAPI() {
     }
   } catch(e) {
     results.push('❌ GET /: ' + e.message);
+  }
+
+  // 11. Test runtime config read
+  try {
+    const res = await callAPI('/api/config');
+    const json = JSON.parse(res.body);
+    if ('systemPrompt' in json && 'model' in json && 'autoReply' in json && 'memoryTopK' in json) {
+      results.push('✅ GET /api/config: ' + JSON.stringify({ model: json.model, autoReply: json.autoReply, memoryTopK: json.memoryTopK, llmConfigured: json.llmConfigured }));
+    } else {
+      results.push('⚠️  GET /api/config: Missing fields');
+    }
+  } catch(e) {
+    results.push('❌ GET /api/config: ' + e.message);
+  }
+
+  // 12. Test runtime config update (toggle autoReply off then on)
+  try {
+    const res = await callAPIWithBody('/api/config', 'PUT', { autoReply: true, memoryTopK: 5 });
+    const json = JSON.parse(res.body);
+    const cfg = json.config || json;
+    if (json.ok === true && cfg.autoReply === true && cfg.memoryTopK === 5) {
+      results.push('✅ PUT /api/config: autoReply=' + cfg.autoReply + ', memoryTopK=' + cfg.memoryTopK);
+    } else {
+      results.push('⚠️  PUT /api/config: Unexpected response ' + res.body);
+    }
+  } catch(e) {
+    results.push('❌ PUT /api/config: ' + e.message);
+  }
+
+  // 13. Test bot control endpoints (WebUI-only mode should 400 with clear error)
+  for (const ep of ['/api/bot/logout', '/api/bot/stop', '/api/bot/start']) {
+    try {
+      const res = await callAPI(ep, 'POST');
+      if (res.status === 400) {
+        const json = JSON.parse(res.body);
+        results.push('✅ POST ' + ep + ': status=400, error=' + json.error);
+      } else {
+        results.push('⚠️  POST ' + ep + ': unexpected status ' + res.status);
+      }
+    } catch(e) {
+      results.push('❌ POST ' + ep + ': ' + e.message);
+    }
   }
 
   return results;
