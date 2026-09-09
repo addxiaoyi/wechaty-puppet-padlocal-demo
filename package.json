@@ -40,7 +40,9 @@
     "lint": "eslint . --ext .ts",
     "format": "prettier --write .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "web:dev": "ts-node src/web/start-webui.ts",
+    "test:e2e": "node ui-demo/test_pages.js"
   },
   "engines": {
     "node": ">= 16",
