@@ -78,10 +78,26 @@ npm run build && npm start
 ```bash
 npm run build      # 编译到 dist/
 npm run start      # 运行编译产物
-npm run demo       # ts-node 直接运行
+npm run demo       # ts-node 直接运行（同时拉起机器人与 WebUI）
+npm run web:dev    # 仅启动 WebUI + API，不拉起机器人（前端联调用）
+npm run test:e2e   # API 端到端测试（需先 npm run web:dev）
 npm run typecheck  # 类型检查
 npm run lint       # ESLint 检查
 npm run format     # Prettier 格式化
+```
+
+### 仅启动 WebUI（前端联调）
+`npm run web:dev` 只拉起 Express WebUI 与 REST API，**不初始化 wechaty 机器人**，因此无需真实扫码登录，适合前端开发与接口联调。
+
+由于 `config.ts` 在校验阶段仍要求提供 Puppet 通道与 Token，本地联调前请先准备一份 `.env`（Token 可填任意占位值，例如 `test-placeholder-token`）：
+
+```bash
+cp .env.example .env
+# 编辑 .env：WECHATY_PUPPET_PADLOCAL_TOKEN 填占位值即可，无需真实 Token
+
+npm run web:dev          # 启动 http://localhost:8765
+# 另开一个终端
+npm run test:e2e         # 跑 10 项 API 端到端测试
 ```
 
 ## Docker 部署
@@ -118,7 +134,9 @@ Docker 说明：
 │       ├── storage.ts      # SQLite：记忆(含向量)/用量/对话历史
 │       ├── llm.ts          # OpenAI 兼容 LLM + Embedding 客户端
 │       ├── agent.ts        # 对话编排：矢量检索 + 用量记录
-│       └── web/server.ts   # Express WebUI + REST API
+│       └── web/
+│           ├── server.ts   # Express WebUI + REST API
+│           └── start-webui.ts # 仅启动 WebUI（不拉起机器人，供联调/测试）
 ├── .env.example            # 配置模板（不提交 .env）
 ├── Dockerfile              # 多阶段构建：compile + slim 运行时
 ├── .dockerignore           # 排除依赖/数据/密钥进镜像
