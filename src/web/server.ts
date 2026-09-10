@@ -18,6 +18,7 @@ import {
   recentConversations,
   listConversations,
   usageByContact,
+  clearUsage,
   recentMessageTypes,
   recentRecalls,
 } from '../services/storage'
@@ -34,6 +35,8 @@ export interface BotController {
   getContacts(): Promise<Array<{ id: string; name: string; alias: string }>>
   getRooms(): Promise<Array<{ id: string; topic: string; memberCount: number }>>
   getRoomMembers(roomId: string): Promise<Array<{ id: string; name: string; alias: string }>>
+  setContactAlias(contactId: string, newAlias: string): Promise<{ ok: boolean; error?: string }>
+  setRoomTopic(roomId: string, newTopic: string): Promise<{ ok: boolean; error?: string }>
   sendMessage(target: { contactId?: string; roomId?: string; text: string }): Promise<{ ok: boolean; error?: string }>
 }
 
@@ -69,6 +72,12 @@ export function startWebServer(status: StatusHub, bot?: BotController): Server {
   // 每用户用量排行（按 token 降序）
   app.get('/api/usage/by-contact', (_req: Request, res: Response) => {
     res.json(usageByContact(20))
+  })
+
+  // 清空用量记录（审核确认后调用）
+  app.delete('/api/usage', (_req: Request, res: Response) => {
+    const removed = clearUsage()
+    res.json({ ok: true, removed })
   })
 
   // 最近对话流（跨会话）
@@ -310,6 +319,42 @@ export function startWebServer(status: StatusHub, bot?: BotController): Server {
     }
     try {
       res.json(await bot.getRoomMembers(String(req.params.id)))
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e) })
+    }
+  })
+
+  // 设置联系人备注
+  app.put('/api/contacts/:id/alias', async (req: Request, res: Response) => {
+    if (!bot) {
+      res.status(400).json({ ok: false, error: '当前为 WebUI-only 模式，无机器人实例' })
+      return
+    }
+    const alias = typeof req.body?.alias === 'string' ? req.body.alias.trim() : ''
+    if (alias === '') {
+      res.status(400).json({ ok: false, error: '备注不能为空' })
+      return
+    }
+    try {
+      res.json(await bot.setContactAlias(String(req.params.id), alias))
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e) })
+    }
+  })
+
+  // 修改群名
+  app.put('/api/rooms/:id/topic', async (req: Request, res: Response) => {
+    if (!bot) {
+      res.status(400).json({ ok: false, error: '当前为 WebUI-only 模式，无机器人实例' })
+      return
+    }
+    const topic = typeof req.body?.topic === 'string' ? req.body.topic.trim() : ''
+    if (topic === '') {
+      res.status(400).json({ ok: false, error: '群名不能为空' })
+      return
+    }
+    try {
+      res.json(await bot.setRoomTopic(String(req.params.id), topic))
     } catch (e) {
       res.status(500).json({ ok: false, error: String(e) })
     }

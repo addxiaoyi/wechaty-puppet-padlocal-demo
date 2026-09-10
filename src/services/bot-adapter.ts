@@ -73,6 +73,40 @@ export function createBotController(bot: BotInstance): BotController {
       return rows
     },
 
+    async setContactAlias(contactId, newAlias) {
+      try {
+        const contact = await bot.Contact.find({ id: contactId })
+        if (!contact) {
+          botLog('warn', `setContactAlias: 未找到联系人 ${contactId}`)
+          return { ok: false, error: `未找到联系人 ${contactId}` }
+        }
+        await contact.alias(newAlias.trim())
+        botLog('info', `已设置 ${contact.name()} 的备注为「${newAlias.trim()}」`)
+        return { ok: true }
+      } catch (e) {
+        log.error('BotController', `setContactAlias fail: ${e}`)
+        return { ok: false, error: String(e) }
+      }
+    },
+
+    async setRoomTopic(roomId, newTopic) {
+      try {
+        const room = await bot.Room.find({ id: roomId })
+        if (!room) {
+          botLog('warn', `setRoomTopic: 未找到群 ${roomId}`)
+          return { ok: false, error: `未找到群 ${roomId}` }
+        }
+        const topic = newTopic.trim()
+        if (topic === '') return { ok: false, error: '群名不能为空' }
+        await room.topic(topic)
+        botLog('info', `已修改群名为「${topic}」`)
+        return { ok: true }
+      } catch (e) {
+        log.error('BotController', `setRoomTopic fail: ${e}`)
+        return { ok: false, error: String(e) }
+      }
+    },
+
     async sendMessage({ contactId, roomId, text }) {
       try {
         if (roomId) {

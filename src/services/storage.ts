@@ -213,6 +213,10 @@ export function dailyUsage(days = 7): DailyUsage[] {
     .all(Date.now() - days * 86400_000, days) as unknown as DailyUsage[]
 }
 
+export function clearUsage(): number {
+  return db.prepare(`DELETE FROM usage_log`).run().changes
+}
+
 export function usageSummary(): {
   totalCalls: number
   totalIn: number
