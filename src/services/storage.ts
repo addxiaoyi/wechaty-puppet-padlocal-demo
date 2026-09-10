@@ -280,6 +280,37 @@ export function updateMemory(id: number, content: string): void {
   db.prepare('UPDATE memories SET content = ? WHERE id = ?').run(content, id)
 }
 
+export function deleteMessage(id: number): void {
+  db.prepare('DELETE FROM messages WHERE id = ?').run(id)
+}
+
+export function deleteRecall(id: number): void {
+  db.prepare('DELETE FROM recall_log WHERE id = ?').run(id)
+}
+
+export function deleteConversation(id: number): void {
+  db.prepare('DELETE FROM conversations WHERE id = ?').run(id)
+}
+
+// 记忆统计：总量、向量覆盖率、按用户聚合，供「记忆管理」页可视化
+export function memoryStats(): {
+  total: number
+  withVector: number
+  byContact: Array<{ contactId: string; count: number }>
+} {
+  const total = (db.prepare('SELECT count(*) as c FROM memories').get() as { c: number }).c
+  const withVector = (db
+    .prepare('SELECT count(*) as c FROM memories WHERE content_vector IS NOT NULL')
+    .get() as { c: number }).c
+  const byContact = db
+    .prepare(
+      `SELECT contact_id as contactId, count(*) as count
+       FROM memories GROUP BY contact_id ORDER BY count DESC LIMIT 20`
+    )
+    .all() as Array<{ contactId: string; count: number }>
+  return { total, withVector, byContact }
+}
+
 // 按一组 id 取记忆（召回命中明细用）；id 列表为空时返回空数组
 export function memoriesByIds(ids: number[]): MemoryRow[] {
   if (!ids.length) return []

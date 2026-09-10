@@ -10,6 +10,10 @@ import {
   allMemories,
   deleteMemory,
   updateMemory,
+  deleteMessage,
+  deleteRecall,
+  deleteConversation,
+  memoryStats,
   memoriesByIds,
   recentConversations,
   listConversations,
@@ -160,6 +164,44 @@ export function startWebServer(status: StatusHub, bot?: BotController): Server {
       .map((s) => Number.parseInt(s.trim(), 10))
       .filter((n) => !Number.isNaN(n))
     res.json(memoriesByIds(ids))
+  })
+
+  // 记忆统计：总量 / 向量覆盖率 / 每用户聚合，供「记忆管理」页可视化
+  app.get('/api/memories/stats', (_req: Request, res: Response) => {
+    res.json(memoryStats())
+  })
+
+  // 删除消息（审核敏感/误收消息）
+  app.delete('/api/messages/:id', (req: Request, res: Response) => {
+    const id = Number.parseInt(String(req.params.id), 10)
+    if (Number.isNaN(id)) {
+      res.status(400).json({ ok: false, error: '非法 id' })
+      return
+    }
+    deleteMessage(id)
+    res.json({ ok: true })
+  })
+
+  // 删除召回记录
+  app.delete('/api/recalls/:id', (req: Request, res: Response) => {
+    const id = Number.parseInt(String(req.params.id), 10)
+    if (Number.isNaN(id)) {
+      res.status(400).json({ ok: false, error: '非法 id' })
+      return
+    }
+    deleteRecall(id)
+    res.json({ ok: true })
+  })
+
+  // 删除会话消息（审核上下文）
+  app.delete('/api/conversations/:id', (req: Request, res: Response) => {
+    const id = Number.parseInt(String(req.params.id), 10)
+    if (Number.isNaN(id)) {
+      res.status(400).json({ ok: false, error: '非法 id' })
+      return
+    }
+    deleteConversation(id)
+    res.json({ ok: true })
   })
 
   // ===== 运行时配置 =====

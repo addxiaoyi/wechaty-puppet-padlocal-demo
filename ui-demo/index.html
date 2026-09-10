@@ -458,9 +458,10 @@
 .switch-row { display:flex; align-items:center; justify-content:space-between; padding:10px 12px;
   background:var(--surface-nested); border:1px solid var(--border); border-radius:8px; cursor:pointer; font-size:13px; color:var(--text); }
 .switch-row input[type=checkbox] { width:18px; height:18px; accent-color:var(--accent); cursor:pointer; }
-.cfg-actions { display:flex; justify-content:flex-end; margin-top:16px; gap:8px; }
+.cfg-actions { display:flex; align-items:center; justify-content:flex-end; margin-top:16px; gap:8px; }
 .cfg-actions .btn { display:inline-flex; align-items:center; gap:6px; }
 .cfg-actions .btn:disabled { opacity:.5; cursor:not-allowed; }
+.cfg-dirty { display:inline-flex; align-items:center; font-size:12px; color:var(--accent); font-weight:600; }
 .btn-cancel { border:1px solid var(--border); background:var(--surface-nested); color:var(--text-secondary); border-radius:8px; padding:6px; cursor:pointer;
   display:grid; place-items:center; flex:0 0 auto; min-width:32px; }
 .btn-cancel:hover { border-color:var(--text-tertiary); color:var(--text); }
@@ -645,6 +646,20 @@
 .mem-card .mc-txt { font-size:13.5px; color:var(--text); line-height:1.55; white-space:normal; }
 .mem-card .mc-date { font-size:11px; color:var(--text-tertiary); margin-top:5px; font-variant-numeric:tabular-nums; }
 .mem-card .mc-acts { display:flex; gap:6px; flex:0 0 auto; }
+.mem-card.sel { background:color-mix(in oklab, var(--accent) 8%, var(--surface-nested)); }
+.mc-check { flex:0 0 auto; display:grid; place-items:center; padding-top:6px; }
+.mc-check input { width:15px; height:15px; accent-color:var(--accent); cursor:pointer; }
+.mem-bulk { display:flex; align-items:center; gap:10px; padding:10px 14px; margin:8px 0; border-radius:var(--radius-card);
+  background:color-mix(in oklab, var(--danger) 8%, var(--surface-card)); border:1px solid color-mix(in oklab, var(--danger) 30%, transparent); }
+.mem-bulk span { font-size:12px; color:var(--text-secondary); font-weight:600; }
+.btn.danger.ghost { color:var(--danger); border-color:color-mix(in oklab, var(--danger) 40%, transparent); }
+.recall-summary { margin-bottom:10px; }
+.rs-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+.rs-cell { padding:12px; border-radius:var(--radius-card); background:var(--surface-nested); border:1px solid var(--border); text-align:center; }
+.rs-cell .rs-v { font-size:20px; font-weight:700; color:var(--accent); letter-spacing:.5px; }
+.rs-cell .rs-l { margin-top:3px; font-size:11px; color:var(--text-tertiary); }
+.mc-del { flex:0 0 auto; padding:4px 8px; font-size:12px; }
+.bmsg .nm .mc-del { margin-left:auto; padding:2px 6px; }
 
 /* ---------- 系统监控 / 日志 / 好友 / 群聊 / 发消息 (NapCat 能力页) ---------- */
 .sys-hero { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
@@ -1266,6 +1281,10 @@ const api = {
   deleteMemory:  (id)     => apiSend("/memories/"+id, null, { method:"DELETE" }),
   updateMemory:  (id, content) => apiSend("/memories/"+id, { content }, { method:"PUT" }),
   addMemory:     (payload)=> apiSend("/memories", null, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) }),
+  memoryStats:   ()       => apiGet("/memories/stats"),
+  deleteMessage: (id)     => apiSend("/messages/"+id, null, { method:"DELETE" }),
+  deleteRecall:  (id)     => apiSend("/recalls/"+id, null, { method:"DELETE" }),
+  deleteConversation: (id)=> apiSend("/conversations/"+id, null, { method:"DELETE" }),
   messages:      (limit=50, type=null)=> type ? apiGet("/messages", { limit, type }) : apiGet("/messages", { limit }),
   recalls:       (limit=20)=> apiGet("/recalls", { limit }),
   getConfig:     ()       => apiGet("/config"),
@@ -1497,6 +1516,9 @@ function renderBotConfig(m){
       </div>
     </div>
     <div class="cfg-actions">
+      <span class="cfg-dirty" id="cfg-dirty" style="display:none">● 有未保存的改动</span>
+      <div style="flex:1"></div>
+      <button class="btn ghost" id="cfg-reset">恢复默认</button>
       <button class="btn" id="cfg-save" disabled>${icon("check",15,2)} 保存</button>
     </div>`;
 
@@ -1513,26 +1535,79 @@ function renderBotConfig(m){
       $("#cfg-autoreply").checked = !!d.autoReply;
       $("#cfg-private").checked = !!d.replyPrivate;
       $("#cfg-group").checked = !!d.replyGroup;
+
+      const snapshot = curCfgSnapshot();
+      const markDirty = ()=>{
+        const dirty = cfgChanged(snapshot);
+        $("#cfg-dirty").style.display = dirty ? "inline-flex" : "none";
+        $("#cfg-save").disabled = !dirty;
+        $("#cfg-save").style.opacity = dirty ? "1" : ".5";
+      };
+
       if(!llmOk) box.insertAdjacentHTML("afterbegin", `<div class="empty" style="margin-bottom:12px"><span class="e">${icon("alert",20)}</span><div>LLM 未配置：请在 .env 中填写 API Key 后重启服务</div></div>`);
       const save=$("#cfg-save");
-      save.disabled=false;
+      save.disabled=true;
+      save.style.opacity=".5";
+
+      ["#cfg-prompt","#cfg-model","#cfg-embed","#cfg-topk","#cfg-autoreply","#cfg-private","#cfg-group"].forEach(sel=>{
+        $(sel).addEventListener("input", markDirty);
+        $(sel).addEventListener("change", markDirty);
+      });
+
+      $("#cfg-reset").onclick = ()=>{
+        apiConfirm("恢复默认配置", "将所有在线配置项恢复为 .env / 内置默认值，已保存的自定义内容将被覆盖。", async ()=>{
+          await api.updateConfig({ systemPrompt:"", model:"", embeddingModel:"", memoryTopK:3, autoReply:true, replyPrivate:true, replyGroup:true });
+          toast.success("已恢复默认");
+          load();
+        });
+      };
+
       save.onclick = async ()=>{
-        save.disabled=true; save.innerHTML=icon("refresh",15,2);
-        const patch={
-          systemPrompt: $("#cfg-prompt").value.trim(),
-          model: $("#cfg-model").value.trim(),
-          embeddingModel: $("#cfg-embed").value.trim(),
-          memoryTopK: Number($("#cfg-topk").value)||3,
-          autoReply: $("#cfg-autoreply").checked,
-          replyPrivate: $("#cfg-private").checked,
-          replyGroup: $("#cfg-group").checked,
-        };
-        try{ const r=await api.updateConfig(patch); toast.success("已保存并生效"); load(); }
-        catch(e){ toast.error(e.message||"保存失败"); save.disabled=false; save.innerHTML=icon("check",15,2); }
+        const err = validateCfg();
+        if(err){ toast.error(err); return; }
+        const model = $("#cfg-model").value.trim();
+        const embed = $("#cfg-embed").value.trim();
+        apiConfirm("保存配置", `确认将以下配置写入数据库并即时生效？<br/>模型：${esc(model||'—')} · 向量：${esc(embed||'—')}`, async ()=>{
+          const patch={
+            systemPrompt: $("#cfg-prompt").value.trim(),
+            model,
+            embeddingModel: embed,
+            memoryTopK: Number($("#cfg-topk").value)||3,
+            autoReply: $("#cfg-autoreply").checked,
+            replyPrivate: $("#cfg-private").checked,
+            replyGroup: $("#cfg-group").checked,
+          };
+          await api.updateConfig(patch);
+          toast.success("已保存并生效");
+          load();
+        });
       };
     }catch(e){ showError(box, e, load); }
   };
   load();
+}
+function curCfgSnapshot(){
+  return {
+    prompt: $("#cfg-prompt").value,
+    model: $("#cfg-model").value,
+    embed: $("#cfg-embed").value,
+    topk: $("#cfg-topk").value,
+    autoreply: $("#cfg-autoreply").checked,
+    priv: $("#cfg-private").checked,
+    group: $("#cfg-group").checked,
+  };
+}
+function cfgChanged(snap){
+  const c = curCfgSnapshot();
+  return c.prompt!==snap.prompt || c.model!==snap.model || c.embed!==snap.embed ||
+    c.topk!==snap.topk || c.autoreply!==snap.autoreply || c.priv!==snap.priv || c.group!==snap.group;
+}
+function validateCfg(){
+  if(!$("#cfg-model").value.trim()) return "对话模型不能为空";
+  if(!$("#cfg-embed").value.trim()) return "向量模型不能为空";
+  const n = Number($("#cfg-topk").value);
+  if(!Number.isInteger(n) || n<1 || n>20) return "记忆条数需为 1–20 的整数";
+  return null;
 }
 
 /* 用量页：总览 + 近7/30天趋势 + 每用户排行 */
@@ -1645,12 +1720,28 @@ function renderBotConvs(title, sub, filter, extra){
       if(filter==='p') arr=arr.filter(mm=>!mm.roomId);
       else if(filter==='g') arr=arr.filter(mm=>!!mm.roomId);
       if(!arr.length){ el.innerHTML=`<div class="empty"><span class="e">${icon("msg",24)}</span><div>暂无对话</div></div>`; return; }
-      el.innerHTML = arr.map(mm=>`<div class="mrow mrow-msg mrow-link" data-c="${esc(mm.contactId||'')}" data-r="${esc(mm.roomId||'')}" data-role="${mm.role}">
+      el.innerHTML = arr.map(mm=>`<div class="mrow mrow-msg mrow-link" data-id="${mm.id}" data-c="${esc(mm.contactId||'')}" data-r="${esc(mm.roomId||'')}" data-role="${mm.role}">
         <span class="role ${mm.role}">${ROLE_LABEL[mm.role]||mm.role}</span>
         <span class="who">${esc(mm.contactId||'匿名')}${mm.roomId?'<i class="grp">群</i>':''}</span>
         <span class="txt">${esc(mm.content)}</span>
-        <span class="muted">${new Date(mm.created_at).toLocaleString("zh-CN",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</span></div>`).join("");
-      el.querySelectorAll(".mrow-link").forEach(row=>{ row.onclick=()=>openConv(row.dataset.c, row.dataset.r||null); });
+        <span class="muted">${new Date(mm.created_at).toLocaleString("zh-CN",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</span>
+        <button class="btn ghost danger mc-del" data-id="${mm.id}" title="删除该对话记录">${icon("trash",13)}</button></div>`).join("");
+      el.querySelectorAll(".mrow-link").forEach(row=>{
+        row.onclick=()=>openConv(row.dataset.c, row.dataset.r||null);
+        const delBtn=row.querySelector(".mc-del");
+        if(delBtn){
+          delBtn.onclick=(e)=>{
+            e.stopPropagation();
+            const cid=Number(row.dataset.id);
+            const preview=(row.querySelector(".txt")?.textContent||"").slice(0,30);
+            apiConfirm("删除对话记录", `删除后该条对话记录将无法恢复。<br/>内容：${esc(preview)}`, async ()=>{
+              await api.deleteConversation(cid);
+              toast.success("已删除对话记录");
+              load();
+            });
+          };
+        }
+      });
     }catch(e){ showError(el, e, load); }
   };
   load();
@@ -1686,22 +1777,46 @@ function renderBotMsg(){
     renderBotMsg();
   });
 
-  (async ()=>{
+  const load = async ()=>{
     const el=$("#w-msg");
     try{ const list = await api.messages(50, activeType); const arr=(list||[]).slice().reverse();
       if(!arr.length){ el.innerHTML=`<div class="empty"><span class="e">${icon("msg",24)}</span><div>暂无消息，收到新消息后这里会实时展示</div></div>`; return; }
-      el.innerHTML = arr.map(mm=>{
+      el.innerHTML = `<div class="recall-summary">${msgTypeSummary(arr)}</div>` + arr.map(mm=>{
         const type = mm.type||'';
-        return `<div class="mrow mrow-msg" data-c="${esc(mm.contactId||'')}" data-r="${esc(mm.roomId||'')}">
+        return `<div class="mrow mrow-msg" data-id="${mm.id}" data-c="${esc(mm.contactId||'')}" data-r="${esc(mm.roomId||'')}">
           <span class="role msg-type">${icon("msg",12)} ${esc(type)}</span>
           <span class="who">${esc(mm.contactId||'匿名')}${mm.roomId?'<i class="grp">群</i>':''}</span>
           <span class="txt">${fmtMsgContent(mm)}</span>
-          <span class="muted">${fmtDateTime(mm.createdAt)}</span></div>`;
+          <span class="muted">${fmtDateTime(mm.createdAt)}</span>
+          <button class="btn ghost danger mc-del" data-id="${mm.id}" title="删除该消息记录">${icon("trash",13)}</button></div>`;
       }).join("");
-      el.querySelectorAll(".mrow-msg").forEach(row=>{ row.onclick=()=>openConv(row.dataset.c, row.dataset.r||null); });
+      el.querySelectorAll(".mrow-msg").forEach(row=>{
+        row.onclick=()=>openConv(row.dataset.c, row.dataset.r||null);
+        const delBtn=row.querySelector(".mc-del");
+        if(delBtn){
+          delBtn.onclick=(e)=>{
+            e.stopPropagation();
+            const mid=Number(row.dataset.id);
+            const preview=(row.querySelector(".txt")?.textContent||"").slice(0,30);
+            apiConfirm("删除消息记录", `删除后该条消息记录将无法恢复。<br/>内容：${esc(preview)}`, async ()=>{
+              await api.deleteMessage(mid);
+              toast.success("已删除消息记录");
+              load();
+            });
+          };
+        }
+      });
     }catch(e){ showError(el, e, retry); }
-  })();
+  };
+  load();
   $("#bot-back").onclick = ()=>go('bot');
+}
+function msgTypeSummary(list){
+  const map={};
+  list.forEach(m=>{ const t=m.type||'其他'; map[t]=(map[t]||0)+1; });
+  const top=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,4);
+  const cells=top.map(([k,v])=>`<div class="rs-cell"><div class="rs-v">${v}</div><div class="rs-l">${esc(k)}</div></div>`).join("");
+  return `<div class="rs-grid">${cells || '<div class="rs-cell"><div class="rs-v">0</div><div class="rs-l">无</div></div>'}</div>`;
 }
 function fmtMsgContent(mm){
   const meta = mm?.meta||{};
@@ -1735,8 +1850,8 @@ function renderBotMem(){
       <div class="dash-stats">
         ${[["mem-total","记忆总数","--ds-c:var(--module-1)","长期记忆库"],
            ["mem-users","覆盖用户","--ds-c:var(--module-2)","去重后联系人数"],
-           ["mem-last","最近新增","--ds-c:var(--module-3)","最近写入日期"],
-           ["mem-source","来源","--ds-c:var(--module-4)","私聊记忆占比"]]
+           ["mem-vec","向量覆盖","--ds-c:var(--module-3)","已向量化比例"],
+           ["mem-source","私聊记忆","--ds-c:var(--module-4)","私聊记忆条数"]]
           .map(x=>`<div class="dstat" style="${x[2]}"><div class="dv" id="${x[0]}">–</div><div class="dl">${x[1]}</div><div class="du">${x[3]||''}</div></div>`).join("")}
       </div>
       <div class="mem-form-card" style="margin-top:14px">
@@ -1754,6 +1869,11 @@ function renderBotMem(){
         <span class="sec-badge">记忆库</span>
         <span class="seg"><input id="mem-search" type="text" placeholder="搜索关键字…" style="flex:1"/></span>
       </div>
+      <div class="mem-bulk" id="mem-bulk" style="display:none">
+        <span id="mem-bulk-count">已选 0 条</span>
+        <button class="btn danger ghost" id="mem-bulk-del">${icon("trash",14)} 批量删除</button>
+        <button class="btn ghost" id="mem-bulk-clear">取消选择</button>
+      </div>
       <div class="dash-chart" style="padding:0 10px">
         <div id="w-mem">${botSuffix("加载中…",'off')}</div>
       </div>
@@ -1764,6 +1884,7 @@ function renderBotMem(){
   $("#bot-refer").onclick = refresh;
 
   let searchKey = '';
+  let selected = new Set();           // 批量删除选中的记忆 id
   const load = async ()=>{
     const el=$("#w-mem");
     try{ const list = await api.memories();
@@ -1771,15 +1892,19 @@ function renderBotMem(){
         mm.contactId.includes(searchKey) || mm.content.includes(searchKey)
       );
 
+      // 统计卡片：接入后端 memoryStats，向量覆盖率作为关键可视化指标
+      try{
+        const st = await api.memoryStats();
+        $("#mem-total").textContent = st.total ?? list.length;
+        $("#mem-vec").textContent = st.total ? ((st.withVector/st.total)*100).toFixed(0)+"%" : "—";
+      }catch{ $("#mem-total").textContent = list.length; $("#mem-vec").textContent = "—"; }
       const users = new Set(list.map(mm=>mm.contactId)).size;
-      const latest = list.length ? Math.max(...list.map(mm=>mm.created_at||0)) : 0;
-      $("#mem-total").textContent = list.length;
       $("#mem-users").textContent = users;
-      $("#mem-last").textContent = latest ? new Date(latest).toLocaleDateString("zh-CN",{month:"numeric",day:"numeric"}) : "—";
       $("#mem-source").textContent = list.filter(mm=>!mm.roomId).length + " 私";
 
       if(!filtered.length){ el.innerHTML=`<div class="empty" style="padding:20px 0"><span class="e">${icon("leaf",24)}</span><div>${searchKey?'没有匹配『'+searchKey+'』的记忆，清除搜索词或再试':list.length?'暂无记忆，填写上方表单或在聊天里说『记住 事项』':'暂无记忆'}</div></div>`; return; }
-      el.innerHTML = filtered.map(mm=>`<div class="mem-card" data-id="${mm.id}">
+      el.innerHTML = filtered.map(mm=>`<div class="mem-card ${selected.has(mm.id)?'sel':''}" data-id="${mm.id}">
+        <label class="mc-check"><input type="checkbox" class="js-mem-check" data-id="${mm.id}" ${selected.has(mm.id)?'checked':''}/></label>
         <div class="mc-ico">${icon("leaf",16,1.8)}</div>
         <div class="mc-body">
           <div class="mc-who">${esc(mm.contactId||'匿名')}${mm.roomId?'<i class="grp">群</i>':''}</div>
@@ -1796,10 +1921,10 @@ function renderBotMem(){
                <button class="btn-del js-mem-del" data-id="${mm.id}">${icon("trash",14)}</button>`}
         </div>
       </div>`).join("");
-      el.querySelectorAll(".js-mem-del").forEach(b=>{ b.onclick=async(e)=>{ e.stopPropagation(); b.disabled=true; b.style.opacity=".7"; b.innerHTML = icon("refresh",14);
-        try{ await api.deleteMemory(b.dataset.id); toast.success("已删除记忆"); load(); }catch(err){ toast.error("删除失败："+(err?.message||err)); }
-        finally{ b.disabled=false; b.style.opacity="1"; b.innerHTML = icon("trash",14); };
+      el.querySelectorAll(".js-mem-del").forEach(b=>{ b.onclick=(e)=>{ e.stopPropagation(); const id=b.dataset.id; const mem=list.find(mm=>String(mm.id)===id); const preview=(mem&&mem.content||"").slice(0,30);
+        apiConfirm("删除记忆", `确定删除这条记忆「${esc(preview)}…」？此操作不可撤销。`, async()=>{ await api.deleteMemory(id); toast.success("已删除记忆"); load(); });
       }; });
+      el.querySelectorAll(".js-mem-check").forEach(cb=>{ cb.onchange=()=>{ const id=Number(cb.dataset.id); if(cb.checked) selected.add(id); else selected.delete(id); syncBulk(); }; });
       el.querySelectorAll(".js-mem-edit").forEach(btn=>{ btn.onclick=(e)=>{ e.stopPropagation(); editingId = Number(btn.dataset.id); load(); }; });
       el.querySelectorAll(".js-mem-save").forEach(btn=>{ btn.onclick=async(e)=>{ e.stopPropagation(); const row = btn.closest(".mem-card"); if(!row) return; const box=row.querySelector(".mem-edit-box"); const newContent=box.value.trim(); if(!newContent){ toast.warning("内容不能为空"); return; } btn.disabled=true; btn.innerHTML = icon("refresh",14);
         try{ await api.updateMemory(Number(btn.dataset.id), newContent); toast.success("已更新记忆"); load(); }catch(err){ toast.error("更新失败："+(err?.message||err)); }
@@ -1808,6 +1933,22 @@ function renderBotMem(){
       el.querySelectorAll(".js-mem-cancel").forEach(btn=>{ btn.onclick=(e)=>{ e.stopPropagation(); cancelEdit(); }; });
     }catch(e){ showError(el, e, retry); }
   };
+
+  const syncBulk = ()=>{
+    const bar = $("#mem-bulk");
+    if(!bar) return;
+    bar.style.display = selected.size ? "flex" : "none";
+    $("#mem-bulk-count").textContent = `已选 ${selected.size} 条`;
+  };
+  $("#mem-bulk-del").onclick = ()=>{
+    if(!selected.size) return;
+    apiConfirm("批量删除记忆", `确定删除选中的 ${selected.size} 条记忆？此操作不可撤销。`, async ()=>{
+      for(const id of Array.from(selected)){ await api.deleteMemory(id); }
+      selected.clear(); syncBulk(); toast.success("已批量删除"); load();
+    });
+  };
+  $("#mem-bulk-clear").onclick = ()=>{ selected.clear(); syncBulk(); load(); };
+
   load();
 
   // 搜索框防抖过滤
@@ -1870,6 +2011,20 @@ function renderBotMem(){
   $("#bot-back").onclick = ()=>go('bot');
 }
 
+/* 召回记录统计：总命中数 + 群/私聊占比 + 命中条数分布 */
+function recallSummary(list){
+  const total = list.reduce((s,r)=>s+(r.hitCount||0),0);
+  const grp = list.filter(r=>r.roomId).length;
+  const pri = list.length - grp;
+  const top = Math.max(1, ...list.map(r=>r.hitCount||0));
+  return `<div class="rs-grid">
+    <div class="rs-cell"><div class="rs-v">${total}</div><div class="rs-l">累计命中记忆</div></div>
+    <div class="rs-cell"><div class="rs-v">${list.length}</div><div class="rs-l">召回次数</div></div>
+    <div class="rs-cell"><div class="rs-v">${pri} / ${grp}</div><div class="rs-l">私聊 / 群聊</div></div>
+    <div class="rs-cell"><div class="rs-v">${top}</div><div class="rs-l">单次最高命中</div></div>
+  </div>`;
+}
+
 /* 向量召回页：真实召回埋点数据 + 记忆库来源 */
 function renderBotRecall(){
   $("#screen").innerHTML = botPageHead("向量召回","提问时自动检索相关记忆注入上下文")
@@ -1890,11 +2045,12 @@ function renderBotRecall(){
     const el=$("#w-recall");
     try{ const list = await api.recalls(20);
       if(!list.length){ el.innerHTML=`<div class="empty"><span class="e">${icon("target",24)}</span><div>暂无召回记录，机器人被提问并命中记忆后会在这里展示</div></div>`; return; }
-      el.innerHTML = list.map(rr=>`<div class="mrow mrow-mem recall-hit" data-ids="${esc((rr.hitIds||[]).join(','))}">
+      el.innerHTML = `<div class="recall-summary">${recallSummary(list)}</div>` +
+        list.map(rr=>`<div class="mrow mrow-mem recall-hit" data-id="${rr.id}" data-ids="${esc((rr.hitIds||[]).join(','))}">
         <span class="role msg-type">${rr.hitCount} 命中</span>
         <div class="txt"><b>${esc(rr.query)}</b>${rr.roomId?'<i class="grp">群</i>':''}</div>
         <span class="muted">${fmtDateTime(rr.createdAt)}</span>
-        <span class="muted" style="margin-left:8px">${rr.hitCount} 条记忆</span>
+        <button class="btn ghost danger mc-del" data-id="${rr.id}" title="删除该召回记录">${icon("trash",13)}</button>
         <span class="muted" style="margin-left:auto;color:var(--accent)">查看详情 ▸</span></div>`).join("");
       el.querySelectorAll(".recall-hit").forEach(row=>{
         row.onclick = async ()=>{
@@ -1913,6 +2069,17 @@ function renderBotRecall(){
           }catch(e){ alert("加载失败："+(e&&e.message||e)); }
           finally { row.style.pointerEvents=""; row.style.opacity=""; }
         };
+        const delBtn = row.querySelector(".mc-del");
+        if(delBtn){
+          delBtn.onclick = (e)=>{
+            e.stopPropagation();
+            const rid = Number(row.dataset.id);
+            const q = (row.querySelector(".txt b")?.textContent||"").slice(0,30);
+            apiConfirm("删除召回记录", `删除后该条命中记录将无法恢复。<br/>查询词：${esc(q)}`, async ()=>{
+              await api.deleteRecall(rid);
+            });
+          };
+        }
       });
     }catch(e){ showError(el, e, retry); }
   };
@@ -1920,9 +2087,23 @@ function renderBotRecall(){
     const el=$("#w-recall-src");
     try{ const list = await api.memories();
       if(!list.length){ el.innerHTML=`<div class="empty"><span class="e">${icon("leaf",24)}</span><div>暂无记忆</div></div>`; return; }
-      el.innerHTML = list.map(mm=>`<div class="mrow mrow-mem"><div class="who">${esc(mm.contactId||'匿名')}</div>
+      el.innerHTML = list.map(mm=>`<div class="mrow mrow-mem" data-id="${mm.id}"><div class="who">${esc(mm.contactId||'匿名')}</div>
         <div class="txt">${esc(mm.content)}</div>
-        <span class="muted">${new Date(mm.created_at).toLocaleDateString("zh-CN")}</span></div>`).join("");
+        <span class="muted">${new Date(mm.created_at).toLocaleDateString("zh-CN")}</span>
+        <button class="btn ghost danger mc-del" data-id="${mm.id}" title="删除该记忆">${icon("trash",13)}</button></div>`).join("");
+      el.querySelectorAll(".mrow-mem[data-id]").forEach(row=>{
+        const delBtn = row.querySelector(".mc-del");
+        if(delBtn){
+          delBtn.onclick = (e)=>{
+            e.stopPropagation();
+            const mid = Number(row.dataset.id);
+            const c = (row.querySelector(".txt")?.textContent||"").slice(0,30);
+            apiConfirm("删除记忆", `此操作会从记忆库中永久移除该条记忆。<br/>内容：${esc(c)}`, async ()=>{
+              await api.deleteMemory(mid);
+            });
+          };
+        }
+      });
     }catch(e){ showError(el, e, retry); }
   };
   loadHits();
@@ -2376,9 +2557,21 @@ function openConv(contactId, roomId){
       const arr = list.slice().reverse();
       box.innerHTML = arr.length ? arr.map(mm=>{
         const meta = mm.meta||{};
-        return `<div class="bmsg ${mm.role}"><div class="nm">${ROLE_LABEL[mm.role]||mm.role} · ${new Date(mm.created_at).toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"})}</div><div class="bd">${escFmtMsg(mm)}</div></div>`;
+        return `<div class="bmsg ${mm.role}" data-id="${mm.id}"><div class="nm">${ROLE_LABEL[mm.role]||mm.role} · ${new Date(mm.created_at).toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"})}<button class="btn ghost danger mc-del" data-id="${mm.id}" title="删除该条消息">${icon("trash",12)}</button></div><div class="bd">${escFmtMsg(mm)}</div></div>`;
       }).join("")
         : `<div class="empty"><span class="e">${icon("msg",24)}</span><div>暂无历史会话</div></div>`;
+      box.querySelectorAll(".bmsg .mc-del").forEach(btn=>{
+        btn.onclick=async (e)=>{
+          e.stopPropagation();
+          const mid=Number(btn.dataset.id);
+          const preview=(btn.closest(".bmsg")?.querySelector(".bd")?.textContent||"").slice(0,30);
+          apiConfirm("删除会话消息", `删除后该条消息将无法恢复。<br/>内容：${esc(preview)}`, async ()=>{
+            await api.deleteConversation(mid);
+            toast.success("已删除");
+            load();
+          });
+        };
+      });
     }catch(e){ showError(box, e, retry); }
   };
 
@@ -2646,6 +2839,24 @@ function confirmDelete(key,id){
   overlay.onclick=e=>{ if(e.target===overlay) close(); };
   overlay.querySelector("#c-cancel").onclick=close;
   overlay.querySelector("#c-ok").onclick=()=>{ data[key]=data[key].filter(i=>i.id!=id); persist(); close(); };
+}
+
+/* 通用确认弹窗：后端 API 的破坏性操作（删除小助手数据等）统一走这里二次确认 */
+function apiConfirm(title, desc, onOk, okText){
+  const overlay=document.createElement("div"); overlay.className="overlay";
+  overlay.innerHTML=`<div class="modal"><div class="grab"></div><h2>${esc(title)}</h2>
+    <div class="sub">${desc}</div>
+    <div class="modal-actions"><button class="btn ghost" id="c-cancel">取消</button><button class="btn danger" id="c-ok">${esc(okText||'删除')}</button></div></div>`;
+  document.body.appendChild(overlay);
+  const close=()=>overlay.remove();
+  overlay.onclick=e=>{ if(e.target===overlay) close(); };
+  overlay.querySelector("#c-cancel").onclick=close;
+  overlay.querySelector("#c-ok").onclick=async ()=>{
+    const btn=overlay.querySelector("#c-ok");
+    btn.disabled=true; btn.innerHTML=icon("refresh",15,2);
+    try{ await onOk(); close(); }
+    catch(e){ toast.error((e&&e.message)||'操作失败'); btn.disabled=false; btn.innerHTML=esc(okText||'删除'); }
+  };
 }
 
 /* ---------- router / nav ---------- */
