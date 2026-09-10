@@ -649,6 +649,8 @@
 .sys-stat .ss-lab { font-size:10px; color:var(--text-tertiary); letter-spacing:.03em; display:flex; align-items:center; gap:5px; }
 .sys-stat .ss-val { font-size:22px; font-weight:800; font-variant-numeric:tabular-nums; color:var(--text); margin-top:7px; line-height:1; }
 .sys-stat .ss-sub { font-size:10px; color:var(--text-tertiary); margin-top:5px; font-variant-numeric:tabular-nums; }
+.sys-stat .ss-bar { height:4px; border-radius:3px; background:var(--surface-nested); margin-top:9px; overflow:hidden; }
+.sys-stat .ss-bar-fill { height:100%; border-radius:3px; transition:width .5s cubic-bezier(.22,1,.36,1); }
 .sys-proc { font-size:11px; color:var(--text-secondary); font-variant-numeric:tabular-nums; line-height:1.7; }
 .kv-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px 16px; }
 .kv-grid .kv { display:flex; justify-content:space-between; font-size:12px; padding:6px 0; border-bottom:1px dashed color-mix(in oklab, var(--border) 70%, transparent); }
@@ -659,6 +661,9 @@
 .log-view .lv-h { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid var(--border); }
 .log-view .lv-t { font-size:13px; font-weight:650; color:var(--text); display:flex; align-items:center; gap:7px; }
 .log-view .lv-live { width:7px; height:7px; border-radius:50%; background:var(--module-1); animation:bpulse 1.2s infinite; }
+.log-view .lv-filters { display:flex; gap:5px; }
+.log-view .lv-f { padding:4px 10px; font-size:10.5px; font-weight:650; border-radius:var(--radius-tile); border:1px solid var(--border); background:var(--surface-nested); color:var(--text-tertiary); cursor:pointer; transition:.15s; }
+.log-view .lv-f.active { background:color-mix(in oklab, var(--accent) 16%, transparent); color:var(--accent); border-color:color-mix(in oklab, var(--accent) 40%, transparent); }
 .log-view .lv-body { max-height:440px; overflow-y:auto; padding:8px 6px; font-family:var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size:11.5px; }
 .lv-row { display:flex; gap:8px; padding:5px 10px; border-radius:8px; align-items:flex-start; }
 .lv-row:hover { background:color-mix(in oklab, var(--border) 55%, transparent); }
@@ -672,6 +677,9 @@
 .lv-empty { padding:18px 14px; text-align:center; color:var(--text-tertiary); font-size:12px; }
 
 .cnt-search { width:100%; box-sizing:border-box; padding:10px 12px; border-radius:var(--radius-tile); border:1px solid var(--border); background:var(--surface-card); color:var(--text); font-size:13px; }
+.cnt-search:focus { outline:none; border-color:color-mix(in oklab, var(--accent) 60%, transparent); box-shadow:0 0 0 3px color-mix(in oklab, var(--accent) 16%, transparent); }
+.cnt-meta { font-size:11px; color:var(--text-tertiary); margin:8px 2px 4px; font-variant-numeric:tabular-nums; }
+.cnt-row mark { background:color-mix(in oklab, var(--accent) 30%, transparent); color:var(--accent); border-radius:3px; padding:0 2px; }
 .cnt-list { max-height:520px; overflow-y:auto; margin-top:10px; border:1px solid var(--border); border-radius:var(--radius-card); background:var(--surface-card); }
 .cnt-row { display:flex; align-items:center; gap:12px; padding:12px 14px; border-bottom:1px solid var(--border); cursor:pointer; transition:background .15s; }
 .cnt-row:last-child { border-bottom:none; }
@@ -696,6 +704,7 @@
 .send-tab { flex:1; padding:9px 6px; text-align:center; border-radius:var(--radius-tile); border:1px solid var(--border); background:var(--surface-nested); color:var(--text-secondary); font-size:12px; font-weight:600; cursor:pointer; transition:.15s; }
 .send-tab.active { background:color-mix(in oklab, var(--accent) 16%, transparent); color:var(--accent); border-color:color-mix(in oklab, var(--accent) 40%, transparent); }
 .send-preview { font-size:12px; color:var(--text-secondary); background:var(--surface-nested); border-radius:var(--radius-tile); padding:10px 12px; margin-top:8px; line-height:1.6; word-break:break-all; }
+.send-count { font-size:10.5px; color:var(--text-tertiary); text-align:right; margin-top:4px; font-variant-numeric:tabular-nums; }
 </style>
 </head>
 <body>
@@ -1929,10 +1938,13 @@ function renderBotSys(m){
     if(!hero) return;
     const cpu = d.cpuPercent;
     const cpuV = cpu==null ? "—" : cpu.toFixed(1)+"%";
+    const cpuPct = cpu==null ? 0 : Math.min(100, Math.max(0, cpu));
     const mem = d.mem || {};
+    const memPct = mem.percent==null ? 0 : Math.min(100, Math.max(0, mem.percent));
+    const bar = (pct, color) => `<div class="ss-bar"><div class="ss-bar-fill" style="width:${pct.toFixed(1)}%;background:${color}"></div></div>`;
     hero.innerHTML =
-      `<div class="sys-stat" style="--ss-c:var(--module-4)"><div class="ss-lab">${icon("activity",13,1.8)} CPU</div><div class="ss-val">${cpuV}</div><div class="ss-sub">${d.load?('负载 ' + d.load.map(x=>x.toFixed(2)).join(' / ')):'—'}</div></div>` +
-      `<div class="sys-stat" style="--ss-c:var(--module-1)"><div class="ss-lab">${icon("chart",13,1.8)} 内存</div><div class="ss-val">${mem.percent??'—'}%</div><div class="ss-sub">${fmtBytes(mem.used)} / ${fmtBytes(mem.total)}</div></div>` +
+      `<div class="sys-stat" style="--ss-c:var(--module-4)"><div class="ss-lab">${icon("activity",13,1.8)} CPU</div><div class="ss-val">${cpuV}</div><div class="ss-sub">${d.load?('负载 ' + d.load.map(x=>x.toFixed(2)).join(' / ')):'—'}</div>${bar(cpuPct, "var(--module-4)")}</div>` +
+      `<div class="sys-stat" style="--ss-c:var(--module-1)"><div class="ss-lab">${icon("chart",13,1.8)} 内存</div><div class="ss-val">${mem.percent??'—'}%</div><div class="ss-sub">${fmtBytes(mem.used)} / ${fmtBytes(mem.total)}</div>${bar(memPct, "var(--module-1)")}</div>` +
       `<div class="sys-stat" style="--ss-c:var(--module-2)"><div class="ss-lab">${icon("link",13,1.8)} 网络</div><div class="ss-val">${fmtNet(d.net?.rxPerSec)}</div><div class="ss-sub">↓ 下行 · 上行 ${fmtNet(d.net?.txPerSec)}</div></div>` +
       `<div class="sys-stat" style="--ss-c:var(--module-3)"><div class="ss-lab">${icon("clock",13,1.8)} 运行时长</div><div class="ss-val">${fmtSec(d.uptime)}</div><div class="ss-sub">进程 ${fmtSec(d.procUptime)}</div></div>`;
 
@@ -1955,10 +1967,14 @@ function renderBotSys(m){
 }
 
 function renderBotLogs(m){
+  const LEVELS = [["all","全部"],["info","info"],["warn","warn"],["error","error"]];
   $("#screen").innerHTML = botPageHead("运行日志","实时拦截 console 输出的环形日志")
     + `<div style="margin-top:16px">
       <div class="log-view">
-        <div class="lv-h"><div class="lv-t"><span class="lv-live"></span>实时日志<span class="stip" id="lv-count">0 条</span></div></div>
+        <div class="lv-h">
+          <div class="lv-t"><span class="lv-live"></span>实时日志<span class="stip" id="lv-count">0 条</span></div>
+          <div class="lv-filters" id="lv-filters">${LEVELS.map(([k,lab])=>`<button class="lv-f ${k==='all'?'active':''}" data-lv="${k}">${lab}</button>`).join("")}</div>
+        </div>
         <div class="lv-body" id="lv-body">${botSuffix("加载中…",'off')}</div>
       </div>
     </div>`;
@@ -1966,20 +1982,41 @@ function renderBotLogs(m){
   $("#bot-back").onclick = ()=>go('bot');
   $("#bot-refer").onclick = ()=>renderBotLogs(m);
 
-  let failed = false;
+  let all = [];
+  let curLv = "all";
+  let nearBottom = true; // 用户是否停在底部：是才自动跟随滚动
+
+  $("#lv-filters").querySelectorAll(".lv-f").forEach(btn=>{
+    btn.onclick = ()=>{
+      curLv = btn.dataset.lv;
+      $("#lv-filters").querySelectorAll(".lv-f").forEach(b=>b.classList.toggle("active", b===btn));
+      paint();
+    };
+  });
+
+  const body = $("#lv-body");
+  body.onscroll = ()=>{ nearBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 40; };
+
+  const paint = ()=>{
+    const asc = curLv==='all' ? all : all.filter(l=>l.level===curLv);
+    if(!asc.length){
+      body.innerHTML = `<div class="lv-empty">${all.length ? '当前级别暂无日志' : '暂无日志，服务启动后会持续记录'}</div>`;
+      $("#lv-count").textContent = asc.length + " 条";
+      return;
+    }
+    body.innerHTML = asc.map(l=>`<div class="lv-row"><span class="lv-ts">${fmtDateTime(l.ts)}</span>
+      <span class="lv-lv ${esc(l.level)}">${esc(l.level)}</span>
+      <span class="lv-msg">${esc(l.message)}</span></div>`).join("");
+    $("#lv-count").textContent = asc.length + " 条";
+    if(nearBottom) body.scrollTop = body.scrollHeight;
+  };
+
   const refresh = async ()=>{
     try{
       const list = await api.logs(300);
-      const body = $("#lv-body");
-      // 日志倒序返回，这里转成正序（老 → 新），阅读更自然
-      const asc = (list||[]).slice().reverse();
-      if(!asc.length){ body.innerHTML = `<div class="lv-empty">暂无日志，服务启动后会持续记录</div>`; $("#lv-count").textContent="0 条"; return; }
-      body.innerHTML = asc.map(l=>`<div class="lv-row"><span class="lv-ts">${fmtDateTime(l.ts)}</span>
-        <span class="lv-lv ${esc(l.level)}">${esc(l.level)}</span>
-        <span class="lv-msg">${esc(l.message)}</span></div>`).join("");
-      $("#lv-count").textContent = asc.length + " 条";
-      body.scrollTop = body.scrollHeight;
-    }catch(e){ if(!failed){ failed=true; showError($("#lv-body"), e, refresh); } }
+      all = (list||[]).slice().reverse(); // 倒序 → 正序（老 → 新）
+      paint();
+    }catch(e){ showError(body, e, refresh); }
   };
   refresh();
   pollTimer = setInterval(refresh, 3000);
@@ -1992,6 +2029,7 @@ function renderBotContacts(m){
   $("#screen").innerHTML = botPageHead("好友管理","联系人列表 · 备注 · 点击私聊")
     + `<div style="margin-top:16px">
       <input class="cnt-search" id="cnt-search" placeholder="搜索昵称或备注…"/>
+      <div class="cnt-meta" id="cnt-meta"></div>
       <div class="cnt-list" id="cnt-list">${botSuffix("加载中…",'off')}</div>
     </div>`;
 
@@ -1999,18 +2037,35 @@ function renderBotContacts(m){
   $("#bot-refer").onclick = ()=>renderBotContacts(m);
 
   let cache = [];
+  const hl = (txt, kw) => {
+    if(!kw) return esc(txt);
+    const i = txt.toLowerCase().indexOf(kw);
+    if(i < 0) return esc(txt);
+    return esc(txt.slice(0,i)) + `<mark>${esc(txt.slice(i, i+kw.length))}</mark>` + esc(txt.slice(i+kw.length));
+  };
   const paint = (kw)=>{
     const el = $("#cnt-list");
     const kwTrim = (kw||"").trim().toLowerCase();
     const list = cache.filter(c => !kwTrim || (c.name||"").toLowerCase().includes(kwTrim) || (c.alias||"").toLowerCase().includes(kwTrim));
+    $("#cnt-meta").textContent = kwTrim ? `匹配 ${list.length} / ${cache.length} 位联系人` : `共 ${cache.length} 位联系人`;
     if(!list.length){ el.innerHTML = `<div class="empty"><span class="e">${icon("user",24)}</span><div>${cache.length ? "无匹配联系人" : "暂无联系人"}</div></div>`; return; }
-    el.innerHTML = list.map(c=>`<div class="cnt-row" data-id="${attr(c.id)}" data-name="${attr(c.alias||c.name||'')}">
-      <div class="cnt-ava">${esc(firstChar(c.name, c.alias))}</div>
-      <div class="cnt-body"><div class="cnt-name">${esc(c.alias ? c.name + ' · ' + c.alias : c.name)}</div>
-        <div class="cnt-alias">${c.alias ? '备注：'+esc(c.alias) : '未设置备注'}</div></div>
-      <span class="cnt-id">${esc(c.id)}</span>
-      <span class="cnt-act">${icon("msg",13,1.8)} 私聊</span></div>`).join("");
+    el.innerHTML = list.map(c=>{
+      const display = c.alias ? c.name + ' · ' + c.alias : c.name;
+      return `<div class="cnt-row" data-id="${attr(c.id)}" data-name="${attr(c.alias||c.name||'')}">
+        <div class="cnt-ava">${esc(firstChar(c.name, c.alias))}</div>
+        <div class="cnt-body"><div class="cnt-name">${hl(display, kwTrim)}</div>
+          <div class="cnt-alias">${c.alias ? '备注：'+hl(c.alias, kwTrim) : '未设置备注'}</div></div>
+        <span class="cnt-id">${esc(c.id.slice(-8))}</span>
+        <span class="cnt-act">${icon("msg",13,1.8)} 私聊</span></div>`;
+    }).join("");
     el.querySelectorAll(".cnt-row").forEach(row=>{ row.onclick = ()=>{ openSendTo(row.dataset.id, row.dataset.name, 'contact'); }; });
+  };
+
+  // 输入防抖：暂停 200ms 后再过滤，避免大量联系人下的频繁重绘
+  let dbTimer = null;
+  $("#cnt-search").oninput = ()=>{
+    clearTimeout(dbTimer);
+    dbTimer = setTimeout(()=>paint($("#cnt-search").value), 200);
   };
 
   const refresh = async ()=>{
@@ -2020,7 +2075,6 @@ function renderBotContacts(m){
       paint($("#cnt-search").value);
     }catch(e){ showError($("#cnt-list"), e, refresh); }
   };
-  $("#cnt-search").oninput = ()=>paint($("#cnt-search").value);
   refresh();
 }
 
@@ -2057,8 +2111,10 @@ function renderBotRooms(m){
     overlay.className = "overlay";
     overlay.innerHTML = `<div class="modal" style="max-width:560px;height:70vh;display:flex;flex-direction:column">
       <div class="grab"></div><h2>${esc(topic||'群成员')}</h2>
-      <div class="sub" style="margin-bottom:12px"><span class="tag mem">${icon("msg",12,1.8)} ${esc(roomId)}</span></div>
-      <div id="rm-members" style="overflow-y:auto;flex:1">${botSuffix("加载成员…",'off')}</div>
+      <div class="sub" style="margin-bottom:12px"><span class="tag mem">${icon("msg",12,1.8)} ${esc(roomId.slice(-12))}</span></div>
+      <input class="cnt-search" id="rm-search" placeholder="搜索成员昵称或备注…" style="margin-bottom:8px"/>
+      <div class="cnt-meta" id="rm-meta"></div>
+      <div id="rm-members" style="overflow-y:auto;flex:1;border:1px solid var(--border);border-radius:var(--radius-tile)">${botSuffix("加载成员…",'off')}</div>
       <div class="modal-actions"><button class="btn ghost" id="rm-close">关闭</button>
         <button class="btn" id="rm-send">${icon("bolt",14,2)} 群发消息</button></div></div>`;
     document.body.appendChild(overlay);
@@ -2067,14 +2123,25 @@ function renderBotRooms(m){
     overlay.querySelector("#rm-send").onclick = ()=>{ overlay.remove(); openSendTo(roomId, topic, 'room'); };
 
     const box = overlay.querySelector("#rm-members");
-    try{
-      const members = await api.roomMembers(roomId);
-      if(!Array.isArray(members) || !members.length){ box.innerHTML = `<div class="empty"><span class="e">${icon("user",24)}</span><div>暂无成员</div></div>`; return; }
-      box.innerHTML = members.map(c=>`<div class="cnt-row" style="cursor:default">
+    let members = [];
+    const paintMembers = (kw)=>{
+      const kwTrim = (kw||"").trim().toLowerCase();
+      const list = members.filter(c => !kwTrim || (c.name||"").toLowerCase().includes(kwTrim) || (c.alias||"").toLowerCase().includes(kwTrim));
+      overlay.querySelector("#rm-meta").textContent = kwTrim ? `匹配 ${list.length} / ${members.length} 位成员` : `共 ${members.length} 位成员`;
+      if(!list.length){ box.innerHTML = `<div class="empty"><span class="e">${icon("user",24)}</span><div>${members.length ? "无匹配成员" : "暂无成员"}</div></div>`; return; }
+      box.innerHTML = list.map(c=>`<div class="cnt-row" style="cursor:default">
         <div class="cnt-ava">${esc(firstChar(c.name, c.alias))}</div>
         <div class="cnt-body"><div class="cnt-name">${esc(c.alias ? c.name + ' · ' + c.alias : c.name)}</div>
           <div class="cnt-alias">${c.alias ? '备注：'+esc(c.alias) : '未设置备注'}</div></div>
         <span class="cnt-id">${esc(c.id)}</span></div>`).join("");
+    };
+    let dbTimer = null;
+    overlay.querySelector("#rm-search").oninput = ()=>{ clearTimeout(dbTimer); dbTimer = setTimeout(()=>paintMembers(overlay.querySelector("#rm-search").value), 200); };
+
+    try{
+      members = await api.roomMembers(roomId);
+      if(!Array.isArray(members)) members = [];
+      paintMembers("");
     }catch(e){ showError(box, e, ()=>showRoomDetail(roomId, topic)); }
   };
 }
@@ -2096,7 +2163,8 @@ function renderBotSend(m){
         <div class="send-field"><div class="lab">选择目标</div>
           <div id="send-picker">${botSuffix("加载目标…",'off')}</div></div>
         <div class="send-field"><div class="lab">消息内容</div>
-          <textarea id="send-text" placeholder="输入要发送的消息…"></textarea></div>
+          <textarea id="send-text" placeholder="输入要发送的消息…（Ctrl + Enter 发送）"></textarea>
+          <div class="send-count" id="send-count">0 字</div></div>
         <div class="send-preview" id="send-preview" style="display:none"></div>
         <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
           <button class="btn ghost" id="send-clear">清空</button>
@@ -2125,7 +2193,8 @@ function renderBotSend(m){
   const setTab = (type)=>{
     curType = type;
     $tabs.querySelectorAll(".send-tab").forEach(t=>t.classList.toggle("active", t.dataset.type===type));
-    selected = { id:"", name:"" };
+    // 仅当预设目标不属于新 tab 时才清空，避免「好友 → 群发」预填被误清
+    if(preset && preset.id && preset.type !== type) selected = { id:"", name:"" };
     loadPicker();
   };
   $tabs.querySelectorAll(".send-tab").forEach(t=>{ t.onclick = ()=>setTab(t.dataset.type); });
@@ -2154,25 +2223,32 @@ function renderBotSend(m){
 
   const renderPreview = ()=>{
     const txt = $text.value;
+    $("#send-count").textContent = txt.length + " 字";
     if(selected.id && txt.trim()){ $preview.style.display=""; $preview.innerHTML = `将发送给 <b>${esc(selected.name||selected.id)}</b>（${curType==='contact'?'私聊':'群聊'}）：<br/>${esc(txt)}`; }
     else $preview.style.display = "none";
-    $go.disabled = !(selected.id && txt.trim());
+    $go.disabled = sending || !(selected.id && txt.trim());
   };
   $text.oninput = renderPreview;
   $("#send-clear").onclick = ()=>{ $text.value=""; renderPreview(); };
 
-  $go.onclick = async ()=>{
+  let sending = false;
+  const doSend = async ()=>{
+    if(sending) return;
     const text = $text.value.trim();
     if(!selected.id || !text) return;
-    $go.disabled = true; $go.innerHTML = icon("refresh",15,2);
+    sending = true;
+    $go.disabled = true;
+    $go.innerHTML = `<span class="spinner"></span> 发送中`;
     try{
       const payload = curType==='contact' ? { contactId:selected.id, text } : { roomId:selected.id, text };
       const res = await api.sendMessage(payload);
-      if(res && res.ok){ toast.success("发送成功"); $text.value=""; renderPreview(); }
+      if(res && res.ok){ toast.success("发送成功"); $text.value=""; }
       else toast.error((res && res.error) || "发送失败");
     }catch(e){ toast.error(e.message || "发送失败"); }
-    finally{ $go.disabled = false; $go.innerHTML = `${icon("bolt",15,2)} 发送`; renderPreview(); }
+    finally{ sending = false; $go.innerHTML = `${icon("bolt",15,2)} 发送`; renderPreview(); }
   };
+  $go.onclick = doSend;
+  $text.addEventListener("keydown", e=>{ if((e.ctrlKey||e.metaKey) && e.key==="Enter"){ e.preventDefault(); doSend(); } });
 
   loadPicker();
 }
