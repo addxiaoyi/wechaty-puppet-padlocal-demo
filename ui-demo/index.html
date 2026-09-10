@@ -538,6 +538,69 @@
   .bmsg .nm { font-size:11px; color:var(--text-tertiary); margin-bottom:4px; }
   .bmsg.user { background:var(--accent-muted); margin-left:16%; }
   .bmsg.assistant { background:var(--surface-nested); border:1px solid var(--border); }
+
+/* ---------- 控制台仪表盘（NapCat 级专业看板） ---------- */
+.dash-hero { position:relative; display:flex; gap:16px; align-items:center; padding:18px; border-radius:var(--radius-card);
+  background:linear-gradient(135deg, color-mix(in oklab, var(--module-1) 14%, var(--surface-card)) 0%, var(--surface-card) 62%);
+  border:1px solid var(--border); overflow:hidden; backdrop-filter:blur(20px) saturate(1.1); -webkit-backdrop-filter:blur(20px) saturate(1.1); }
+.dash-hero::before { content:""; position:absolute; inset:-1px; border-radius:inherit; padding:1px;
+  background:conic-gradient(from var(--glow-angle,0deg), transparent 0%, var(--module-1) 22%, transparent 44%, transparent 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask-composite:exclude;
+  animation:dashspin 6s linear infinite; opacity:.55; pointer-events:none; }
+@property --glow-angle { syntax:"<angle>"; initial-value:0deg; inherits:false; }
+@keyframes dashspin { to { --glow-angle:360deg } }
+.dash-hero.off::before { background:conic-gradient(from var(--glow-angle,0deg), transparent 0%, var(--danger) 22%, transparent 44%, transparent 100%); }
+.dash-hero.scan::before { background:conic-gradient(from var(--glow-angle,0deg), transparent 0%, var(--module-3) 22%, transparent 44%, transparent 100%); }
+.ring { --ring-pct:0; --ring-color:var(--module-1); position:relative; width:92px; height:92px; flex:0 0 auto; }
+.ring svg { width:100%; height:100%; transform:rotate(-90deg); }
+.ring .ring-bg { fill:none; stroke:var(--surface-nested); stroke-width:7; }
+.ring .ring-val { fill:none; stroke:var(--ring-color); stroke-width:7; stroke-linecap:round; stroke-dasharray:0 999;
+  transition:stroke-dasharray .8s cubic-bezier(.4,0,.2,1), stroke .4s; }
+.ring .ring-core { position:absolute; inset:0; display:grid; place-items:center; }
+.ring .ring-ico { position:absolute; inset:0; display:grid; place-items:center; color:var(--ring-color); }
+.ring.breath .ring-core::before { content:""; position:absolute; width:52px; height:52px; border-radius:50%;
+  background:color-mix(in oklab, var(--ring-color) 24%, transparent); animation:bbreath 2.4s ease-in-out infinite; }
+@keyframes bbreath { 50% { transform:scale(1.35); opacity:.4 } }
+.hero-meta { flex:1; min-width:0; }
+.hero-meta .hm-state { font-size:13px; font-weight:700; letter-spacing:.02em; color:var(--text); }
+.hero-meta .hm-name { font-size:20px; font-weight:700; color:var(--text); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.hero-meta .hm-sub { font-size:11px; color:var(--text-tertiary); margin-top:3px; font-variant-numeric:tabular-nums; }
+.hero-pill { display:inline-flex; align-items:center; gap:5px; font-size:10px; font-weight:700; letter-spacing:.05em;
+  padding:3px 8px; border-radius:999px; text-transform:uppercase; }
+.hero-pill.on { background:color-mix(in oklab, var(--module-1) 20%, transparent); color:var(--module-1); }
+.hero-pill.off { background:var(--danger-muted); color:var(--danger); }
+.hero-pill.scan { background:color-mix(in oklab, var(--module-3) 20%, transparent); color:var(--module-3); }
+.dash-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:12px; }
+.dstat { position:relative; padding:14px 10px; border-radius:var(--radius-tile); background:var(--surface-card);
+  border:1px solid var(--border); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); overflow:hidden; }
+.dstat::after { content:""; position:absolute; left:0; right:0; bottom:0; height:3px; background:var(--ds-c,var(--module-2));
+  opacity:.85; border-radius:0 0 var(--radius-tile) var(--radius-tile); }
+.dstat .dv { font-size:20px; font-weight:750; font-variant-numeric:tabular-nums; color:var(--text); line-height:1.1; }
+.dstat .dl { font-size:10px; color:var(--text-tertiary); margin-top:5px; letter-spacing:.02em; }
+.dstat .du { font-size:9px; color:var(--text-tertiary); opacity:.75; margin-top:1px; }
+.sec-title .sec-badge { font-size:10px; font-weight:700; letter-spacing:.08em; color:var(--accent);
+  border:1px solid color-mix(in oklab, var(--accent) 40%, transparent); border-radius:999px; padding:2px 8px; background:color-mix(in oklab, var(--accent) 12%, transparent); }
+.dash-chart { background:var(--surface-card); border:1px solid var(--border); border-radius:var(--radius-card);
+  backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); padding:14px 14px 10px; }
+.dash-chart .dc-h { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.dash-chart .dc-t { font-size:13px; font-weight:650; color:var(--text); }
+.dash-chart .dc-legend { display:flex; gap:10px; font-size:10px; color:var(--text-tertiary); }
+.dash-chart .dc-legend i { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px; vertical-align:baseline; }
+.dash-pct { position:absolute; inset:0; display:grid; place-items:center; font-size:17px; font-weight:800; color:var(--race-c, var(--module-4)); font-variant-numeric:tabular-nums; }
+.dash-log { background:oklch(14% 0.02 240); border:1px solid var(--border); border-radius:var(--radius-card); overflow:hidden; }
+.dash-log .dl-h { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid var(--border); }
+.dash-log .dl-h .dl-t { font-size:13px; font-weight:650; color:var(--text); display:flex; align-items:center; gap:7px; }
+.dash-log .dl-h .dl-live { width:7px; height:7px; border-radius:50%; background:var(--module-1); animation:bpulse 1.2s infinite; }
+.dash-log .dl-body { max-height:220px; overflow-y:auto; padding:6px 14px; font-family:var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size:11.5px; }
+.dlog { display:flex; gap:8px; padding:6px 0; border-bottom:1px solid color-mix(in oklab, var(--border) 60%, transparent); align-items:flex-start; }
+.dlog:last-child { border-bottom:none; }
+.dlog .dt { color:var(--text-tertiary); flex:0 0 auto; font-variant-numeric:tabular-nums; }
+.dlog .dlv { color:var(--module-2); flex:0 0 auto; font-weight:700; }
+.dlog .dlv.err { color:var(--danger); }
+.dlog .dlv.warn { color:var(--module-3); }
+.dlog .dlv.in { color:var(--module-1); }
+.dlog .dlt { color:var(--text-secondary); word-break:break-all; line-height:1.5; }
+.dash-log .dl-empty { padding:18px 14px; text-align:center; color:var(--text-tertiary); font-size:12px; }
 </style>
 </head>
 <body>
@@ -1105,44 +1168,142 @@ function botPageHead(title, sub, backTo){
     <button class="add" id="bot-refer" style="margin-left:6px">${icon("refresh",16,1.8)} 刷新</button></div>`;
 }
 
-/* 首页：运行状态 + 机器人能力卡片 */
+/* 首页：NapCat 级控制台仪表盘（状态环 + 统计条 + 嵌入图表 + 扫码卡片 + 实时日志） */
+const RING_C = 2*Math.PI*40;                 /* 状态环周长 r=40 */
+const fmtC = n => (n??0).toLocaleString();   /* 大数千分位 */
+const fmtT = n => { if(n==null) return "—"; if(n<1000) return String(n); if(n<1e6) return (n/1e3).toFixed(1)+"K"; return (n/1e6).toFixed(1)+"M"; }; /* Token 缩约 */
+const fmtPct = n => (n==null||Number.isNaN(n)) ? "—" : (n*100).toFixed(1)+"%";
+
+function statusRing(state, name){
+  const cs = { 'logged-in':['var(--module-1)','activity',100,'在线'], scanning:['var(--module-3)','camera',55,'等待扫码'], idle:['var(--module-4)','refresh',22,'初始化'], 'logged-out':['var(--danger)','power',8,'离线'] };
+  const [color, ico, pct, lab] = cs[state] || cs['logged-out'];
+  const breath = state==='scanning' ? 'breath' : '';
+  const pill = state==='logged-in' ? 'on' : (state==='scanning' ? 'scan' : 'off');
+  const R = 40;
+  return `<div class="dash-hero ${state==='scanning'?'scan':(state==='logged-in'?'':'off')}">
+    <div class="ring ${breath}" style="--ring-pct:${pct};--ring-color:${color}">
+      <svg viewBox="0 0 100 100">
+        <circle class="ring-bg" cx="50" cy="50" r="${R}"/>
+        <circle class="ring-val" cx="50" cy="50" r="${R}" style="stroke-dasharray:${(RING_C*pct/100).toFixed(1)} 999"/>
+      </svg>
+      <div class="ring-ico">${icon(ico,30,1.8)}</div>
+      <div class="ring-core"></div>
+    </div>
+    <div class="hero-meta">
+      <span class="hero-pill ${pill}">${lab}</span>
+      <div class="hm-name">${name ? esc(name) : "微信机器人"}</div>
+      <div class="hm-sub" id="hero-sub">连接中…</div>
+    </div>
+  </div>`;
+}
+
 function renderBotHome(m){
   $("#screen").innerHTML = `
     <div class="greet"><div><h1>${m.name}</h1><p>${m.desc}</p></div>
       <button class="add" id="bot-refresh">${icon("bolt",16,2)}刷新</button></div>
     <div style="margin-top:16px">
-      <div class="sec-title">运行状态</div>
-      <div class="panel" id="bot-status">${botSuffix("加载中…",'off')}</div>
+      <div id="bot-hero">${statusRing('idle', m.name)}</div>
+      <div class="dash-stats" id="bot-stats">
+        <div class="dstat" style="--ds-c:var(--module-1)"><div class="dv" id="st-calls">—</div><div class="dl">调用次数</div><div class="du">累计</div></div>
+        <div class="dstat" style="--ds-c:var(--module-3)"><div class="dv" id="st-tokens">—</div><div class="dl">Token 消耗</div><div class="du">输入 + 输出</div></div>
+        <div class="dstat" style="--ds-c:var(--module-5)"><div class="dv" id="st-recall">—</div><div class="dl">召回命中</div><div class="du">命中率</div></div>
+        <div class="dstat" style="--ds-c:var(--module-2)"><div class="dv" id="st-msgs">—</div><div class="dl">消息总数</div><div class="du">近 50 条</div></div>
+      </div>
+
+      <div class="sec-title">Token 吞吐 <span class="sec-badge">7 天</span></div>
+      <div class="dash-chart" id="bot-trend">${botSuffix("加载中…",'off')}</div>
+
       <div class="sec-title">机器人控制 <span class="stip">登出 / 停止 / 重启</span></div>
       <div class="panel bot-ctl">
         <button class="btn ghost" id="ctl-logout">${icon("power",15,2)} 登出</button>
         <button class="btn ghost" id="ctl-stop">${icon("close",15,2)} 停止</button>
         <button class="btn ghost" id="ctl-start">${icon("activity",15,2)} 启动</button>
       </div>
+
+      <div class="sec-title">实时事件 <span class="stip">最近消息与召回</span></div>
+      <div class="dash-log">
+        <div class="dl-h"><div class="dl-t"><span class="dl-live"></span>事件日志</div><span class="stip" id="dl-count">0 条</span></div>
+        <div class="dl-body" id="bot-log"><div class="dl-empty">暂无事件，机器人收到消息后会实时刷新</div></div>
+      </div>
+
       <div class="sec-title">机器人能力 <span class="stip">点卡片进入对应功能页</span></div>
       <div class="mr-grid">
         ${CAP.map(c=>`<div class="mr-card cap-link" data-page="${c.page}"><div class="cap" style="color:${m.color}">${icon(c.i,18,1.8)}</div><div class="capi">${c.t}</div><div class="capd">${c.d}</div></div>`).join("")}
       </div>
     </div>`;
 
-  let isLoading = false;
-  const run = async ()=>{
-    const el=$("#bot-status");
-    if(!el) return;
-    if(isLoading) return;
-    isLoading = true;
-    try{ const d = await api.status();
-      const map = { idle:['初始化中','off'], scanning:['等待扫码','scan'], 'logged-in':['在线 · '+(d.userName||'—'),'ok'], 'logged-out':['已登出','off'] };
-      const [txt,cls] = map[d.state] || ['连接中…','off'];
-      const qr = d.state==='scanning' && d.qrcodeUrl ? `<img class="bot-qr" src="${d.qrcodeUrl}" alt="扫码登录二维码"/>` : '';
-      el.innerHTML = botSuffix(txt, cls) + qr;
-      if(d.state==='scanning'){ if(!pollTimer) pollTimer=setInterval(run, 2000); }
-      else if(pollTimer){ clearInterval(pollTimer); pollTimer=null; }
-    }catch(e){ showError(el, e, run); }
-    finally{ isLoading = false; }
+  let failed = false;
+
+  const statusView = (d)=>{
+    const hero = $("#bot-hero");
+    if(!hero) return;
+    const subTxt = { idle:'初始化中', scanning:'等待扫码 · 打开微信扫码登录', 'logged-in':'在线 · '+(d.userName||'未命名'), 'logged-out':'已登出' }[d.state] || '连接中…';
+    hero.innerHTML = statusRing(d.state, d.userName || m.name);
+    const sub = $("#hero-sub");
+    if(sub) sub.textContent = subTxt;
+    const qrZone = $("#bot-qr-zone");
+    if(d.state==='scanning' && d.qrcodeUrl){
+      if(!qrZone){
+        const z = document.createElement("div");
+        z.id = "bot-qr-zone";
+        z.innerHTML = `<div class="sec-title">扫码登录</div><div class="panel" style="text-align:center;padding:20px">
+          <img class="bot-qr" src="${d.qrcodeUrl}" alt="扫码登录二维码" style="width:180px;height:180px"/>
+          <div style="margin-top:10px;font-size:12px;color:var(--text-secondary)">打开手机微信「扫一扫」，扫码后自动登录</div>
+          <div style="margin-top:6px;font-size:11px;color:var(--text-tertiary)">二维码 3 分钟刷新一次</div></div>`;
+        hero.parentNode.insertBefore(z, hero.nextSibling);
+      } else { const img = qrZone.querySelector("img"); if(img) img.src = d.qrcodeUrl; }
+    } else if(qrZone && d.state!=='scanning') qrZone.remove();
+    return d.state==='scanning';
   };
-  run();
-  $("#bot-refresh").onclick = ()=>{ stopPoll(); isLoading=false; run(); };
+
+  const refreshStatus = async ()=>{
+    try{
+      const d = await api.status();
+      const scanning = statusView(d);
+      if(scanning){ if(!pollTimer) pollTimer = setInterval(refreshStatus, 2000); }
+      else if(pollTimer){ clearInterval(pollTimer); pollTimer = null; }
+    }catch(e){ if(!failed){ failed=true; toast.error("状态同步失败："+(e.message||"网络异常")); } }
+  };
+
+  const refreshStats = async ()=>{
+    try{
+      const [sum, day, msgs, rec] = await Promise.all([
+        api.usageSummary(), api.usageDaily(7), api.messages(50), api.recalls(20)
+      ]);
+      const calls = sum.totalCalls??0, tin = sum.totalIn??0, tout = sum.totalOut??0;
+      $("#st-calls").textContent  = fmtC(calls);
+      $("#st-tokens").textContent = fmtT(tin+tout);
+      $("#st-msgs").textContent   = fmtC(msgs.length);
+
+      const hit = rec.filter(r=>(r.hitCount??0)>0).length;
+      const rate = rec.length ? hit/rec.length : null;
+      $("#st-recall").textContent = (rate==null) ? "—" : fmtPct(rate);
+
+      const chart = $("#bot-trend");
+      if(day && day.length){ chart.innerHTML = botTrendSVG(day.map(x=>({date:x.date, in_tokens:x.inTokens, out_tokens:x.outTokens}))); wireTrendHover(chart, day.map(x=>({date:x.date, in_tokens:x.inTokens, out_tokens:x.outTokens}))); }
+      else chart.innerHTML = `<div class="dl-empty">暂无用量数据</div>`;
+
+      renderLog([...msgs.map(mm=>({t:mm.created_at||mm.createdAt, kind:"in", msg:`${mm.type||"msg"} · ${mm.contact_id||mm.contactId||""}`} )),
+                 ...rec.map(rr=>({t:rr.createdAt||rr.created_at, kind:"recall", msg:`命中 ${rr.hitCount} 条 · ${rr.query||""}`}))]);
+    }catch(e){ if(!failed){ failed=true; toast.error("数据加载失败："+(e.message||"未知错误")); } }
+  };
+
+  const renderLog = (events)=>{
+    const body = $("#bot-log");
+    if(!body) return;
+    if(!events.length){ body.innerHTML = `<div class="dl-empty">暂无事件，机器人收到消息后会实时刷新</div>`; $("#dl-count").textContent="0 条"; return; }
+    const LABEL = { in:"IN", recall:"RECALL" };
+    const sorted = events.filter(e=>e && e.t).sort((a,b)=>new Date(b.t)-new Date(a.t)).slice(0,12);
+    body.innerHTML = sorted.map(e=>`<div class="dlog"><span class="dt">${fmtDateTime(e.t)}</span>
+      <span class="dlv ${e.kind==='in'?'in':''}">${LABEL[e.kind]||e.kind.toUpperCase()}</span>
+      <span class="dlt">${esc(e.msg||"")}</span></div>`).join("");
+    $("#dl-count").textContent = sorted.length + " 条";
+  };
+
+  refreshStatus();
+  refreshStats();
+
+  $("#bot-refresh").onclick = ()=>{ stopPoll(); failed=false; refreshStatus(); refreshStats(); };
   $("#screen").querySelectorAll(".cap-link").forEach(card=>{ card.onclick = ()=>go('bot-'+card.dataset.page); });
 
   const ctl = (label, fn)=>{
@@ -1152,7 +1313,7 @@ function renderBotHome(m){
       btn.disabled = true;
       const orig = btn.innerHTML;
       btn.innerHTML = icon("refresh",15,2);
-      try{ await fn(); toast.success("指令已下发"); await run(); }
+      try{ await fn(); toast.success("指令已下发"); await refreshStatus(); }
       catch(e){ toast.error(e.message || "操作失败"); }
       finally{ btn.disabled = false; btn.innerHTML = orig; }
     };
@@ -1160,6 +1321,8 @@ function renderBotHome(m){
   ctl("logout", api.botLogout);
   ctl("stop",   api.botStop);
   ctl("start",  api.botStart);
+
+  const tracker = setInterval(()=>{ if(!$("#bot-stats")){ clearInterval(tracker); return; } refreshStats(); }, 8000);
 }
 
 /* 在线配置页：系统提示词 / 模型 / 回复开关 / 记忆条数（实时生效 + 持久化） */
