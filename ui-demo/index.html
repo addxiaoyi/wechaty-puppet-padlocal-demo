@@ -601,6 +601,46 @@
 .dlog .dlv.in { color:var(--module-1); }
 .dlog .dlt { color:var(--text-secondary); word-break:break-all; line-height:1.5; }
 .dash-log .dl-empty { padding:18px 14px; text-align:center; color:var(--text-tertiary); font-size:12px; }
+
+/* ---------- 用量页 / 记忆页 ---------- */
+.usage-hero { display:flex; gap:14px; align-items:center; padding:16px 18px; border-radius:var(--radius-card);
+  background:linear-gradient(135deg, color-mix(in oklab, var(--module-4) 13%, var(--surface-card)) 0%, var(--surface-card) 60%);
+  border:1px solid var(--border); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); }
+.usage-ring { position:relative; width:76px; height:76px; flex:0 0 auto; }
+.usage-ring svg { width:100%; height:100%; transform:rotate(-90deg); }
+.usage-ring .ur-bg { fill:none; stroke:var(--surface-nested); stroke-width:6.5; }
+.usage-ring .ur-val { fill:none; stroke:var(--module-4); stroke-width:6.5; stroke-linecap:round; stroke-dasharray:0 999; transition:stroke-dasharray .8s cubic-bezier(.4,0,.2,1); }
+.usage-ring .ur-core { position:absolute; inset:0; display:grid; place-items:center; font-size:12px; font-weight:800; color:var(--text); font-variant-numeric:tabular-nums; }
+.usage-meta { flex:1; min-width:0; }
+.usage-meta .um-total { font-size:22px; font-weight:800; color:var(--text); font-variant-numeric:tabular-nums; letter-spacing:-.01em; }
+.usage-meta .um-sub { font-size:11px; color:var(--text-tertiary); margin-top:3px; }
+.usage-meta .um-pill { display:inline-flex; align-items:center; gap:5px; font-size:10px; font-weight:700; letter-spacing:.05em;
+  padding:3px 8px; border-radius:999px; background:color-mix(in oklab, var(--module-4) 18%, transparent); color:var(--module-4); margin-top:8px; }
+.rank-list { display:flex; flex-direction:column; gap:2px; padding:6px 0; }
+.rank-row { display:flex; align-items:center; gap:12px; padding:10px 8px; border-radius:var(--radius-tile); cursor:pointer; transition:background .15s; }
+.rank-row:hover { background:var(--surface-nested); }
+.rank-row .r-idx { width:24px; height:24px; border-radius:8px; display:grid; place-items:center; font-size:11px; font-weight:800;
+  background:var(--surface-nested); border:1px solid var(--border); color:var(--text-secondary); flex:0 0 auto; }
+.rank-row.top1 .r-idx { background:color-mix(in oklab, var(--module-3) 22%, transparent); color:var(--module-3); border-color:color-mix(in oklab, var(--module-3) 40%, transparent); }
+.rank-row.top2 .r-idx { background:color-mix(in oklab, var(--module-2) 20%, transparent); color:var(--module-2); border-color:color-mix(in oklab, var(--module-2) 40%, transparent); }
+.rank-row.top3 .r-idx { background:color-mix(in oklab, var(--accent) 20%, transparent); color:var(--accent); border-color:color-mix(in oklab, var(--accent) 40%, transparent); }
+.rank-row .r-who { width:120px; flex:0 0 auto; font-size:13px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rank-row .r-bar { flex:1; height:7px; border-radius:999px; background:var(--surface-nested); overflow:hidden; }
+.rank-row .r-fill { height:100%; border-radius:999px; background:linear-gradient(90deg, var(--module-4), var(--module-1)); transition:width .6s cubic-bezier(.4,0,.2,1); }
+.rank-row .r-tok { font-size:12px; font-weight:700; color:var(--text-secondary); font-variant-numeric:tabular-nums; flex:0 0 auto; }
+.mem-form-card { background:linear-gradient(135deg, color-mix(in oklab, var(--accent) 10%, var(--surface-card)) 0%, var(--surface-card) 55%);
+  border:1px solid var(--border); border-radius:var(--radius-card); padding:16px; backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); }
+.mem-form-grid { display:grid; grid-template-columns:1fr 2fr; gap:12px; margin-top:12px; }
+.mem-card { display:flex; gap:12px; align-items:flex-start; padding:13px 14px; border-bottom:1px solid var(--border); transition:background .15s; }
+.mem-card:last-child { border-bottom:none; }
+.mem-card:hover { background:var(--surface-nested); }
+.mem-card .mc-ico { width:34px; height:34px; border-radius:var(--radius-tile); display:grid; place-items:center; flex:0 0 auto;
+  background:color-mix(in oklab, var(--module-1) 16%, transparent); color:var(--module-1); }
+.mem-card .mc-body { flex:1; min-width:0; }
+.mem-card .mc-who { font-size:12px; font-weight:700; color:var(--accent); margin-bottom:4px; }
+.mem-card .mc-txt { font-size:13.5px; color:var(--text); line-height:1.55; white-space:normal; }
+.mem-card .mc-date { font-size:11px; color:var(--text-tertiary); margin-top:5px; font-variant-numeric:tabular-nums; }
+.mem-card .mc-acts { display:flex; gap:6px; flex:0 0 auto; }
 </style>
 </head>
 <body>
@@ -1280,7 +1320,8 @@ function renderBotHome(m){
       $("#st-recall").textContent = (rate==null) ? "—" : fmtPct(rate);
 
       const chart = $("#bot-trend");
-      if(day && day.length){ chart.innerHTML = botTrendSVG(day.map(x=>({date:x.date, in_tokens:x.inTokens, out_tokens:x.outTokens}))); wireTrendHover(chart, day.map(x=>({date:x.date, in_tokens:x.inTokens, out_tokens:x.outTokens}))); }
+      const trend = (day && day.data) || [];
+      if(trend.length){ chart.innerHTML = botTrendSVG(trend); wireTrendHover(chart, trend); }
       else chart.innerHTML = `<div class="dl-empty">暂无用量数据</div>`;
 
       renderLog([...msgs.map(mm=>({t:mm.created_at||mm.createdAt, kind:"in", msg:`${mm.type||"msg"} · ${mm.contact_id||mm.contactId||""}`} )),
@@ -1407,19 +1448,44 @@ function renderBotUsage(){
 
   $("#screen").innerHTML = botPageHead("Token 用量","用量总览 · 趋势 · 每用户排行")
     + `<div style="margin-top:16px">
-      <div class="mr-grid">
-        ${[["v-calls","累计调用"],["v-in","输入 Token"],["v-out","输出 Token"],["v-total","总 Token"]]
-          .map(x=>`<div class="mr-card"><div class="lab">${x[1]}</div><div class="val" id="${x[0]}">–</div></div>`).join("")}
+      <div class="usage-hero">
+        <div class="usage-ring">
+          <svg viewBox="0 0 100 100">
+            <circle class="ur-bg" cx="50" cy="50" r="40"/>
+            <circle class="ur-val" id="usage-arc" cx="50" cy="50" r="40"/>
+          </svg>
+          <div class="ur-core" id="usage-out-ratio">—</div>
+        </div>
+        <div class="usage-meta">
+          <div class="um-total" id="usage-total">—</div>
+          <div class="um-sub">累计 Token 消耗</div>
+          <span class="um-pill">${icon("activity",12,2)} 输入 / 输出占比</span>
+        </div>
       </div>
-      <div class="sec-title">用量趋势
+      <div class="dash-stats">
+        ${[["usage-calls","累计调用","--ds-c:var(--module-1)","API 调用次数"],
+           ["usage-in","输入 Token","--ds-c:var(--module-2)","发送给模型"],
+           ["usage-out","输出 Token","--ds-c:var(--module-3)","模型生成"],
+           ["usage-avg","单次均值","--ds-c:var(--module-4)","每次调用平均"]]
+          .map(x=>`<div class="dstat" style="${x[2]}"><div class="dv" id="${x[0]}">–</div><div class="dl">${x[1]}</div><div class="du">${x[3]||''}</div></div>`).join("")}
+      </div>
+      <div class="sec-title" style="margin-top:18px">用量趋势
         <span class="seg" id="range-seg">
           <button class="seg-item ${rangeDays===7?'active':''}" data-days="7">7 天</button>
           <button class="seg-item ${rangeDays===30?'active':''}" data-days="30">30 天</button>
         </span>
       </div>
-      <div class="panel" id="w-trend">${botSuffix("加载中…",'off')}</div>
-      <div class="sec-title">每用户排行</div>
-      <div class="panel" id="w-rank">${botSuffix("加载中…",'off')}</div>
+      <div class="dash-chart">
+        <div class="dc-h">
+          <span class="dc-t">Token 消耗走势</span>
+          <span class="dc-legend"><i style="background:var(--module-3)"></i>输入 + 输出</span>
+        </div>
+        <div id="w-trend">${botSuffix("加载中…",'off')}</div>
+      </div>
+      <div class="sec-title" style="margin-top:18px"><span class="sec-badge">每用户排行</span></div>
+      <div class="dash-chart" style="padding:8px 14px">
+        <div class="rank-list" id="w-rank">${botSuffix("加载中…",'off')}</div>
+      </div>
     </div>`;
 
   const retry = ()=>{ renderBotUsage(); };
@@ -1430,7 +1496,7 @@ function renderBotUsage(){
     const tel=$("#w-trend");
     try{
       const d = await api.usageDaily(rangeDays); const arr=(d.data||[]);
-      tel.innerHTML = arr.length ? botTrendSVG(arr) : `<div class="empty"><span class="e">${icon("chart",24)}</span><div>暂无用量数据</div></div>`;
+      tel.innerHTML = arr.length ? botTrendSVG(arr) : `<div class="dl-empty">暂无用量数据</div>`;
       wireTrendHover(tel, arr);
     }catch(e){ showError(tel, e, retry); }
   };
@@ -1446,19 +1512,29 @@ function renderBotUsage(){
 
   (async ()=>{
     try{ const d = await api.usageSummary();
-      $("#v-calls").textContent=(d.totalCalls??0).toLocaleString();
-      $("#v-in").textContent=(d.totalIn??0).toLocaleString();
-      $("#v-out").textContent=(d.totalOut??0).toLocaleString();
-      $("#v-total").textContent=((d.totalIn??0)+(d.totalOut??0)).toLocaleString();
-    }catch(e){ showError($("#v-calls").parentElement, e, retry); }
+      const tin=(d.totalIn??0), tout=(d.totalOut??0);
+      $("#usage-calls").textContent=(d.totalCalls??0).toLocaleString();
+      $("#usage-in").textContent=fmtC(tin);
+      $("#usage-out").textContent=fmtC(tout);
+      $("#usage-total").textContent=fmtT(tin+tout);
+      $("#usage-avg").textContent=(d.totalCalls? fmtT((tin+tout)/d.totalCalls) : "—");
+      const denom = tin+tout;
+      const outRatio = denom ? tout/denom : 0;
+      const C = 2*Math.PI*40;
+      $("#usage-arc").style.strokeDasharray = `${(C*outRatio).toFixed(1)} 999`;
+      $("#usage-out-ratio").textContent = `${Math.round(outRatio*100)}%`;
+    }catch(e){ showError($("#usage-calls").closest(".dash-stats")||$("#w-trend"), e, retry); }
     loadTrend();
     const rel=$("#w-rank");
     try{ const list = await api.usageByContact();
       if(!list.length){ rel.innerHTML=`<div class="empty"><span class="e">${icon("user",24)}</span><div>暂无用户用量</div></div>`; return; }
-      rel.innerHTML = list.map((u,i)=>`<div class="mrow mrow-link" data-c="${esc(u.contactId||'')}">
-        <span class="idx">${i+1}</span><span class="who">${esc(u.contactId||'匿名')}</span>
-        <span class="muted">${u.calls} 次</span><b class="tk">${(u.totalTokens||0).toLocaleString()}</b></div>`).join("");
-      rel.querySelectorAll(".mrow-link").forEach(row=>{ row.onclick=()=>openConv(row.dataset.c, null); });
+      const maxTok = Math.max(...list.map(u=>u.totalTokens||0), 1);
+      rel.innerHTML = list.map((u,i)=>`<div class="rank-row ${i<3?'top'+(i+1):''}" data-c="${esc(u.contactId||'')}">
+        <span class="r-idx">${i+1}</span>
+        <span class="r-who" title="${esc(u.contactId||'匿名')}">${esc(u.contactId||'匿名')}</span>
+        <div class="r-bar"><div class="r-fill" style="width:${Math.round((u.totalTokens||0)/maxTok*100)}%"></div></div>
+        <span class="r-tok">${fmtT(u.totalTokens||0)}</span></div>`).join("");
+      rel.querySelectorAll(".rank-row").forEach(row=>{ row.onclick=()=>openConv(row.dataset.c, null); });
     }catch(e){ showError(rel, e, retry); }
   })();
   $("#bot-back").onclick = ()=>go('bot');
@@ -1563,18 +1639,31 @@ function renderBotMem(){
 
   $("#screen").innerHTML = botPageHead("记忆学习","发『记住 事项』即写入长期记忆")
     + `<div style="margin-top:16px">
-      <div class="panel" id="w-mem-form">
-        <div class="sec-title">手动新增记忆 <span class="stip">填用户标识与内容，保存后同步向量化</span></div>
-        <div class="field"><label>用户标识 contactId</label><input id="mem-contact" placeholder="微信号 / 联系人 id"/></div>
-        <div class="field"><label>记忆内容</label><textarea id="mem-content" placeholder="例如：用户喜欢喝美式，不加糖"></textarea></div>
-        <button class="btn" id="mem-save" disabled>${icon("plus",15,2.2)} 保存记忆</button>
-        <div class="lineq" id="mem-msg" style="display:none"></div>
+      <div class="dash-stats">
+        ${[["mem-total","记忆总数","--ds-c:var(--module-1)","长期记忆库"],
+           ["mem-users","覆盖用户","--ds-c:var(--module-2)","去重后联系人数"],
+           ["mem-last","最近新增","--ds-c:var(--module-3)","最近写入日期"],
+           ["mem-source","来源","--ds-c:var(--module-4)","私聊记忆占比"]]
+          .map(x=>`<div class="dstat" style="${x[2]}"><div class="dv" id="${x[0]}">–</div><div class="dl">${x[1]}</div><div class="du">${x[3]||''}</div></div>`).join("")}
       </div>
-      <div class="sec-title">
-        记忆库
+      <div class="mem-form-card" style="margin-top:14px">
+        <div class="sec-title">手动新增记忆 <span class="stip">填用户标识与内容，保存后同步向量化</span></div>
+        <div class="mem-form-grid">
+          <div class="field"><label>用户标识 contactId</label><input id="mem-contact" placeholder="微信号 / 联系人 id"/></div>
+          <div class="field"><label>记忆内容</label><textarea id="mem-content" placeholder="例如：用户喜欢喝美式，不加糖"></textarea></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:12px">
+          <button class="btn" id="mem-save" disabled>${icon("plus",15,2.2)} 保存记忆</button>
+          <div class="lineq" id="mem-msg" style="display:none;margin:0"></div>
+        </div>
+      </div>
+      <div class="sec-title" style="margin-top:18px">
+        <span class="sec-badge">记忆库</span>
         <span class="seg"><input id="mem-search" type="text" placeholder="搜索关键字…" style="flex:1"/></span>
       </div>
-      <div class="panel" id="w-mem">${botSuffix("加载中…",'off')}</div>
+      <div class="dash-chart" style="padding:0 10px">
+        <div id="w-mem">${botSuffix("加载中…",'off')}</div>
+      </div>
     </div>`;
 
   const retry = ()=>{ renderBotMem(); };
@@ -1588,23 +1677,38 @@ function renderBotMem(){
       const filtered = list.filter(mm =>
         mm.contactId.includes(searchKey) || mm.content.includes(searchKey)
       );
-      if(!filtered.length){ el.innerHTML=`<div class="empty"><span class="e">${icon("leaf",24)}</span><div>${searchKey?'没有匹配『'+searchKey+'』的记忆，清除搜索词或再试':list.length?'暂无记忆，填写上方表单或在聊天里说『记住 事项』':'暂无记忆'}</div></div>`; return; }
-      el.innerHTML = filtered.map(mm=>`<div class="mrow mrow-mem" data-id="${mm.id}">
-        <div class="who">${esc(mm.contactId||'匿名')}</div>
-        <div class="txt">${editingId === mm.id ? '<textarea class="mem-edit-box" rows="2">' + esc(mm.content) + '</textarea>' : esc(mm.content)}</div>
-        <span class="muted">${new Date(mm.created_at).toLocaleDateString("zh-CN")}</span>
-        ${editingId === mm.id
-          ? `<button class="btn-save js-mem-save" data-id="${mm.id}">${icon("check",14)}</button>
-             <button class="btn btn-cancel js-mem-cancel" data-id="${mm.id}">${icon("close",14)}</button>`
-          : `<button class="btn-edit js-mem-edit" data-id="${mm.id}">${icon("edit",14)}</button>
-             <button class="btn-del js-mem-del" data-id="${mm.id}">${icon("trash",14)}</button>`}
+
+      const users = new Set(list.map(mm=>mm.contactId)).size;
+      const latest = list.length ? Math.max(...list.map(mm=>mm.created_at||0)) : 0;
+      $("#mem-total").textContent = list.length;
+      $("#mem-users").textContent = users;
+      $("#mem-last").textContent = latest ? new Date(latest).toLocaleDateString("zh-CN",{month:"numeric",day:"numeric"}) : "—";
+      $("#mem-source").textContent = list.filter(mm=>!mm.roomId).length + " 私";
+
+      if(!filtered.length){ el.innerHTML=`<div class="empty" style="padding:20px 0"><span class="e">${icon("leaf",24)}</span><div>${searchKey?'没有匹配『'+searchKey+'』的记忆，清除搜索词或再试':list.length?'暂无记忆，填写上方表单或在聊天里说『记住 事项』':'暂无记忆'}</div></div>`; return; }
+      el.innerHTML = filtered.map(mm=>`<div class="mem-card" data-id="${mm.id}">
+        <div class="mc-ico">${icon("leaf",16,1.8)}</div>
+        <div class="mc-body">
+          <div class="mc-who">${esc(mm.contactId||'匿名')}${mm.roomId?'<i class="grp">群</i>':''}</div>
+          ${editingId === mm.id
+            ? `<textarea class="mem-edit-box" rows="2">${esc(mm.content)}</textarea>`
+            : `<div class="mc-txt">${esc(mm.content)}</div>`}
+          <div class="mc-date">${new Date(mm.created_at).toLocaleDateString("zh-CN")}</div>
+        </div>
+        <div class="mc-acts">
+          ${editingId === mm.id
+            ? `<button class="btn-save js-mem-save" data-id="${mm.id}">${icon("check",14)}</button>
+               <button class="btn btn-cancel js-mem-cancel" data-id="${mm.id}">${icon("close",14)}</button>`
+            : `<button class="btn-edit js-mem-edit" data-id="${mm.id}">${icon("edit",14)}</button>
+               <button class="btn-del js-mem-del" data-id="${mm.id}">${icon("trash",14)}</button>`}
+        </div>
       </div>`).join("");
       el.querySelectorAll(".js-mem-del").forEach(b=>{ b.onclick=async(e)=>{ e.stopPropagation(); b.disabled=true; b.style.opacity=".7"; b.innerHTML = icon("refresh",14);
         try{ await api.deleteMemory(b.dataset.id); toast.success("已删除记忆"); load(); }catch(err){ toast.error("删除失败："+(err?.message||err)); }
         finally{ b.disabled=false; b.style.opacity="1"; b.innerHTML = icon("trash",14); };
       }; });
       el.querySelectorAll(".js-mem-edit").forEach(btn=>{ btn.onclick=(e)=>{ e.stopPropagation(); editingId = Number(btn.dataset.id); load(); }; });
-      el.querySelectorAll(".js-mem-save").forEach(btn=>{ btn.onclick=async(e)=>{ e.stopPropagation(); const row = btn.closest(".mrow-mem"); if(!row) return; const box=row.querySelector(".mem-edit-box"); const newContent=box.value.trim(); if(!newContent){ toast.warning("内容不能为空"); return; } btn.disabled=true; btn.innerHTML = icon("refresh",14);
+      el.querySelectorAll(".js-mem-save").forEach(btn=>{ btn.onclick=async(e)=>{ e.stopPropagation(); const row = btn.closest(".mem-card"); if(!row) return; const box=row.querySelector(".mem-edit-box"); const newContent=box.value.trim(); if(!newContent){ toast.warning("内容不能为空"); return; } btn.disabled=true; btn.innerHTML = icon("refresh",14);
         try{ await api.updateMemory(Number(btn.dataset.id), newContent); toast.success("已更新记忆"); load(); }catch(err){ toast.error("更新失败："+(err?.message||err)); }
         finally{ btn.disabled=false; btn.innerHTML = icon("check",14); };
       }; });
@@ -1747,17 +1851,18 @@ function renderBot(view){
 
 function botTrendSVG(data){
   const w=320, h=110, px=10, pt=12, pb=18, iw=w-2*px, ih=h-pt-pb;
-  const pts = data.map(x=> (x.in_tokens||0) + (x.out_tokens||0));
+  const norm = data.map(x=>({ date:x.date, inTokens:(x.inTokens??x.in_tokens)||0, outTokens:(x.outTokens??x.out_tokens)||0 }));
+  const pts = norm.map(x=> x.inTokens + x.outTokens);
   const max = Math.max(...pts, 1);
   const co=(i,v)=>[px+iw*(i/(data.length-1||1)), pt+ih*(1-v/max)];
   const line = pts.map((v,i)=>{ const [x,y]=co(i,v); return (i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1); }).join(' ');
   const area = line + ` L ${w-px} ${h-pb} L ${px} ${h-pb} Z`;
-  const labels = data.map((x,i)=>{ const [X]=co(i,0); return `<text x="${X.toFixed(1)}" y="${h-4}" text-anchor="middle" class="blab">${x.date.slice(5)}</text>`; }).join('');
-  const circles = data.map((x,i)=>{
+  const labels = norm.map((x,i)=>{ const [X]=co(i,0); return `<text x="${X.toFixed(1)}" y="${h-4}" text-anchor="middle" class="blab">${x.date.slice(5)}</text>`; }).join('');
+  const circles = norm.map((x,i)=>{
     const [X,Y]=co(i,pts[i]);
     const tot = pts[i];
     return `<circle cx="${X.toFixed(1)}" cy="${Y.toFixed(1)}" r="5" fill="none" stroke="var(--accent)" stroke-width="2"
-      data-date="${x.date}" data-tokens="${tot}" data-in="${x.in_tokens||0}" data-out="${x.out_tokens||0}"/>`;
+      data-date="${x.date}" data-tokens="${tot}" data-in="${x.inTokens}" data-out="${x.outTokens}"/>`;
   }).join('');
   return `<svg class="bot-trend" viewBox="0 0 ${w} ${h}">
     <defs><linearGradient id="btg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--module-3)" stop-opacity=".22"/><stop offset="1" stop-color="var(--module-3)" stop-opacity="0"/></linearGradient></defs>
