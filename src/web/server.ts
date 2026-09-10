@@ -19,17 +19,26 @@ import {
 } from '../services/storage'
 import { addMemoryManually } from '../services/agent'
 import { getRuntimeConfig, updateRuntimeConfig, isLlmConfigured } from '../services/runtime-config'
+import { systemStats, recentLogs, installLogCapture } from '../services/observability'
 
 // 机器人控制器：仅在完整模式（main.ts）下注入，web:dev 模式下为 undefined
 export interface BotController {
   logout(): Promise<unknown>
   stop(): Promise<unknown>
   start(): Promise<unknown>
+  // NapCat 式管理能力：联系人 / 群聊 / 主动发消息
+  getContacts(): Promise<Array<{ id: string; name: string; alias: string }>>
+  getRooms(): Promise<Array<{ id: string; topic: string; memberCount: number }>>
+  getRoomMembers(roomId: string): Promise<Array<{ id: string; name: string; alias: string }>>
+  sendMessage(target: { contactId?: string; roomId?: string; text: string }): Promise<{ ok: boolean; error?: string }>
 }
 
 export function startWebServer(status: StatusHub, bot?: BotController): Server {
   const app = express()
   app.use(express.json())
+
+  // 安装 console 日志镜像，供「运行日志」页实时查看
+  installLogCapture()
 
   // ===== 同源托管个人工作台 =====
   // 按 README 的运行方式（npm start / ts-node / Docker 均从仓库根启动），
@@ -208,6 +217,77 @@ export function startWebServer(status: StatusHub, bot?: BotController): Server {
     try {
       await bot.start()
       res.json({ ok: true })
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e) })
+    }
+  })
+
+  // ===== 系统资源监控（NapCat 系统信息页）=====
+  app.get('/api/system/stats', (_req: Request, res: Response) => {
+    res.json(systemStats())
+  })
+
+  // ===== 运行日志（NapCat 日志查看页）=====
+  app.get('/api/logs', (req: Request, res: Response) => {
+    const limit = Number.parseInt(String(req.query.limit ?? '200'), 10)
+    res.json(recentLogs(Number.isNaN(limit) ? 200 : limit))
+  })
+
+  // ===== 联系人 / 群聊管理（NapCat get_friend_list / get_group_list）=====
+  // 好友列表
+  app.get('/api/contacts', async (_req: Request, res: Response) => {
+    if (!bot) {
+      res.status(400).json({ ok: false, error: '当前为 WebUI-only 模式，无机器人实例' })
+      return
+    }
+    try {
+      res.json(await bot.getContacts())
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e) })
+    }
+  })
+
+  // 群列表
+  app.get('/api/rooms', async (_req: Request, res: Response) => {
+    if (!bot) {
+      res.status(400).json({ ok: false, error: '当前为 WebUI-only 模式，无机器人实例' })
+      return
+    }
+    try {
+      res.json(await bot.getRooms())
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e) })
+    }
+  })
+
+  // 群成员列表
+  app.get('/api/rooms/:id/members', async (req: Request, res: Response) => {
+    if (!bot) {
+      res.status(400).json({ ok: false, error: '当前为 WebUI-only 模式，无机器人实例' })
+      return
+    }
+    try {
+      res.json(await bot.getRoomMembers(String(req.params.id)))
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e) })
+    }
+  })
+
+  // 主动发消息（NapCat send_private_msg / send_group_msg）
+  app.post('/api/send', async (req: Request, res: Response) => {
+    if (!bot) {
+      res.status(400).json({ ok: false, error: '当前为 WebUI-only 模式，无机器人实例' })
+      return
+    }
+    const contactId = typeof req.body?.contactId === 'string' ? req.body.contactId : undefined
+    const roomId = typeof req.body?.roomId === 'string' ? req.body.roomId : undefined
+    const text = typeof req.body?.text === 'string' ? req.body.text.trim() : ''
+    if (text === '' || (!contactId && !roomId)) {
+      res.status(400).json({ ok: false, error: '缺少目标（contactId 或 roomId）或消息内容' })
+      return
+    }
+    try {
+      res.json(await bot.sendMessage({ contactId, roomId, text }))
     } catch (e) {
       res.status(500).json({ ok: false, error: String(e) })
     }

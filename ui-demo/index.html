@@ -641,6 +641,61 @@
 .mem-card .mc-txt { font-size:13.5px; color:var(--text); line-height:1.55; white-space:normal; }
 .mem-card .mc-date { font-size:11px; color:var(--text-tertiary); margin-top:5px; font-variant-numeric:tabular-nums; }
 .mem-card .mc-acts { display:flex; gap:6px; flex:0 0 auto; }
+
+/* ---------- 系统监控 / 日志 / 好友 / 群聊 / 发消息 (NapCat 能力页) ---------- */
+.sys-hero { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+.sys-stat { position:relative; padding:14px; border-radius:var(--radius-card); background:var(--surface-card); border:1px solid var(--border); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); overflow:hidden; }
+.sys-stat::after { content:""; position:absolute; left:0; right:0; bottom:0; height:3px; background:var(--ss-c,var(--module-2)); opacity:.85; }
+.sys-stat .ss-lab { font-size:10px; color:var(--text-tertiary); letter-spacing:.03em; display:flex; align-items:center; gap:5px; }
+.sys-stat .ss-val { font-size:22px; font-weight:800; font-variant-numeric:tabular-nums; color:var(--text); margin-top:7px; line-height:1; }
+.sys-stat .ss-sub { font-size:10px; color:var(--text-tertiary); margin-top:5px; font-variant-numeric:tabular-nums; }
+.sys-proc { font-size:11px; color:var(--text-secondary); font-variant-numeric:tabular-nums; line-height:1.7; }
+.kv-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px 16px; }
+.kv-grid .kv { display:flex; justify-content:space-between; font-size:12px; padding:6px 0; border-bottom:1px dashed color-mix(in oklab, var(--border) 70%, transparent); }
+.kv-grid .kv .k { color:var(--text-tertiary); }
+.kv-grid .kv .v { color:var(--text); font-variant-numeric:tabular-nums; font-weight:600; }
+
+.log-view { background:oklch(14% 0.02 240); border:1px solid var(--border); border-radius:var(--radius-card); overflow:hidden; }
+.log-view .lv-h { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid var(--border); }
+.log-view .lv-t { font-size:13px; font-weight:650; color:var(--text); display:flex; align-items:center; gap:7px; }
+.log-view .lv-live { width:7px; height:7px; border-radius:50%; background:var(--module-1); animation:bpulse 1.2s infinite; }
+.log-view .lv-body { max-height:440px; overflow-y:auto; padding:8px 6px; font-family:var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size:11.5px; }
+.lv-row { display:flex; gap:8px; padding:5px 10px; border-radius:8px; align-items:flex-start; }
+.lv-row:hover { background:color-mix(in oklab, var(--border) 55%, transparent); }
+.lv-row .lv-ts { color:var(--text-tertiary); flex:0 0 auto; font-variant-numeric:tabular-nums; }
+.lv-row .lv-lv { flex:0 0 auto; width:38px; text-align:center; font-weight:800; font-size:10px; border-radius:5px; padding:1px 0; text-transform:uppercase; }
+.lv-row .lv-lv.info { color:var(--module-1); background:color-mix(in oklab, var(--module-1) 16%, transparent); }
+.lv-row .lv-lv.warn { color:var(--module-3); background:color-mix(in oklab, var(--module-3) 16%, transparent); }
+.lv-row .lv-lv.error { color:var(--danger); background:var(--danger-muted); }
+.lv-row .lv-lv.debug { color:var(--text-tertiary); background:var(--surface-nested); }
+.lv-row .lv-msg { color:var(--text-secondary); word-break:break-all; line-height:1.5; flex:1; }
+.lv-empty { padding:18px 14px; text-align:center; color:var(--text-tertiary); font-size:12px; }
+
+.cnt-search { width:100%; box-sizing:border-box; padding:10px 12px; border-radius:var(--radius-tile); border:1px solid var(--border); background:var(--surface-card); color:var(--text); font-size:13px; }
+.cnt-list { max-height:520px; overflow-y:auto; margin-top:10px; border:1px solid var(--border); border-radius:var(--radius-card); background:var(--surface-card); }
+.cnt-row { display:flex; align-items:center; gap:12px; padding:12px 14px; border-bottom:1px solid var(--border); cursor:pointer; transition:background .15s; }
+.cnt-row:last-child { border-bottom:none; }
+.cnt-row:hover { background:var(--surface-nested); }
+.cnt-row .cnt-ava { width:38px; height:38px; border-radius:var(--radius-tile); display:grid; place-items:center; flex:0 0 auto; background:color-mix(in oklab, var(--module-1) 14%, transparent); color:var(--module-1); font-weight:800; font-size:14px; }
+.cnt-row .cnt-body { flex:1; min-width:0; }
+.cnt-row .cnt-name { font-size:13.5px; font-weight:650; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cnt-row .cnt-alias { font-size:11px; color:var(--text-tertiary); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cnt-row .cnt-id { font-size:10px; color:var(--text-tertiary); opacity:.7; font-family:var(--font-mono, ui-monospace, monospace); }
+.cnt-row .cnt-act { flex:0 0 auto; font-size:11px; color:var(--accent); display:flex; align-items:center; gap:4px; }
+
+.tag { display:inline-flex; align-items:center; gap:4px; font-size:10px; font-weight:700; padding:2px 8px; border-radius:999px; letter-spacing:.04em; }
+.tag.mem { background:color-mix(in oklab, var(--module-2) 18%, transparent); color:var(--module-2); }
+
+.send-hero { display:grid; grid-template-columns:1fr; gap:12px; margin-top:16px; }
+.send-form { background:var(--surface-card); border:1px solid var(--border); border-radius:var(--radius-card); padding:16px; backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); }
+.send-field { margin-bottom:14px; }
+.send-field .lab { font-size:11px; color:var(--text-tertiary); margin-bottom:7px; font-weight:600; letter-spacing:.02em; }
+.send-field input, .send-field textarea, .send-field select { width:100%; box-sizing:border-box; padding:10px 12px; border-radius:var(--radius-tile); border:1px solid var(--border); background:var(--surface-nested); color:var(--text); font-size:13px; }
+.send-field textarea { resize:vertical; min-height:110px; font-family:inherit; }
+.send-tabs { display:flex; gap:8px; margin-bottom:12px; }
+.send-tab { flex:1; padding:9px 6px; text-align:center; border-radius:var(--radius-tile); border:1px solid var(--border); background:var(--surface-nested); color:var(--text-secondary); font-size:12px; font-weight:600; cursor:pointer; transition:.15s; }
+.send-tab.active { background:color-mix(in oklab, var(--accent) 16%, transparent); color:var(--accent); border-color:color-mix(in oklab, var(--accent) 40%, transparent); }
+.send-preview { font-size:12px; color:var(--text-secondary); background:var(--surface-nested); border-radius:var(--radius-tile); padding:10px 12px; margin-top:8px; line-height:1.6; word-break:break-all; }
 </style>
 </head>
 <body>
@@ -1157,6 +1212,11 @@ const CAP = [
   { i:"camera", t:"多类型消息",   d:"识别文本/图片/语音/视频/表情/链接/小程序", page:"msg" },
   { i:"chart",  t:"Token 用量",   d:"记录每轮输入/输出 Token 并统计",    page:"usage" },
   { i:"gear",   t:"在线配置",     d:"系统提示词 / 模型 / 回复开关 实时生效", page:"config" },
+  { i:"activity",t:"系统监控",    d:"CPU / 内存 / 网络 / 负载 实时采样",    page:"sys" },
+  { i:"list",   t:"运行日志",     d:"拦截 console 输出的环形日志流",        page:"logs" },
+  { i:"user",   t:"好友管理",     d:"联系人列表 · 备注 · 私聊",             page:"contacts" },
+  { i:"msg",    t:"群聊管理",     d:"群列表 · 成员 · 群发",                 page:"rooms" },
+  { i:"bolt",   t:"主动发消息",   d:"私聊 / 群发 一键触达",                 page:"send" },
 ];
 function botSuffix(txt, cls){ const s={ ok:'ok', off:'off', scan:'scan' }[cls]||'off'; const loading=cls==='off'; return `<div class="lineq"><div class="mstate ${s}"></div>${loading?`<span class="spinner"></span>`:''}<span>${txt}</span></div>`; }
 
@@ -1200,6 +1260,12 @@ const api = {
   botLogout:     ()       => apiSend("/bot/logout", null, { method:"POST" }),
   botStop:       ()       => apiSend("/bot/stop", null, { method:"POST" }),
   botStart:      ()       => apiSend("/bot/start", null, { method:"POST" }),
+  systemStats:   ()       => apiGet("/system/stats"),
+  logs:          (limit=200)=> apiGet("/logs", { limit }),
+  contacts:      ()       => apiGet("/contacts"),
+  rooms:         ()       => apiGet("/rooms"),
+  roomMembers:   (id)     => apiGet("/rooms/"+id+"/members"),
+  sendMessage:   (payload)=> apiSend("/send", null, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) }),
 };
 // 子页统一页头：标题 + 返回按钮
 function botPageHead(title, sub, backTo){
@@ -1837,6 +1903,280 @@ function renderBotRecall(){
   $("#bot-back").onclick = ()=>go('bot');
 }
 
+/* ---------- NapCat 能力页：系统监控 / 日志 / 好友 / 群聊 / 发消息 ---------- */
+
+const fmtBytes = n => { if(n==null) return "—"; const kb=n/1024, mb=kb/1024, gb=mb/1024; if(gb>=1) return gb.toFixed(2)+" GB"; if(mb>=1) return mb.toFixed(1)+" MB"; if(kb>=1) return kb.toFixed(1)+" KB"; return n+" B"; };
+const fmtSec = s => { if(s==null) return "—"; const d=Math.floor(s/86400), h=Math.floor(s%86400/3600), m=Math.floor(s%3600/60), sec=Math.floor(s%60); if(d) return `${d}天${h}时`; if(h) return `${h}时${m}分`; if(m) return `${m}分${sec}秒`; return `${sec}秒`; };
+const fmtNet = n => { if(n==null) return "—"; if(n<1024) return n.toFixed(0)+" B/s"; if(n<1048576) return (n/1024).toFixed(1)+" KB/s"; return (n/1048576).toFixed(2)+" MB/s"; };
+
+function renderBotSys(m){
+  $("#screen").innerHTML = botPageHead("系统监控","CPU · 内存 · 网络 · 负载 实时采样")
+    + `<div style="margin-top:16px">
+      <div class="sys-hero" id="sys-hero">${botSuffix("采样中…",'off')}</div>
+      <div class="sec-title" style="margin-top:16px">运行环境</div>
+      <div class="panel" id="sys-env">${botSuffix("加载中…",'off')}</div>
+    </div>`;
+
+  $("#bot-back").onclick = ()=>go('bot');
+  $("#bot-refer").onclick = ()=>renderBotSys(m);
+
+  const stat = (lab, ico, color) => `<div class="sys-stat" style="--ss-c:${color}">
+    <div class="ss-lab">${icon(ico,13,1.8)} ${lab}</div>
+    <div class="ss-val">—</div><div class="ss-sub">…</div></div>`;
+
+  const render = (d)=>{
+    const hero = $("#sys-hero");
+    if(!hero) return;
+    const cpu = d.cpuPercent;
+    const cpuV = cpu==null ? "—" : cpu.toFixed(1)+"%";
+    const mem = d.mem || {};
+    hero.innerHTML =
+      `<div class="sys-stat" style="--ss-c:var(--module-4)"><div class="ss-lab">${icon("activity",13,1.8)} CPU</div><div class="ss-val">${cpuV}</div><div class="ss-sub">${d.load?('负载 ' + d.load.map(x=>x.toFixed(2)).join(' / ')):'—'}</div></div>` +
+      `<div class="sys-stat" style="--ss-c:var(--module-1)"><div class="ss-lab">${icon("chart",13,1.8)} 内存</div><div class="ss-val">${mem.percent??'—'}%</div><div class="ss-sub">${fmtBytes(mem.used)} / ${fmtBytes(mem.total)}</div></div>` +
+      `<div class="sys-stat" style="--ss-c:var(--module-2)"><div class="ss-lab">${icon("link",13,1.8)} 网络</div><div class="ss-val">${fmtNet(d.net?.rxPerSec)}</div><div class="ss-sub">↓ 下行 · 上行 ${fmtNet(d.net?.txPerSec)}</div></div>` +
+      `<div class="sys-stat" style="--ss-c:var(--module-3)"><div class="ss-lab">${icon("clock",13,1.8)} 运行时长</div><div class="ss-val">${fmtSec(d.uptime)}</div><div class="ss-sub">进程 ${fmtSec(d.procUptime)}</div></div>`;
+
+    $("#sys-env").innerHTML = `<div class="kv-grid">
+      <div class="kv"><span class="k">主机名</span><span class="v">${esc(d.hostname||'—')}</span></div>
+      <div class="kv"><span class="k">系统</span><span class="v">${esc(d.platform||'—')} / ${esc(d.arch||'—')}</span></div>
+      <div class="kv"><span class="k">Node 版本</span><span class="v">${esc(d.nodeVersion||'—')}</span></div>
+      <div class="kv"><span class="k">进程 PID</span><span class="v">${d.pid??'—'}</span></div>
+      <div class="kv"><span class="k">RSS 常驻内存</span><span class="v">${fmtBytes(d.rss)}</span></div>
+      <div class="kv"><span class="k">堆内存已用</span><span class="v">${fmtBytes(d.heapUsed)}</span></div>
+    </div>`;
+  };
+
+  const refresh = async ()=>{
+    try{ render(await api.systemStats()); }
+    catch(e){ showError($("#sys-hero"), e, refresh); }
+  };
+  refresh();
+  pollTimer = setInterval(refresh, 2000);
+}
+
+function renderBotLogs(m){
+  $("#screen").innerHTML = botPageHead("运行日志","实时拦截 console 输出的环形日志")
+    + `<div style="margin-top:16px">
+      <div class="log-view">
+        <div class="lv-h"><div class="lv-t"><span class="lv-live"></span>实时日志<span class="stip" id="lv-count">0 条</span></div></div>
+        <div class="lv-body" id="lv-body">${botSuffix("加载中…",'off')}</div>
+      </div>
+    </div>`;
+
+  $("#bot-back").onclick = ()=>go('bot');
+  $("#bot-refer").onclick = ()=>renderBotLogs(m);
+
+  let failed = false;
+  const refresh = async ()=>{
+    try{
+      const list = await api.logs(300);
+      const body = $("#lv-body");
+      // 日志倒序返回，这里转成正序（老 → 新），阅读更自然
+      const asc = (list||[]).slice().reverse();
+      if(!asc.length){ body.innerHTML = `<div class="lv-empty">暂无日志，服务启动后会持续记录</div>`; $("#lv-count").textContent="0 条"; return; }
+      body.innerHTML = asc.map(l=>`<div class="lv-row"><span class="lv-ts">${fmtDateTime(l.ts)}</span>
+        <span class="lv-lv ${esc(l.level)}">${esc(l.level)}</span>
+        <span class="lv-msg">${esc(l.message)}</span></div>`).join("");
+      $("#lv-count").textContent = asc.length + " 条";
+      body.scrollTop = body.scrollHeight;
+    }catch(e){ if(!failed){ failed=true; showError($("#lv-body"), e, refresh); } }
+  };
+  refresh();
+  pollTimer = setInterval(refresh, 3000);
+}
+
+// 联系人 / 群成员共用的头像首字
+const firstChar = (name, alias) => (alias || name || "?").slice(0,1).toUpperCase();
+
+function renderBotContacts(m){
+  $("#screen").innerHTML = botPageHead("好友管理","联系人列表 · 备注 · 点击私聊")
+    + `<div style="margin-top:16px">
+      <input class="cnt-search" id="cnt-search" placeholder="搜索昵称或备注…"/>
+      <div class="cnt-list" id="cnt-list">${botSuffix("加载中…",'off')}</div>
+    </div>`;
+
+  $("#bot-back").onclick = ()=>go('bot');
+  $("#bot-refer").onclick = ()=>renderBotContacts(m);
+
+  let cache = [];
+  const paint = (kw)=>{
+    const el = $("#cnt-list");
+    const kwTrim = (kw||"").trim().toLowerCase();
+    const list = cache.filter(c => !kwTrim || (c.name||"").toLowerCase().includes(kwTrim) || (c.alias||"").toLowerCase().includes(kwTrim));
+    if(!list.length){ el.innerHTML = `<div class="empty"><span class="e">${icon("user",24)}</span><div>${cache.length ? "无匹配联系人" : "暂无联系人"}</div></div>`; return; }
+    el.innerHTML = list.map(c=>`<div class="cnt-row" data-id="${attr(c.id)}" data-name="${attr(c.alias||c.name||'')}">
+      <div class="cnt-ava">${esc(firstChar(c.name, c.alias))}</div>
+      <div class="cnt-body"><div class="cnt-name">${esc(c.alias ? c.name + ' · ' + c.alias : c.name)}</div>
+        <div class="cnt-alias">${c.alias ? '备注：'+esc(c.alias) : '未设置备注'}</div></div>
+      <span class="cnt-id">${esc(c.id)}</span>
+      <span class="cnt-act">${icon("msg",13,1.8)} 私聊</span></div>`).join("");
+    el.querySelectorAll(".cnt-row").forEach(row=>{ row.onclick = ()=>{ openSendTo(row.dataset.id, row.dataset.name, 'contact'); }; });
+  };
+
+  const refresh = async ()=>{
+    try{
+      cache = await api.contacts();
+      if(!Array.isArray(cache)) cache = [];
+      paint($("#cnt-search").value);
+    }catch(e){ showError($("#cnt-list"), e, refresh); }
+  };
+  $("#cnt-search").oninput = ()=>paint($("#cnt-search").value);
+  refresh();
+}
+
+function renderBotRooms(m){
+  $("#screen").innerHTML = botPageHead("群聊管理","群列表 · 成员 · 群发")
+    + `<div style="margin-top:16px">
+      <div class="cnt-list" id="rm-list">${botSuffix("加载中…",'off')}</div>
+    </div>`;
+
+  $("#bot-back").onclick = ()=>go('bot');
+  $("#bot-refer").onclick = ()=>renderBotRooms(m);
+
+  const refresh = async ()=>{
+    const el = $("#rm-list");
+    try{
+      const rooms = await api.rooms();
+      if(!Array.isArray(rooms) || !rooms.length){ el.innerHTML = `<div class="empty"><span class="e">${icon("msg",24)}</span><div>暂无群聊</div></div>`; return; }
+      el.innerHTML = rooms.map(r=>`<div class="cnt-row" data-id="${attr(r.id)}" data-topic="${attr(r.topic||'')}">
+        <div class="cnt-ava" style="background:color-mix(in oklab, var(--module-2) 14%, transparent);color:var(--module-2)">${icon("msg",18,1.8)}</div>
+        <div class="cnt-body"><div class="cnt-name">${esc(r.topic || '未命名群聊')}</div>
+          <div class="cnt-alias"><span class="tag mem">${r.memberCount??0} 成员</span></div></div>
+        <span class="cnt-id">${esc(r.id)}</span>
+        <span class="cnt-act">${icon("chevron",13,1.8)} 详情</span></div>`).join("");
+
+      el.querySelectorAll(".cnt-row").forEach(row=>{
+        row.onclick = ()=>showRoomDetail(row.dataset.id, row.dataset.topic);
+      });
+    }catch(e){ showError(el, e, refresh); }
+  };
+  refresh();
+
+  const showRoomDetail = async (roomId, topic)=>{
+    const overlay = document.createElement("div");
+    overlay.className = "overlay";
+    overlay.innerHTML = `<div class="modal" style="max-width:560px;height:70vh;display:flex;flex-direction:column">
+      <div class="grab"></div><h2>${esc(topic||'群成员')}</h2>
+      <div class="sub" style="margin-bottom:12px"><span class="tag mem">${icon("msg",12,1.8)} ${esc(roomId)}</span></div>
+      <div id="rm-members" style="overflow-y:auto;flex:1">${botSuffix("加载成员…",'off')}</div>
+      <div class="modal-actions"><button class="btn ghost" id="rm-close">关闭</button>
+        <button class="btn" id="rm-send">${icon("bolt",14,2)} 群发消息</button></div></div>`;
+    document.body.appendChild(overlay);
+    overlay.querySelector("#rm-close").onclick = ()=>overlay.remove();
+    overlay.onclick = e=>{ if(e.target===overlay) overlay.remove(); };
+    overlay.querySelector("#rm-send").onclick = ()=>{ overlay.remove(); openSendTo(roomId, topic, 'room'); };
+
+    const box = overlay.querySelector("#rm-members");
+    try{
+      const members = await api.roomMembers(roomId);
+      if(!Array.isArray(members) || !members.length){ box.innerHTML = `<div class="empty"><span class="e">${icon("user",24)}</span><div>暂无成员</div></div>`; return; }
+      box.innerHTML = members.map(c=>`<div class="cnt-row" style="cursor:default">
+        <div class="cnt-ava">${esc(firstChar(c.name, c.alias))}</div>
+        <div class="cnt-body"><div class="cnt-name">${esc(c.alias ? c.name + ' · ' + c.alias : c.name)}</div>
+          <div class="cnt-alias">${c.alias ? '备注：'+esc(c.alias) : '未设置备注'}</div></div>
+        <span class="cnt-id">${esc(c.id)}</span></div>`).join("");
+    }catch(e){ showError(box, e, ()=>showRoomDetail(roomId, topic)); }
+  };
+}
+
+function openSendTo(id, name, type){
+  // 从好友/群聊页直接跳转到「主动发消息」并预填目标
+  sessionStorage.setItem("send-target", JSON.stringify({ id, name, type }));
+  go('bot-send');
+}
+
+function renderBotSend(m){
+  $("#screen").innerHTML = botPageHead("主动发消息","私聊 / 群发 一键触达")
+    + `<div style="margin-top:16px">
+      <div class="send-form">
+        <div class="send-tabs" id="send-tabs">
+          <div class="send-tab active" data-type="contact">${icon("user",14,1.8)} 私聊好友</div>
+          <div class="send-tab" data-type="room">${icon("msg",14,1.8)} 群发消息</div>
+        </div>
+        <div class="send-field"><div class="lab">选择目标</div>
+          <div id="send-picker">${botSuffix("加载目标…",'off')}</div></div>
+        <div class="send-field"><div class="lab">消息内容</div>
+          <textarea id="send-text" placeholder="输入要发送的消息…"></textarea></div>
+        <div class="send-preview" id="send-preview" style="display:none"></div>
+        <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn ghost" id="send-clear">清空</button>
+          <button class="btn" id="send-go" disabled>${icon("bolt",15,2)} 发送</button>
+        </div>
+      </div>
+    </div>`;
+
+  $("#bot-back").onclick = ()=>go('bot');
+  $("#bot-refer").onclick = ()=>renderBotSend(m);
+
+  let curType = 'contact';
+  let selected = { id:"", name:"" };
+
+  const preset = (()=>{
+    try{ return JSON.parse(sessionStorage.getItem("send-target")||"null"); }catch{ return null; }
+  })();
+  if(preset && preset.id){ curType = preset.type === 'room' ? 'room' : 'contact'; selected = { id:preset.id, name:preset.name||"" }; }
+
+  const $tabs = $("#send-tabs");
+  const $picker = $("#send-picker");
+  const $text = $("#send-text");
+  const $preview = $("#send-preview");
+  const $go = $("#send-go");
+
+  const setTab = (type)=>{
+    curType = type;
+    $tabs.querySelectorAll(".send-tab").forEach(t=>t.classList.toggle("active", t.dataset.type===type));
+    selected = { id:"", name:"" };
+    loadPicker();
+  };
+  $tabs.querySelectorAll(".send-tab").forEach(t=>{ t.onclick = ()=>setTab(t.dataset.type); });
+
+  let cache = { contact:[], room:[] };
+  const loadPicker = async ()=>{
+    try{
+      const key = curType === 'contact' ? 'contact' : 'room';
+      if(!cache[key].length){
+        if(key === 'contact') cache.contact = await api.contacts();
+        else cache.room = await api.rooms();
+      }
+      const list = cache[key];
+      const prior = selected.id;
+      if(!list.length){ $picker.innerHTML = `<div class="empty" style="padding:20px"><div>暂无${key==='contact'?'联系人':'群聊'}</div></div>`; return; }
+      $picker.innerHTML = `<select id="send-select">` + list.map(x=>{
+        const label = key==='contact' ? (x.alias ? x.name+' · '+x.alias : x.name) : (x.topic||'未命名群聊');
+        return `<option value="${attr(x.id)}" ${x.id===prior?'selected':''}>${esc(label)}</option>`;
+      }).join("") + `</select>`;
+      const sel = $("#send-select");
+      const sync = ()=>{ const o = sel.options[sel.selectedIndex]; selected = o ? { id:o.value, name:o.textContent } : { id:"", name:"" }; renderPreview(); };
+      sel.onchange = sync;
+      sync();
+    }catch(e){ showError($picker, e, loadPicker); }
+  };
+
+  const renderPreview = ()=>{
+    const txt = $text.value;
+    if(selected.id && txt.trim()){ $preview.style.display=""; $preview.innerHTML = `将发送给 <b>${esc(selected.name||selected.id)}</b>（${curType==='contact'?'私聊':'群聊'}）：<br/>${esc(txt)}`; }
+    else $preview.style.display = "none";
+    $go.disabled = !(selected.id && txt.trim());
+  };
+  $text.oninput = renderPreview;
+  $("#send-clear").onclick = ()=>{ $text.value=""; renderPreview(); };
+
+  $go.onclick = async ()=>{
+    const text = $text.value.trim();
+    if(!selected.id || !text) return;
+    $go.disabled = true; $go.innerHTML = icon("refresh",15,2);
+    try{
+      const payload = curType==='contact' ? { contactId:selected.id, text } : { roomId:selected.id, text };
+      const res = await api.sendMessage(payload);
+      if(res && res.ok){ toast.success("发送成功"); $text.value=""; renderPreview(); }
+      else toast.error((res && res.error) || "发送失败");
+    }catch(e){ toast.error(e.message || "发送失败"); }
+    finally{ $go.disabled = false; $go.innerHTML = `${icon("bolt",15,2)} 发送`; renderPreview(); }
+  };
+
+  loadPicker();
+}
+
 function renderBot(view){
   const m = CONFIG.modules.find(x=>x.key==="bot");
   if(view==='usage') return renderBotUsage(m);
@@ -1846,6 +2186,11 @@ function renderBot(view){
   if(view==='mem')   return renderBotMem(m);
   if(view==='recall')return renderBotRecall(m);
   if(view==='config')return renderBotConfig(m);
+  if(view==='sys')   return renderBotSys(m);
+  if(view==='logs')  return renderBotLogs(m);
+  if(view==='contacts') return renderBotContacts(m);
+  if(view==='rooms') return renderBotRooms(m);
+  if(view==='send')  return renderBotSend(m);
   renderBotHome(m);
 }
 
@@ -2232,6 +2577,11 @@ function render(){
     mem:['记忆学习','长期记忆库'],
     recall:['向量召回','相关记忆 · 注入上下文'],
     config:['在线配置','提示词 · 模型 · 开关'],
+    sys:['系统监控','CPU · 内存 · 网络 · 负载'],
+    logs:['运行日志','实时拦截 console 输出'],
+    contacts:['好友管理','联系人 · 备注 · 私聊'],
+    rooms:['群聊管理','群列表 · 成员 · 群发'],
+    send:['主动发消息','私聊 / 群发 一键触达'],
   };
   const [t,s] = subTitles[botView] || ['微信机器人', CONFIG.slogan];
   $("#topTitle").firstChild.textContent = t;
@@ -2253,6 +2603,11 @@ function buildDrawer(){
     `<div class="ditem" data-go="bot-recall">${icon("target",20)}向量召回</div>`,
     `<div class="ditem" data-go="bot-msg">${icon("camera",20)}多类型消息</div>`,
     `<div class="ditem" data-go="bot-config">${icon("gear",20)}在线配置</div>`,
+    `<div class="ditem" data-go="bot-sys">${icon("activity",20)}系统监控</div>`,
+    `<div class="ditem" data-go="bot-logs">${icon("list",20)}运行日志</div>`,
+    `<div class="ditem" data-go="bot-contacts">${icon("user",20)}好友管理</div>`,
+    `<div class="ditem" data-go="bot-rooms">${icon("msg",20)}群聊管理</div>`,
+    `<div class="ditem" data-go="bot-send">${icon("bolt",20)}主动发消息</div>`,
   ];
   $("#drawerList").innerHTML=items.join("");
   $("#drawerList").querySelectorAll("[data-go]").forEach(el=>el.onclick=()=>go(el.dataset.go));

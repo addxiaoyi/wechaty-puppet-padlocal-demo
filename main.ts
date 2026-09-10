@@ -2,6 +2,7 @@ import { log } from 'wechaty'
 import { createBot } from './src/bot'
 import { startWebServer } from './src/web/server'
 import { createStatusHub } from './src/services/status'
+import { createBotController } from './src/services/bot-adapter'
 import { LOGPRE } from './src/handlers/message'
 
 const status = createStatusHub()
@@ -9,7 +10,8 @@ const status = createStatusHub()
 const bot = createBot(status)
 
 // WebUI 与机器人并行启动，WebUI 失败不阻断 bot 运行
-const server = startWebServer(status, bot)
+const controller = createBotController(bot)
+const server = startWebServer(status, controller)
 
 bot
   .start()
