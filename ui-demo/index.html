@@ -394,6 +394,10 @@
   .mstate.scan{ background:var(--module-3); box-shadow:0 0 0 3px color-mix(in oklab, var(--module-3) 32%, transparent); animation:bpulse 1.2s infinite; }
   @keyframes bpulse { 50% { opacity:.35 } }
   .bot-qr { width:118px; height:118px; border-radius:12px; margin:10px 0 2px; border:1px solid var(--border-input); }
+  .panel-err { border-color:color-mix(in oklab, var(--danger) 32%, transparent); background:color-mix(in oklab, var(--danger) 6%, var(--surface-card)); }
+  .err-head { display:flex; align-items:center; gap:7px; font-size:13px; font-weight:700; color:var(--danger); }
+  .err-body { margin-top:8px; font-size:12px; color:var(--text-secondary); line-height:1.6; }
+  .err-detail { margin-top:10px; font-size:10.5px; color:var(--text-tertiary); font-family:var(--mono,ui-monospace,Menlo,monospace); word-break:break-all; background:var(--surface-nested); border-radius:8px; padding:8px 10px; max-height:80px; overflow-y:auto; }
   .mr-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
   .mr-card { background:var(--surface-card); border:1px solid var(--border); backdrop-filter:blur(18px) saturate(1.1);
     -webkit-backdrop-filter:blur(18px) saturate(1.1); border-radius:var(--radius-card); padding:16px; box-shadow:0 12px 28px -18px oklab(0.1 0 0/.5); }
@@ -1368,7 +1372,21 @@ function renderBotHome(m){
         hero.parentNode.insertBefore(z, hero.nextSibling);
       } else { const img = qrZone.querySelector("img"); if(img) img.src = d.qrcodeUrl; }
     } else if(qrZone && d.state!=='scanning') qrZone.remove();
-    return d.state==='scanning';
+    // 兜底提示：Puppet 连接失败（如 PadLocal 无外网）时明示原因，而非一直停在「初始化中」
+    const errZone = $("#bot-err-zone");
+    if(d.error && d.state!=='scanning' && d.state!=='logged-in'){
+      if(!errZone){
+        const z = document.createElement("div");
+        z.id = "bot-err-zone";
+        z.innerHTML = `<div class="sec-title">登录异常</div><div class="panel panel-err" style="padding:16px">
+          <div class="err-head">${icon("alert",14,2)} 无法连接登录服务</div>
+          <div class="err-body">机器人 Puppet 未能建立连接，可能是网络不可达或服务端异常。请检查网络后重启服务。</div>
+          <div class="err-detail">${esc(d.error)}</div></div>`;
+        hero.parentNode.insertBefore(z, hero.nextSibling);
+      }
+    } else if(errZone) errZone.remove();
+    // scanning 或 error 时都持续轮询，以便二维码出现/错误恢复后自动更新
+    return d.state==='scanning' || (d.error && d.state!=='logged-in');
   };
 
   const refreshStatus = async ()=>{

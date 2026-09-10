@@ -85,6 +85,15 @@ export function createBot(status: StatusHub) {
 
     .on('error', (error) => {
       log.error(LOGPRE, `on error: ${error}`)
+      // Puppet 连接失败（如 PadLocal 无外网）会持续抛错，同步到 WebUI 兜底提示
+      const raw = String(error)
+      const isConnErr =
+        /no connection established|UNAVAILABLE|TLS|socket disconnected|ECONN|ETIMEDOUT|DEADLINE_EXCEEDED/i.test(
+          raw
+        )
+      if (isConnErr && status.getStatus().state !== 'logged-in') {
+        status.setError(raw.replace(/\s+/g, ' ').slice(0, 160))
+      }
     })
 
   return bot

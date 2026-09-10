@@ -7,6 +7,8 @@ export interface BotStatus {
   userName: string | null
   // 微信登录二维码（dataURL），扫码阶段有效
   qrcodeUrl: string | null
+  // Puppet 连接错误（如 PadLocal 无外网），供前端兜底提示
+  error: string | null
 }
 
 /**
@@ -17,11 +19,13 @@ export function createStatusHub(): {
   setConnected(userName: string): void
   setLoggedOut(): void
   asyncSetScan(qrcode: string): Promise<void>
+  setError(message: string): void
   getStatus(): BotStatus
 } {
   let state: BotState = 'idle'
   let userName: string | null = null
   let qrcodeUrl: string | null = null
+  let error: string | null = null
 
   async function asyncSetScan(qrcode: string): Promise<void> {
     // 网络可用时用本地渲染的二维码图片，避免依赖外部 CDN
@@ -35,6 +39,7 @@ export function createStatusHub(): {
     }
     state = 'scanning'
     userName = null
+    error = null
   }
 
   return {
@@ -42,6 +47,7 @@ export function createStatusHub(): {
       state = 'logged-in'
       userName = name
       qrcodeUrl = null
+      error = null
     },
     setLoggedOut(): void {
       state = 'logged-out'
@@ -49,8 +55,12 @@ export function createStatusHub(): {
       qrcodeUrl = null
     },
     asyncSetScan,
+    setError(message): void {
+      // 登录成功/扫码后会清除错误；仅在未登录时保留错误提示
+      error = message
+    },
     getStatus(): BotStatus {
-      return { state, userName, qrcodeUrl }
+      return { state, userName, qrcodeUrl, error }
     },
   }
 }
