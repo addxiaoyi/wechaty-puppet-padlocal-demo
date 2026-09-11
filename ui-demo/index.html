@@ -81,11 +81,9 @@
   body::before { content:""; position:fixed; inset:0; z-index:-2; pointer-events:none;
     background-image: var(--page-texture); background-size: cover; background-position: center; opacity:.5; }
 
-  /* -- restrained backdrop (flat deep tone, no animated blobs) -- */
-  .blob-field{position:fixed;inset:0;z-index:-3;overflow:hidden;pointer-events:none;
+  /* -- restrained backdrop: 纯色底，无动画 blob -- */
+  .blob-field{position:fixed;inset:0;z-index:-3;pointer-events:none;
     background:oklch(13% 0.015 245)}
-  .blob,.bg1,.bg2,.bg3{display:none}
-  @keyframes drift{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(2.5vmax,-2vmax,0) scale(1.05)}}
   .app { padding: 0 16px calc(var(--nav-h) + 26px); }
   svg { display: block; }
 
@@ -803,7 +801,7 @@
 </style>
 </head>
 <body>
-<div class="blob-field" aria-hidden="true"><div class="blob bg1"></div><div class="blob bg2"></div><div class="blob bg3"></div></div>
+<div class="blob-field" aria-hidden="true"></div>
 <div class="app">
   <div class="topbar">
     <button class="menu-btn" id="btn-menu"></button>
