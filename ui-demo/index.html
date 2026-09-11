@@ -2106,7 +2106,7 @@ function renderBotMem(){
   $("#mem-contact").addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); doSave(); } });
   $("#mem-content").addEventListener('keydown',(e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); doSave(); } });
   document.addEventListener('keydown',(e)=>{ if(e.ctrlKey && e.key==='s'){ e.preventDefault(); doSave(); } });
-  document.addEventListener('keydown',(e)=>{ if(e.ctrlKey && e.key==='d'){ e.preventDefault(); closeDrawer(); openDrawer(); } });
+  document.addEventListener('keydown',(e)=>{ if(e.ctrlKey && e.key==='d'){ e.preventDefault(); openDrawer(); } });
   // 输入变化时防抖启用保存按钮
   ["#mem-contact","#mem-content"].forEach(sel=>{
     $(sel).addEventListener('input',()=>{
@@ -3036,22 +3036,30 @@ function apiConfirm(title, desc, onOk, okText){
 
 /* ---------- router / nav ---------- */
 let botView = 'home';
+let drawerOpen = false;
+let scrollLock = false;
 // 页面级轮询句柄集中管理：离开页面即清，防止后台定时器泄漏
 let pollTimer = null;
 function stopPoll(){ if(pollTimer){ clearInterval(pollTimer); pollTimer=null; } }
+function lockScroll(){ scrollLock = true; document.body.style.overflow = 'hidden'; }
+function unlockScroll(){ scrollLock = false; document.body.style.overflow = ''; }
 function go(v){
   closeDrawer();
   stopPoll();  // 切页先停轮询，再重渲染
   if(typeof v==='string' && v.indexOf('bot-')===0) botView = v.slice(4);   // 能力卡 → 子页
   else if(v==='bot') botView = 'home';                                     // 底部机器人 → 首页
   syncDrawerActive();
+  syncNavActive();
   render();
   window.scrollTo({top:0});
 }
 function syncDrawerActive(){
-  // 桌面端侧边栏常驻，切换后同步当前页高亮（home 对应 data-go="bot"）
   const key = botView === 'home' ? 'bot' : ('bot-' + botView);
   $("#drawerList").querySelectorAll(".ditem").forEach(el=>el.classList.toggle("active", el.dataset.go === key));
+}
+function syncNavActive(){
+  const key = botView === 'home' ? 'bot' : ('bot-' + botView);
+  $("#nav").querySelectorAll(".n").forEach(n=>n.classList.toggle("active", n.dataset.nav === key || n.dataset.nav==='bot'));
 }
 function render(){
   // 工作台整体为微信机器人服务：子页标题随能力卡切换，首页显示模块标题
@@ -3072,7 +3080,7 @@ function render(){
   const [t,s] = subTitles[botView] || ['微信机器人', CONFIG.slogan];
   $("#topTitle").textContent = t;
   $("#crumb").title = s;
-  $("#nav").querySelector('[data-nav="bot"]').classList.add("active");
+  syncNavActive();
   renderBot(botView);
 }
 
@@ -3104,11 +3112,20 @@ function buildDrawer(){
   $("#drawerList").querySelectorAll("[data-go]").forEach(el=>el.onclick=()=>go(el.dataset.go));
   syncDrawerActive();
 }
+function isDesktop(){ return window.matchMedia('(min-width: 768px)').matches; }
 function openDrawer(){
+  if(isDesktop()) return;                 // 桌面侧边栏常驻，无需抽屉交互
   syncDrawerActive();
+  drawerOpen = true;
   $("#drawer").classList.add("show"); $("#scrim").classList.add("show");
+  lockScroll();
 }
-function closeDrawer(){ $("#drawer").classList.remove("show"); $("#scrim").classList.remove("show"); }
+function closeDrawer(){
+  if(!drawerOpen) return;
+  drawerOpen = false;
+  $("#drawer").classList.remove("show"); $("#scrim").classList.remove("show");
+  unlockScroll();
+}
 
 /* ---------- wire chrome ---------- */
 $("#btn-menu").onclick=openDrawer;
@@ -3117,8 +3134,31 @@ $("#scrim").onclick=closeDrawer;
 $("#nav").querySelectorAll(".n").forEach(n=>n.onclick=()=>{
   const t=n.dataset.nav;
   if(t==="drawer") openDrawer();
-  else go();   // bot / refresh 均重载机器人仪表盘
+  else if(t==="refresh"){ render(); toast.info('已刷新'); }
+  else go('bot');   // 机器人 → 首页
 });
+
+// Esc 关闭抽屉
+document.addEventListener('keydown',e=>{ if(e.key==='Escape' && drawerOpen) closeDrawer(); });
+
+// 移动端滑动手势：屏幕左缘右滑打开抽屉
+(function(){
+  if(!('ontouchstart' in window)) return;
+  let sx=0, sy=0; let tracking=false;
+  const edge = 28;
+  document.addEventListener('touchstart',e=>{
+    const t=e.touches[0];
+    if(drawerOpen || t.clientX > edge) return;
+    sx=t.clientX; sy=t.clientY; tracking=true;
+  }, { passive:true });
+  document.addEventListener('touchmove',e=>{
+    if(!tracking) return;
+    const t=e.touches[0];
+    const dx=t.clientX-sx, dy=t.clientY-sy;
+    if(dx>32 && Math.abs(dx) > Math.abs(dy)){ openDrawer(); tracking=false; }
+  }, { passive:true });
+  document.addEventListener('touchend',()=>{ tracking=false; }, { passive:true });
+})();
 
 /* ---------- avatar upload ---------- */
 $("#brandCam").innerHTML = icon("camera",18);
