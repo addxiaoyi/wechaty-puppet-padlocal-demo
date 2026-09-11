@@ -713,7 +713,7 @@
    响应式 · 桌面端（≥768px）—— 侧边栏布局，克制留白
    ============================================================ */
 @media (min-width: 768px) {
-  :root { --nav-h: 0px; --sidebar-w: 256px; }
+  :root { --nav-h: 0px; --sidebar-w: 240px; }
 
   body {
     max-width: none;
@@ -721,12 +721,14 @@
     background: oklch(12% 0.015 245);
   }
 
-  /* 顶部栏：内联在内容流，取消圆角胶囊，去掉汉堡菜单 */
+  /* 顶部栏：实色贴合页面底色，取消渐变与毛玻璃，随内容列同宽 */
   .topbar {
     position: sticky; top: 0; z-index: 20;
     padding: 20px 0 16px;
-    background: linear-gradient(180deg, oklch(12% 0.015 245) 72%, transparent);
-    max-width: 1100px; margin: 0 auto;
+    background: oklch(12% 0.015 245);
+    backdrop-filter: none;
+    max-width: none;
+    border-bottom: 1px solid var(--border);
   }
   .topbar .menu-btn { display: none; }
   .topbar .title { font-size: 19px; }
@@ -736,7 +738,7 @@
   /* 主内容：居中且留白，不再被底部导航挤压 */
   .app {
     padding: 0 32px 64px;
-    max-width: 1100px; margin: 0 auto;
+    max-width: 1280px; margin: 0 auto;
   }
 
   /* 抽屉 → 常驻左侧栏 */
