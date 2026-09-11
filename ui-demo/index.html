@@ -87,14 +87,19 @@
   .app { padding: 0 16px calc(var(--nav-h) + 26px); }
   svg { display: block; }
 
-  /* ---------- top bar ---------- */
+  /* ---------- top bar (NapCat 风格：扁平、面包屑标题 + 右侧操作区) ---------- */
   .topbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 12px;
-    padding: 14px 2px 12px;
-    background: oklch(13% 0.015 245); }
+    padding: 14px 2px 12px; min-height: 56px;
+    background: oklch(13% 0.015 245); border-bottom: 1px solid var(--border); }
   .topbar .menu-btn { width: 38px; height: 38px; border: none; border-radius: var(--radius-tile); background: var(--surface-card);
     box-shadow: var(--shadow-card); display: grid; place-items: center; cursor: pointer; color: var(--text); }
-  .topbar .title { font-size: 16px; font-weight: 700; letter-spacing: -.01em; flex: 1; line-height: 1.2; }
-  .topbar .title small { display:block; font-size: 11px; font-weight: 500; color: var(--text-secondary); letter-spacing:.02em; margin-top: 2px; }
+  .crumb { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
+  .crumb-root { display: none; color: var(--text-tertiary); font-weight: 500; font-size: 13px; }
+  .crumb-sep { display: none; width: 1px; height: 13px; background: var(--border-input); }
+  .crumb-leaf { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .topbar-right { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; }
+  .user-chip { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border); cursor: pointer;
+    background: var(--accent); color: var(--on-accent); font-size: 13px; font-weight: 800; display: grid; place-items: center; }
   .date-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary);
     background: var(--surface-card); border: 1px solid var(--border); border-radius: var(--radius-tile); padding: 6px 12px; box-shadow: var(--shadow-card); }
   .date-chip svg { color: var(--text-tertiary); }
@@ -260,17 +265,25 @@
   .nav { position: fixed; left: 50%; transform: translateX(-50%); bottom: 0; width: 100%; max-width: 480px; height: var(--nav-h);
     background: oklch(13% 0.015 245); border-top: 1px solid var(--border);
     display: grid; grid-template-columns: repeat(3,1fr); align-items: center; z-index: 30; padding-bottom: env(safe-area-inset-bottom); }
-  .nav .n { display:flex; flex-direction:column; align-items:center; gap: 4px; cursor:pointer; color: var(--text-tertiary); font-size: 10px; font-weight: 500; transition: color .18s; }
+  .nav .n { position: relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap: 4px; cursor:pointer;
+    color: var(--text-tertiary); font-size: 10px; font-weight: 500; transition: color .18s; height: 100%; user-select:none; }
+  .nav .n::before { content:""; position:absolute; top:0; left:50%; transform:translateX(-50%) scaleX(0); width:26px; height:2px;
+    border-radius:0 0 3px 3px; background: var(--accent); transition: transform .2s cubic-bezier(.2,.8,.25,1); }
   .nav .n.active { color: var(--accent); font-weight: 700; }
+  .nav .n.active::before { transform:translateX(-50%) scaleX(1); }
+  .nav .n:active { color: var(--text); }
 
   /* ---------- drawer ---------- */
   .scrim { position: fixed; inset: 0; background: color-mix(in srgb, var(--text) 42%, transparent); z-index: 40; opacity:0; pointer-events:none; transition: opacity .22s; }
   .scrim.show { opacity:1; pointer-events:auto; }
   .drawer { position: fixed; top:0; bottom:0; left:0; width: var(--sidebar-w); max-width: 82vw; z-index: 50; transform: translateX(-104%);
     transition: transform .26s cubic-bezier(.2,.8,.25,1); overflow-y:auto;
-    background: var(--drawer-bg); color:var(--drawer-text); }
+    background: var(--drawer-bg); color:var(--drawer-text); touch-action: pan-y; }
   .drawer.show { transform: translateX(0); }
-  .drawer .dh { padding: 26px 22px 18px; display:flex; align-items:center; gap: 12px; position: relative; }
+  .drawer.drawer-open { pointer-events:auto; }
+  .drawer:not(.show) { pointer-events:none; }
+  .drawer .dh { padding: 26px 22px 18px; display:flex; align-items:center; gap: 12px; position: sticky; top: 0; z-index: 5;
+    background: linear-gradient(to bottom, transparent 0%, var(--drawer-bg) 60%); backdrop-filter: blur(8px); }
   .drawer .dh .brand { position: relative; width: 44px; height: 44px; border-radius: var(--radius-tile); overflow: hidden; flex: 0 0 auto;
     background: var(--drawer-hover); box-shadow: 0 0 0 1px var(--drawer-active); cursor: pointer; }
   .drawer .dh .brand img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -282,11 +295,16 @@
   .drawer .dclose { position:absolute; top:18px; right:16px; width:32px;height:32px;border-radius:var(--radius-tile); border:none; cursor:pointer;
     background: var(--drawer-hover); color:var(--drawer-text); display:grid; place-items:center; }
   .drawer .dsep { height:1px; background: var(--drawer-active); margin: 6px 22px 8px; }
-  .drawer .ditem { display:flex; align-items:center; gap: 13px; padding: 12px 22px; cursor:pointer; font-size: 15px; font-weight: 500; color: color-mix(in srgb, var(--drawer-text) 82%, transparent); }
-  .drawer .ditem svg { color: var(--drawer-text-mute); }
+  .drawer .dgroup-label { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--drawer-text-mute); padding: 18px 22px 6px; }
+  .drawer .ditem { display:flex; align-items:center; gap: 13px; padding: 12px 22px; border-radius: var(--radius-tile); cursor:pointer; font-size: 15px; font-weight: 500; color: color-mix(in srgb, var(--drawer-text) 82%, transparent); margin: 0 10px; }
+  .drawer .ditem svg { color: var(--drawer-text-mute); flex-shrink: 0; width: 18px; height: 18px; }
+  .drawer .ditem:hover { background: var(--drawer-hover); }
   .drawer .ditem.active { background: var(--drawer-active); color:var(--drawer-text); font-weight: 700; }
   .drawer .ditem.active svg { color:var(--drawer-text); }
   .drawer .dfoot { font-size: 11px; opacity:.45; padding: 20px 22px 28px; }
+
+  /* 抽屉滑动手势遮罩（移动端） */
+  .scrim.drawer-gesture { opacity:0; cursor: ew-resize; }
 
   /* ---------- modal ---------- */
   .overlay { position: fixed; inset: 0; background: color-mix(in srgb, var(--text) 44%, transparent); z-index: 60;
@@ -724,13 +742,14 @@
   /* 顶部栏：实色贴合页面底色，取消渐变与毛玻璃，随内容列同宽 */
   .topbar {
     position: sticky; top: 0; z-index: 20;
-    padding: 16px 0 12px;
+    padding: 18px 0 12px;
     background: oklch(12% 0.015 245);
     border-bottom: 1px solid var(--border);
   }
   .topbar .menu-btn { display: none; }
-  .topbar .title { font-size: 19px; }
-  .topbar .title small { font-size: 12px; }
+  .crumb { font-size: 20px; gap: 10px; }
+  .crumb-root { display: inline; font-size: 14px; }
+  .crumb-sep { display: inline-block; }
   .date-chip { margin-left: auto; }
 
   /* 主内容：居中且留白，不再被底部导航挤压 */
@@ -749,9 +768,14 @@
   }
   .drawer .dclose { display: none; }
   .drawer .dh { padding: 28px 16px 18px; }
-  .drawer .ditem { padding: 11px 14px; font-size: 14px; border-radius: var(--radius-tile); margin: 2px 8px; }
+  .drawer .dgroup-label { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--drawer-text-mute); padding: 18px 22px 6px; }
+  .drawer .ditem { padding: 12px 22px; font-size: 15px; border-radius: var(--radius-tile); margin: 0 8px; display: flex; align-items: center; gap: 13px; cursor: pointer; }
   .drawer .ditem:hover { background: var(--drawer-hover); }
-  .drawer .dsep { margin: 8px 16px; }
+  .drawer .ditem.active { background: var(--drawer-active); color: var(--drawer-text); font-weight: 700; }
+  .drawer .ditem svg { flex-shrink: 0; width: 18px; height: 18px; stroke: var(--drawer-text-mute); }
+  .drawer .ditem.active svg { stroke: var(--drawer-text); }
+  .drawer .dsep { margin: 12px 16px; }
+  .drawer .dfoot { padding: 20px 16px 28px; }
 
   /* 遮罩：桌面不需要 */
   .scrim { display: none !important; }
@@ -789,9 +813,6 @@
 
   /* 发消息：双栏，表单 + 预览并列 */
   .send-hero { grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
-
-  /* 关键信息密度：卡片适当放宽内边距 */
-  .card, .panel, .quote { border-radius: var(--radius-card); }
 }
 
 /* 超宽屏：内容列随视口温和放大，仍保持可读宽度 */
@@ -805,8 +826,11 @@
 <div class="app">
   <div class="topbar">
     <button class="menu-btn" id="btn-menu"></button>
-    <div class="title" id="topTitle">我的工作台<small id="topSub">Personal Workbench</small></div>
-    <span class="date-chip" id="dateChip"></span>
+    <div class="crumb" id="crumb"><span class="crumb-root" id="crumbRoot">我的工作台</span><span class="crumb-sep"></span><span class="crumb-leaf" id="topTitle">微信机器人</span></div>
+    <div class="topbar-right">
+      <span class="date-chip" id="dateChip"></span>
+      <button class="user-chip" id="userChip" title="账户">机</button>
+    </div>
   </div>
   <div id="screen"></div>
 </div>
@@ -3046,8 +3070,8 @@ function render(){
     send:['主动发消息','私聊 / 群发 一键触达'],
   };
   const [t,s] = subTitles[botView] || ['微信机器人', CONFIG.slogan];
-  $("#topTitle").firstChild.textContent = t;
-  $("#topSub").textContent = s;
+  $("#topTitle").textContent = t;
+  $("#crumb").title = s;
   $("#nav").querySelector('[data-nav="bot"]').classList.add("active");
   renderBot(botView);
 }
@@ -3057,19 +3081,24 @@ function buildDrawer(){
   $("#drawerName").textContent=CONFIG.owner;
   $("#drawerSlogan").textContent=CONFIG.slogan;
   const items=[
+    `<div class="dgroup-label">总览</div>`,
     `<div class="ditem" data-go="bot">${icon("bolt",20)}微信机器人</div>`,
     `<div class="ditem" data-go="bot-usage">${icon("chart",20)}Token 用量</div>`,
-    `<div class="ditem" data-go="bot-ai">${icon("user",20)}AI 智能回复</div>`,
-    `<div class="ditem" data-go="bot-group">${icon("user",20)}群聊 @ 应答</div>`,
+    `<div class="dgroup-label">会话</div>`,
+    `<div class="ditem" data-go="bot-ai">${icon("user",20)}AI 回复</div>`,
+    `<div class="ditem" data-go="bot-group">${icon("user",20)}群聊 @</div>`,
+    `<div class="ditem" data-go="bot-msg">${icon("camera",20)}消息类型</div>`,
+    `<div class="ditem" data-go="bot-send">${icon("bolt",20)}主动发消息</div>`,
+    `<div class="dgroup-label">记忆</div>`,
     `<div class="ditem" data-go="bot-mem">${icon("leaf",20)}记忆学习</div>`,
     `<div class="ditem" data-go="bot-recall">${icon("target",20)}向量召回</div>`,
-    `<div class="ditem" data-go="bot-msg">${icon("camera",20)}多类型消息</div>`,
-    `<div class="ditem" data-go="bot-config">${icon("gear",20)}在线配置</div>`,
-    `<div class="ditem" data-go="bot-sys">${icon("activity",20)}系统监控</div>`,
-    `<div class="ditem" data-go="bot-logs">${icon("list",20)}运行日志</div>`,
-    `<div class="ditem" data-go="bot-contacts">${icon("user",20)}好友管理</div>`,
-    `<div class="ditem" data-go="bot-rooms">${icon("msg",20)}群聊管理</div>`,
-    `<div class="ditem" data-go="bot-send">${icon("bolt",20)}主动发消息</div>`,
+    `<div class="dgroup-label">系统</div>`,
+    `<div class="ditem" data-go="bot-config">${icon("gear",20)}配置</div>`,
+    `<div class="ditem" data-go="bot-sys">${icon("activity",20)}监控</div>`,
+    `<div class="ditem" data-go="bot-logs">${icon("list",20)}日志</div>`,
+    `<div class="dgroup-label">资源</div>`,
+    `<div class="ditem" data-go="bot-contacts">${icon("user",20)}好友</div>`,
+    `<div class="ditem" data-go="bot-rooms">${icon("msg",20)}群聊</div>`,
   ];
   $("#drawerList").innerHTML=items.join("");
   $("#drawerList").querySelectorAll("[data-go]").forEach(el=>el.onclick=()=>go(el.dataset.go));
@@ -3094,12 +3123,20 @@ $("#nav").querySelectorAll(".n").forEach(n=>n.onclick=()=>{
 /* ---------- avatar upload ---------- */
 $("#brandCam").innerHTML = icon("camera",18);
 if(data.__avatar) $("#brandImg").src = data.__avatar;
+function syncUserChip(){ const uc=$("#userChip"); const cur=data.__avatar;
+  uc.textContent = cur ? "" : CONFIG.brand;
+  uc.style.backgroundImage = cur ? `url(${cur})` : "";
+  uc.style.backgroundSize="cover"; uc.style.backgroundPosition="center";
+  uc.style.backgroundRepeat="no-repeat";
+}
+syncUserChip();
+$("#userChip").onclick = openDrawer;
 $("#drawerBrand").onclick = () => $("#avatarInput").click();
 $("#avatarInput").onchange = e => {
   const f = e.target.files && e.target.files[0];
   if(!f) return;
   const reader = new FileReader();
-  reader.onload = () => { data.__avatar = reader.result; $("#brandImg").src = reader.result; store.save(); };
+  reader.onload = () => { data.__avatar = reader.result; $("#brandImg").src = reader.result; store.save(); syncUserChip(); };
   reader.readAsDataURL(f);
   e.target.value = "";
 };
