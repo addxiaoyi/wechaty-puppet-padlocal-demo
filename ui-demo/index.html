@@ -1297,11 +1297,78 @@ const api = {
   contacts:      ()       => apiGet("/contacts"),
   rooms:         ()       => apiGet("/rooms"),
   roomMembers:   (id)     => apiGet("/rooms/"+id+"/members"),
-  sendMessage:   (payload)=> apiSend("/send", null, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) }),
-  setAlias:      (id, alias)=> apiSend("/contacts/"+id+"/alias", null, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ alias }) }),
-  setTopic:      (id, topic)=> apiSend("/rooms/"+id+"/topic", null, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ topic }) }),
+  sendMessage:   async (payload)=> { try { return await apiSend("/send", null, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) }); } catch(e){ if(isBotUnavailable(e)) return sendDemo(); throw e; } },
+  setAlias:      async (id, alias)=> { try { return await apiSend("/contacts/"+id+"/alias", null, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ alias }) }); } catch(e){ if(isBotUnavailable(e)) return saveAliasDemo(id, alias); throw e; } },
+  setTopic:      async (id, topic)=> { try { return await apiSend("/rooms/"+id+"/topic", null, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ topic }) }); } catch(e){ if(isBotUnavailable(e)) return saveTopicDemo(id, topic); throw e; } },
   clearUsage:    ()       => apiSend("/usage", null, { method:"DELETE" }),
 };
+
+/* ---------- demo 兜底：无机器人实例时提供可演示数据与本地模拟 ---------- */
+// 后端 WebUI-only 模式下 /contacts /rooms /send 等接口会返回「无机器人实例」，
+// 这里用 mock 数据替换，保证好友/群聊/发消息页在任意环境都能看到按钮并完整体验交互。
+const isBotUnavailable = (err) => {
+  const msg = String(err && (err.message || err) || "");
+  return /无机器人实例|WebUI-only|webui-only/.test(msg);
+};
+
+let demoContacts = null;
+let demoRooms = null;
+const demoMembersOf = {};   // roomId -> [{id,name,alias}]
+
+const ensureDemoData = () => {
+  if (!demoContacts) {
+    demoContacts = [
+      { id: "wxid_demo_amy",    name: "Amy",    alias: "产品经理 Amy" },
+      { id: "wxid_demo_bob",    name: "Bob",    alias: "" },
+      { id: "wxid_demo_carol",  name: "Carol",  alias: "运营 Carol" },
+      { id: "wxid_demo_david",  name: "David",  alias: "" },
+      { id: "wxid_demo_emma",   name: "Emma",   alias: "设计师 Emma" },
+    ];
+  }
+  if (!demoRooms) {
+    demoRooms = [
+      { id: "room_demo_team",   topic: "飞书同步测试群", memberCount: 5 },
+      { id: "room_demo_dev",    topic: "后端研发群",     memberCount: 8 },
+      { id: "room_demo_ops",    topic: "运维值班群",     memberCount: 3 },
+    ];
+  }
+  const amy = demoContacts[0], bob = demoContacts[1], carol = demoContacts[2], david = demoContacts[3], emma = demoContacts[4];
+  demoMembersOf["room_demo_team"] = [amy, bob, carol, david, emma];
+  demoMembersOf["room_demo_dev"]  = [bob, david, { id:"wxid_demo_frank", name:"Frank", alias:"" }, { id:"wxid_demo_grace", name:"Grace", alias:"测试 Grace" }];
+  demoMembersOf["room_demo_ops"]  = [carol, { id:"wxid_demo_henry", name:"Henry", alias:"" }, { id:"wxid_demo_iris", name:"Iris", alias:"值班长 Iris" }];
+};
+
+// 真实优先，探测到「无机器人实例」时回退 mock；其它错误继续上抛交给页面兜底
+async function loadContacts(){
+  try { return await api.contacts(); }
+  catch (e) { if (isBotUnavailable(e)) { ensureDemoData(); return demoContacts.slice(); } throw e; }
+}
+async function loadRooms(){
+  try { return await api.rooms(); }
+  catch (e) { if (isBotUnavailable(e)) { ensureDemoData(); return demoRooms.slice(); } throw e; }
+}
+async function loadMembers(roomId){
+  try { return await api.roomMembers(roomId); }
+  catch (e) { if (isBotUnavailable(e)) { ensureDemoData(); return (demoMembersOf[roomId] || []).slice(); } throw e; }
+}
+
+// 无机器人实例下的本地写模拟，统一返回后端同款 {ok:true} 形状
+const saveAliasDemo = (id, alias) => {
+  ensureDemoData();
+  const c = demoContacts.find(x => x.id === id);
+  if (!c) return { ok:false, error:"未找到该联系人" };
+  c.alias = alias;
+  return { ok:true };
+};
+const saveTopicDemo = (id, topic) => {
+  ensureDemoData();
+  const r = demoRooms.find(x => x.id === id);
+  if (!r) return { ok:false, error:"未找到该群聊" };
+  r.topic = topic;
+  return { ok:true };
+};
+const sendDemo = () => ({ ok:true });
+
 // 子页统一页头：标题 + 返回按钮
 function botPageHead(title, sub, backTo){
   return `<div class="greet"><div><h1>${title}</h1><p>${sub}</p></div>
@@ -2314,7 +2381,7 @@ function renderBotContacts(m){
 
   const refresh = async ()=>{
     try{
-      cache = await api.contacts();
+      cache = await loadContacts();
       if(!Array.isArray(cache)) cache = [];
       paint($("#cnt-search").value);
     }catch(e){ showError($("#cnt-list"), e, refresh); }
@@ -2334,7 +2401,7 @@ function renderBotRooms(m){
   const refresh = async ()=>{
     const el = $("#rm-list");
     try{
-      const rooms = await api.rooms();
+      const rooms = await loadRooms();
       if(!Array.isArray(rooms) || !rooms.length){ el.innerHTML = `<div class="empty"><span class="e">${icon("msg",24)}</span><div>暂无群聊</div></div>`; return; }
       el.innerHTML = rooms.map(r=>`<div class="cnt-row" data-id="${attr(r.id)}" data-topic="${attr(r.topic||'')}">
         <div class="cnt-ava" style="background:color-mix(in oklab, var(--module-2) 14%, transparent);color:var(--module-2)">${icon("msg",18,1.8)}</div>
@@ -2411,7 +2478,7 @@ function renderBotRooms(m){
     overlay.querySelector("#rm-search").oninput = ()=>{ clearTimeout(dbTimer); dbTimer = setTimeout(()=>paintMembers(overlay.querySelector("#rm-search").value), 200); };
 
     try{
-      members = await api.roomMembers(roomId);
+      members = await loadMembers(roomId);
       if(!Array.isArray(members)) members = [];
       paintMembers("");
     }catch(e){ showError(box, e, ()=>showRoomDetail(roomId, topic)); }
@@ -2476,8 +2543,8 @@ function renderBotSend(m){
     try{
       const key = curType === 'contact' ? 'contact' : 'room';
       if(!cache[key].length){
-        if(key === 'contact') cache.contact = await api.contacts();
-        else cache.room = await api.rooms();
+        if(key === 'contact') cache.contact = await loadContacts();
+        else cache.room = await loadRooms();
       }
       const list = cache[key];
       const prior = selected.id;
