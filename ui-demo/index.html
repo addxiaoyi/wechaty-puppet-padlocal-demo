@@ -3058,8 +3058,8 @@ function syncDrawerActive(){
   $("#drawerList").querySelectorAll(".ditem").forEach(el=>el.classList.toggle("active", el.dataset.go === key));
 }
 function syncNavActive(){
-  const key = botView === 'home' ? 'bot' : ('bot-' + botView);
-  $("#nav").querySelectorAll(".n").forEach(n=>n.classList.toggle("active", n.dataset.nav === key || n.dataset.nav==='bot'));
+  // 工作台以机器人为主：底部导航固定高亮“机器人”，菜单通过抽屉管理
+  $("#nav").querySelectorAll(".n").forEach(n=>n.classList.toggle("active", n.dataset.nav === 'bot'));
 }
 function render(){
   // 工作台整体为微信机器人服务：子页标题随能力卡切换，首页显示模块标题
@@ -3189,7 +3189,7 @@ function attr(s){ return esc(s).replace(/"/g,'&quot;'); }
 const KBD_SHORTCUTS = [
   { keys: ['Ctrl','S'], desc: '保存记忆' },
   { keys: ['Ctrl','R'], desc: '刷新当前页' },
-  { keys: ['Ctrl','D'], desc: '打开/收起抽屉' },
+  { keys: ['Ctrl','D'], desc: '打开抽屉' },
   { keys: ['?'], desc: '显示/隐藏本提示' },
   { keys: ['Esc'], desc: '关闭浮层' },
 ];
