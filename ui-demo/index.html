@@ -708,6 +708,86 @@
 .send-tab.active { background:color-mix(in oklab, var(--accent) 16%, transparent); color:var(--accent); border-color:color-mix(in oklab, var(--accent) 40%, transparent); }
 .send-preview { font-size:12px; color:var(--text-secondary); background:var(--surface-nested); border-radius:var(--radius-tile); padding:10px 12px; margin-top:8px; line-height:1.6; word-break:break-all; }
 .send-count { font-size:10.5px; color:var(--text-tertiary); text-align:right; margin-top:4px; font-variant-numeric:tabular-nums; }
+
+/* ============================================================
+   响应式 · 桌面端（≥768px）—— 侧边栏布局，克制留白
+   ============================================================ */
+@media (min-width: 768px) {
+  :root { --nav-h: 0px; --sidebar-w: 256px; }
+
+  body {
+    max-width: none;
+    padding-left: var(--sidebar-w);
+    background: oklch(12% 0.015 245);
+  }
+
+  /* 顶部栏：内联在内容流，取消圆角胶囊，去掉汉堡菜单 */
+  .topbar {
+    position: sticky; top: 0; z-index: 20;
+    padding: 20px 0 16px;
+    background: linear-gradient(180deg, oklch(12% 0.015 245) 72%, transparent);
+    max-width: 1100px; margin: 0 auto;
+  }
+  .topbar .menu-btn { display: none; }
+  .topbar .title { font-size: 19px; }
+  .topbar .title small { font-size: 12px; }
+  .date-chip { margin-left: auto; }
+
+  /* 主内容：居中且留白，不再被底部导航挤压 */
+  .app {
+    padding: 0 32px 64px;
+    max-width: 1100px; margin: 0 auto;
+  }
+
+  /* 抽屉 → 常驻左侧栏 */
+  .drawer {
+    position: fixed; top: 0; bottom: 0; left: 0; z-index: 40;
+    width: var(--sidebar-w); max-width: none;
+    transform: none; /* 永久展开，忽略 .show */
+    border-right: 1px solid var(--border);
+    background: oklch(14% 0.018 240);
+  }
+  .drawer .dclose { display: none; }
+  .drawer .dh { padding: 30px 22px 20px; }
+  .drawer .ditem { padding: 11px 18px; font-size: 14px; border-radius: var(--radius-tile); margin: 2px 12px; }
+  .drawer .ditem:hover { background: var(--drawer-hover); }
+  .drawer .dsep { margin: 8px 22px; }
+
+  /* 遮罩：桌面不需要 */
+  .scrim { display: none !important; }
+
+  /* 底部导航：桌面隐藏（由侧边栏接管） */
+  .nav { display: none; }
+
+  /* 弹层：从底部抽屉改为居中对话框 */
+  .overlay { align-items: center; padding: 24px; }
+  .modal {
+    border-radius: var(--radius-sheet);
+    padding: 24px 24px max(24px, env(safe-area-inset-bottom));
+    width: 100%; max-width: 520px;
+    box-shadow: var(--shadow-overlay);
+  }
+  .sheet-mask { align-items: center; padding: 24px; }
+  .sheet {
+    border-radius: var(--radius-sheet);
+    max-width: 640px;
+  }
+
+  /* 看板栅格：从 4 列窄屏 → 桌面更多列 / 更宽间距 */
+  .dash-stats { grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .sys-hero { grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .rings { grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .rs-grid { grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .quick-grid { grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .mod-summary { grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .mr-grid { grid-template-columns: repeat(4, 1fr); gap: 14px; }
+
+  /* 发消息：双栏，表单 + 预览并列 */
+  .send-hero { grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+
+  /* 关键信息密度：卡片适当放宽内边距 */
+  .card, .panel, .quote { border-radius: var(--radius-card); }
+}
 </style>
 </head>
 <body>
@@ -2930,8 +3010,14 @@ function go(v){
   stopPoll();  // 切页先停轮询，再重渲染
   if(typeof v==='string' && v.indexOf('bot-')===0) botView = v.slice(4);   // 能力卡 → 子页
   else if(v==='bot') botView = 'home';                                     // 底部机器人 → 首页
+  syncDrawerActive();
   render();
   window.scrollTo({top:0});
+}
+function syncDrawerActive(){
+  // 桌面端侧边栏常驻，切换后同步当前页高亮（home 对应 data-go="bot"）
+  const key = botView === 'home' ? 'bot' : ('bot-' + botView);
+  $("#drawerList").querySelectorAll(".ditem").forEach(el=>el.classList.toggle("active", el.dataset.go === key));
 }
 function render(){
   // 工作台整体为微信机器人服务：子页标题随能力卡切换，首页显示模块标题
@@ -2977,9 +3063,10 @@ function buildDrawer(){
   ];
   $("#drawerList").innerHTML=items.join("");
   $("#drawerList").querySelectorAll("[data-go]").forEach(el=>el.onclick=()=>go(el.dataset.go));
+  syncDrawerActive();
 }
 function openDrawer(){
-  $("#drawerList").querySelectorAll(".ditem").forEach(el=>el.classList.toggle("active", el.dataset.go===('bot-'+botView)));
+  syncDrawerActive();
   $("#drawer").classList.add("show"); $("#scrim").classList.add("show");
 }
 function closeDrawer(){ $("#drawer").classList.remove("show"); $("#scrim").classList.remove("show"); }
