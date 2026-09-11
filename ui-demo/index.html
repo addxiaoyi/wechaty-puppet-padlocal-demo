@@ -12,33 +12,33 @@
   :root {
     /* ---- 深空玻璃拟态 · 墨色打底，霓虹青+暖金勾勒，专业机器人看板 ---- */
     --page-bg: transparent;              /* 页面底色交给 .blob-field 承载 */
-    --surface-card: color-mix(in oklab, oklch(20% 0.03 240) 74%, transparent);  /* 磨砂玻璃卡片 */
-    --surface-nested: color-mix(in oklab, oklch(24% 0.035 240) 58%, transparent); /* 嵌套区更深层玻璃 */
+    --surface-card: oklch(20% 0.02 240);        /* 卡片：实色暗面，靠明度分层 */
+    --surface-nested: oklch(23% 0.02 240);      /* 嵌套区：略浅一层 */
 
     /* ---- 边框 ---- */
-    --border: rgba(255,255,255,.10);
-    --border-input: oklch(40% 0.03 240);
+    --border: oklab(0.9 0 0/.08);
+    --border-input: oklch(38% 0.02 240);
 
     /* ---- 文本层级（冷灰蓝调，保证 AA 对比） ---- */
     --text: oklch(93% 0.01 230);
     --text-secondary: oklch(72% 0.02 230);
     --text-tertiary: oklch(58% 0.02 235);
 
-    /* ---- 主色（霓虹青） ---- */
-    --accent: oklch(72% 0.16 190);
-    --accent-muted: oklch(30% 0.05 190);
-    --on-accent: oklch(16% 0.03 240);
+    /* ---- 主色（单一克制青，弱饱和） ---- */
+    --accent: oklch(70% 0.09 210);
+    --accent-muted: oklch(28% 0.04 210);
+    --on-accent: oklch(14% 0.02 240);
 
-    /* ---- 模块色（光谱层次：青/蓝/暖金/洋红/紫） ---- */
-    --module-1: oklch(74% 0.15 170);     /* 青 — 完成/在线 */
-    --module-2: oklch(66% 0.14 250);     /* 蓝 — 专注/群聊 */
-    --module-3: oklch(76% 0.13 78);      /* 暖金 — 用量/强调 */
-    --module-4: oklch(70% 0.17 20);      /* 洋红 — 记忆 */
-    --module-5: oklch(70% 0.13 300);     /* 紫 — 召回/向量 */
+    /* ---- 模块色（收敛为同族冷色，低饱和，仅表征差异不做霓虹） ---- */
+    --module-1: oklch(68% 0.08 180);     /* 在线/完成 */
+    --module-2: oklch(66% 0.08 235);     /* 专注/群聊 */
+    --module-3: oklch(72% 0.06 95);      /* 用量/强调（弱暖） */
+    --module-4: oklch(66% 0.09 30);      /* 记忆（弱洋红） */
+    --module-5: oklch(68% 0.09 300);     /* 召回/向量（弱紫） */
 
     /* ---- 危险色 ---- */
-    --danger: oklch(68% 0.18 25);
-    --danger-muted: oklch(28% 0.06 25);
+    --danger: oklch(64% 0.14 25);
+    --danger-muted: oklch(26% 0.05 25);
 
     /* ---- 抽屉（同色系深空） ---- */
     --drawer-bg: oklch(15% 0.025 240);
@@ -52,15 +52,15 @@
     --greet-image: none;
     --page-texture: none;
 
-    /* ---- 圆角 ---- */
-    --radius-control: 9px;
-    --radius-tile: 13px;
-    --radius-card: 20px;
-    --radius-sheet: 24px;
+    /* ---- 圆角（收敛，硬朗克制） ---- */
+    --radius-control: 7px;
+    --radius-tile: 10px;
+    --radius-card: 14px;
+    --radius-sheet: 16px;
 
-    /* ---- 阴影（深色环境用更通透的黑影） ---- */
-    --shadow-card: 0 1px 0 oklab(0.8 0 0/.04) inset, 0 12px 32px -18px oklab(0.1 0 0/.5);
-    --shadow-overlay: 0 20px 50px -20px oklab(0.1 0 0/.6);
+    /* ---- 阴影（极轻，仅作层级，不做体积感） ---- */
+    --shadow-card: 0 1px 2px oklab(0 0 0/.24);
+    --shadow-overlay: 0 12px 32px -16px oklab(0 0 0/.5);
 
     /* ---- 字体与布局 ---- */
     --font: "Instrument Sans", -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
@@ -80,25 +80,18 @@
   body::before { content:""; position:fixed; inset:0; z-index:-2; pointer-events:none;
     background-image: var(--page-texture); background-size: cover; background-position: center; opacity:.5; }
 
-  /* -- fluid glass backdrop (deep space gradient + slow aurora blobs) -- */
+  /* -- restrained backdrop (flat deep tone, no animated blobs) -- */
   .blob-field{position:fixed;inset:0;z-index:-3;overflow:hidden;pointer-events:none;
-    background:linear-gradient(180deg,oklch(14% 0.02 245) 0%,oklch(10% 0.03 250) 100%)}
-  .blob{position:absolute;border-radius:50%;filter:blur(76px);mix-blend-mode:screen;animation:drift 22s ease-in-out infinite alternate}
-  .bg1{width:140vmax;height:140vmax;left:-46vmax;top:-52vmax;background:radial-gradient(circle at 34% 30%,oklch(30% 0.08 190),transparent 66%)}
-  .bg2{width:120vmax;height:120vmax;right:-44vmax;top:4vmax;background:radial-gradient(circle at 60% 40%,oklch(28% 0.09 270),transparent 66%);animation-duration:28s}
-  .bg3{width:100vmax;height:100vmax;left:-30vmax;bottom:-48vmax;background:radial-gradient(circle at 50% 50%,oklch(26% 0.07 320),transparent 64%);animation-duration:34s}
+    background:oklch(13% 0.015 245)}
+  .blob,.bg1,.bg2,.bg3{display:none}
   @keyframes drift{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(2.5vmax,-2vmax,0) scale(1.05)}}
-
-  /* frosted glass surfaces */
-  .card,.panel,.mini,.qbtn,.pin,.rec,.quote,.mod-summary .mini,.pin-empty,select,input,textarea,button{
-    backdrop-filter:blur(20px) saturate(1.35);-webkit-backdrop-filter:blur(20px) saturate(1.35)}
   .app { padding: 0 16px calc(var(--nav-h) + 26px); }
   svg { display: block; }
 
   /* ---------- top bar ---------- */
   .topbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 12px;
     padding: 14px 2px 12px; backdrop-filter: blur(12px);
-    background: linear-gradient(180deg, color-mix(in srgb, oklch(14% 0.02 245) 88%, transparent), color-mix(in srgb, oklch(12% 0.02 245) 46%, transparent)); }
+    background: oklch(13% 0.015 245); }
   .topbar .menu-btn { width: 38px; height: 38px; border: none; border-radius: var(--radius-tile); background: var(--surface-card);
     box-shadow: var(--shadow-card); display: grid; place-items: center; cursor: pointer; color: var(--text); }
   .topbar .title { font-size: 16px; font-weight: 700; letter-spacing: -.01em; flex: 1; line-height: 1.2; }
@@ -117,10 +110,7 @@
   /* ---------- greeting ---------- */
   .greet { position: relative; overflow: hidden; margin-top: 10px; padding: 22px 20px 24px; border-radius: var(--radius-card);
     border: 1px solid var(--border); box-shadow: var(--shadow-card); min-height: 132px;
-    background:
-      radial-gradient(120% 140% at 88% -10%, color-mix(in oklab, var(--module-3) 22%, transparent), transparent 55%),
-      radial-gradient(100% 120% at -10% 110%, color-mix(in oklab, var(--module-2) 20%, transparent), transparent 55%),
-      var(--surface-nested);
+    background: var(--surface-nested);
   }
   .greet > * { position: relative; z-index: 1; }
   .greet h1 { font-size: 26px; font-weight: 800; letter-spacing: -.03em; }
@@ -270,7 +260,7 @@
 
   /* ---------- bottom nav ---------- */
   .nav { position: fixed; left: 50%; transform: translateX(-50%); bottom: 0; width: 100%; max-width: 480px; height: var(--nav-h);
-    background: color-mix(in oklab, oklch(15% 0.02 245) 88%, transparent); backdrop-filter: blur(16px); border-top: 1px solid var(--border);
+    background: oklch(13% 0.015 245); border-top: 1px solid var(--border);
     display: grid; grid-template-columns: repeat(3,1fr); align-items: center; z-index: 30; padding-bottom: env(safe-area-inset-bottom); }
   .nav .n { display:flex; flex-direction:column; align-items:center; gap: 4px; cursor:pointer; color: var(--text-tertiary); font-size: 10px; font-weight: 500; transition: color .18s; }
   .nav .n.active { color: var(--accent); font-weight: 700; }
@@ -389,9 +379,9 @@
   .lineq { display:flex; align-items:center; gap:8px; color:var(--text-secondary); font-size:14px; }
   .stip { font-weight:500; font-size:11px; color:var(--text-tertiary); margin-left:6px; }
   .mstate { width:9px; height:9px; border-radius:50%; flex:0 0 auto; }
-  .mstate.ok  { background:var(--module-1); box-shadow:0 0 0 3px color-mix(in oklab, var(--module-1) 30%, transparent); }
-  .mstate.off { background:oklch(68% 0.18 25); box-shadow:0 0 0 3px color-mix(in oklab, oklch(68% 0.18 25) 28%, transparent); }
-  .mstate.scan{ background:var(--module-3); box-shadow:0 0 0 3px color-mix(in oklab, var(--module-3) 32%, transparent); animation:bpulse 1.2s infinite; }
+  .mstate.ok  { background:var(--module-1); }
+  .mstate.off { background:oklch(66% 0.12 25); }
+  .mstate.scan{ background:var(--module-3); animation:bpulse 1.2s infinite; }
   @keyframes bpulse { 50% { opacity:.35 } }
   .bot-qr { width:118px; height:118px; border-radius:12px; margin:10px 0 2px; border:1px solid var(--border-input); }
   .panel-err { border-color:color-mix(in oklab, var(--danger) 32%, transparent); background:color-mix(in oklab, var(--danger) 6%, var(--surface-card)); }
@@ -399,8 +389,8 @@
   .err-body { margin-top:8px; font-size:12px; color:var(--text-secondary); line-height:1.6; }
   .err-detail { margin-top:10px; font-size:10.5px; color:var(--text-tertiary); font-family:var(--mono,ui-monospace,Menlo,monospace); word-break:break-all; background:var(--surface-nested); border-radius:8px; padding:8px 10px; max-height:80px; overflow-y:auto; }
   .mr-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
-  .mr-card { background:var(--surface-card); border:1px solid var(--border); backdrop-filter:blur(18px) saturate(1.1);
-    -webkit-backdrop-filter:blur(18px) saturate(1.1); border-radius:var(--radius-card); padding:16px; box-shadow:0 12px 28px -18px oklab(0.1 0 0/.5); }
+  .mr-card { background:var(--surface-card); border:1px solid var(--border);
+    border-radius:var(--radius-card); padding:16px; box-shadow:var(--shadow-card); }
   .mr-card .lab { font-size:12px; color:var(--text-tertiary); }
   .mr-card .val { font-size:24px; font-weight:700; margin-top:6px; color:var(--text); font-family:var(--font); }
   .mr-card .cap { width:34px;height:34px;border-radius:10px;display:grid;place-items:center;margin-bottom:10px;
@@ -408,7 +398,7 @@
   .mr-card .capi { font-size:14px; font-weight:700; }
   .mr-card .capd { font-size:12px; color:var(--text-secondary); margin-top:4px; line-height:1.45; }
   .mr-card.cap-link { cursor:pointer; position:relative; transition:transform .18s, box-shadow .18s, background .18s; }
-  .mr-card.cap-link:hover { transform:translateY(-2px); box-shadow:0 12px 28px -14px oklab(0.05 0 0/.6); border-color: color-mix(in oklab, var(--accent) 35%, transparent); }
+  .mr-card.cap-link:hover { transform:translateY(-2px); box-shadow:var(--shadow-overlay); border-color: var(--border-input); }
   .mr-card.cap-link:active { transform:scale(.97); }
   .mr-card.cap-link::after { content:"↗"; position:absolute; top:10px; right:12px; font-size:12px; color:var(--text-tertiary); opacity:0; transition:opacity .18s; }
   .mr-card.cap-link:hover::after { opacity:1; }
@@ -506,12 +496,11 @@
 
 /* ---------- keyboard shortcut hint ---------- */
 .kbd-hint { position:fixed; right:16px; bottom:84px; z-index:80; width:38px; height:38px; border-radius:999px;
-  border:1px solid var(--border); background:var(--surface-card); backdrop-filter:blur(16px) saturate(1.1);
-  -webkit-backdrop-filter:blur(16px) saturate(1.1); color:var(--text-secondary); font-size:15px; font-weight:700;
-  display:grid; place-items:center; cursor:pointer; box-shadow:0 8px 20px -10px oklab(0.05 0 0/.6); transition:.18s; }
+  border:1px solid var(--border); background:var(--surface-card); color:var(--text-secondary); font-size:15px; font-weight:700;
+  display:grid; place-items:center; cursor:pointer; box-shadow:var(--shadow-card); transition:.18s; }
 .kbd-hint:hover { color:var(--accent); border-color:var(--accent); transform:translateY(-2px); }
 .kbd-panel { position:fixed; right:16px; bottom:130px; z-index:95; width:min(320px, calc(100vw - 32px));
-  background:var(--surface-card); backdrop-filter:blur(22px) saturate(1.1); -webkit-backdrop-filter:blur(22px) saturate(1.1);
+  background:var(--surface-card);
   border:1px solid var(--border); border-radius:var(--radius-card); box-shadow:var(--shadow-overlay);
   padding:16px; animation:kbdIn .18s ease; }
 @keyframes kbdIn { from { opacity:0; transform:translateY(8px) } }
@@ -531,8 +520,8 @@
   .sheet-mask { position:fixed; inset:0; background:oklab(0.05 0 0/.5); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
     z-index:90; display:flex; align-items:flex-end; justify-content:center; animation:shfade .2s ease; }
   @keyframes shfade { from { opacity:0 } }
-  .sheet { width:100%; max-width:560px; margin:0 auto; background:var(--surface-card); backdrop-filter:blur(26px) saturate(1.1);
-    -webkit-backdrop-filter:blur(26px) saturate(1.1); border-radius:var(--radius-sheet) var(--radius-sheet) 0 0;
+  .sheet { width:100%; max-width:560px; margin:0 auto; background:var(--surface-card);
+    border-radius:var(--radius-sheet) var(--radius-sheet) 0 0;
     border:1px solid var(--border); max-height:78vh; display:flex; flex-direction:column; animation:shup .24s cubic-bezier(.34,1.4,.4,1); }
   @keyframes shup { from { transform:translateY(30px); opacity:.6 } }
   .sh-h { display:flex; align-items:center; justify-content:space-between; padding:18px 20px; border-bottom:1px solid var(--border); }
@@ -546,16 +535,11 @@
 
 /* ---------- 控制台仪表盘（NapCat 级专业看板） ---------- */
 .dash-hero { position:relative; display:flex; gap:16px; align-items:center; padding:18px; border-radius:var(--radius-card);
-  background:linear-gradient(135deg, color-mix(in oklab, var(--module-1) 14%, var(--surface-card)) 0%, var(--surface-card) 62%);
-  border:1px solid var(--border); overflow:hidden; backdrop-filter:blur(20px) saturate(1.1); -webkit-backdrop-filter:blur(20px) saturate(1.1); }
-.dash-hero::before { content:""; position:absolute; inset:-1px; border-radius:inherit; padding:1px;
-  background:conic-gradient(from var(--glow-angle,0deg), transparent 0%, var(--module-1) 22%, transparent 44%, transparent 100%);
-  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask-composite:exclude;
-  animation:dashspin 6s linear infinite; opacity:.55; pointer-events:none; }
-@property --glow-angle { syntax:"<angle>"; initial-value:0deg; inherits:false; }
-@keyframes dashspin { to { --glow-angle:360deg } }
-.dash-hero.off::before { background:conic-gradient(from var(--glow-angle,0deg), transparent 0%, var(--danger) 22%, transparent 44%, transparent 100%); }
-.dash-hero.scan::before { background:conic-gradient(from var(--glow-angle,0deg), transparent 0%, var(--module-3) 22%, transparent 44%, transparent 100%); }
+  background:var(--surface-card);
+  border:1px solid var(--border); overflow:hidden; }
+.dash-hero::before { display:none; }
+.dash-hero.off { border-color:color-mix(in oklab, var(--danger) 40%, var(--border)); }
+.dash-hero.scan { border-color:color-mix(in oklab, var(--module-3) 40%, var(--border)); }
 .ring { --ring-pct:0; --ring-color:var(--module-1); position:relative; width:92px; height:92px; flex:0 0 auto; }
 .ring svg { width:100%; height:100%; transform:rotate(-90deg); }
 .ring .ring-bg { fill:none; stroke:var(--surface-nested); stroke-width:7; }
@@ -577,7 +561,7 @@
 .hero-pill.scan { background:color-mix(in oklab, var(--module-3) 20%, transparent); color:var(--module-3); }
 .dash-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:12px; }
 .dstat { position:relative; padding:14px 10px; border-radius:var(--radius-tile); background:var(--surface-card);
-  border:1px solid var(--border); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); overflow:hidden; }
+  border:1px solid var(--border); overflow:hidden; }
 .dstat::after { content:""; position:absolute; left:0; right:0; bottom:0; height:3px; background:var(--ds-c,var(--module-2));
   opacity:.85; border-radius:0 0 var(--radius-tile) var(--radius-tile); }
 .dstat .dv { font-size:20px; font-weight:750; font-variant-numeric:tabular-nums; color:var(--text); line-height:1.1; }
@@ -586,7 +570,7 @@
 .sec-title .sec-badge { font-size:10px; font-weight:700; letter-spacing:.08em; color:var(--accent);
   border:1px solid color-mix(in oklab, var(--accent) 40%, transparent); border-radius:999px; padding:2px 8px; background:color-mix(in oklab, var(--accent) 12%, transparent); }
 .dash-chart { background:var(--surface-card); border:1px solid var(--border); border-radius:var(--radius-card);
-  backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); padding:14px 14px 10px; }
+  padding:14px 14px 10px; }
 .dash-chart .dc-h { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
 .dash-chart .dc-t { font-size:13px; font-weight:650; color:var(--text); }
 .dash-chart .dc-legend { display:flex; gap:10px; font-size:10px; color:var(--text-tertiary); }
@@ -609,8 +593,8 @@
 
 /* ---------- 用量页 / 记忆页 ---------- */
 .usage-hero { display:flex; gap:14px; align-items:center; padding:16px 18px; border-radius:var(--radius-card);
-  background:linear-gradient(135deg, color-mix(in oklab, var(--module-4) 13%, var(--surface-card)) 0%, var(--surface-card) 60%);
-  border:1px solid var(--border); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); }
+  background:var(--surface-card);
+  border:1px solid var(--border); }
 .usage-ring { position:relative; width:76px; height:76px; flex:0 0 auto; }
 .usage-ring svg { width:100%; height:100%; transform:rotate(-90deg); }
 .usage-ring .ur-bg { fill:none; stroke:var(--surface-nested); stroke-width:6.5; }
@@ -633,8 +617,8 @@
 .rank-row .r-bar { flex:1; height:7px; border-radius:999px; background:var(--surface-nested); overflow:hidden; }
 .rank-row .r-fill { height:100%; border-radius:999px; background:linear-gradient(90deg, var(--module-4), var(--module-1)); transition:width .6s cubic-bezier(.4,0,.2,1); }
 .rank-row .r-tok { font-size:12px; font-weight:700; color:var(--text-secondary); font-variant-numeric:tabular-nums; flex:0 0 auto; }
-.mem-form-card { background:linear-gradient(135deg, color-mix(in oklab, var(--accent) 10%, var(--surface-card)) 0%, var(--surface-card) 55%);
-  border:1px solid var(--border); border-radius:var(--radius-card); padding:16px; backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); }
+.mem-form-card { background:var(--surface-card);
+  border:1px solid var(--border); border-radius:var(--radius-card); padding:16px; }
 .mem-form-grid { display:grid; grid-template-columns:1fr 2fr; gap:12px; margin-top:12px; }
 .mem-card { display:flex; gap:12px; align-items:flex-start; padding:13px 14px; border-bottom:1px solid var(--border); transition:background .15s; }
 .mem-card:last-child { border-bottom:none; }
@@ -663,7 +647,7 @@
 
 /* ---------- 系统监控 / 日志 / 好友 / 群聊 / 发消息 (NapCat 能力页) ---------- */
 .sys-hero { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
-.sys-stat { position:relative; padding:14px; border-radius:var(--radius-card); background:var(--surface-card); border:1px solid var(--border); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); overflow:hidden; }
+.sys-stat { position:relative; padding:14px; border-radius:var(--radius-card); background:var(--surface-card); border:1px solid var(--border); overflow:hidden; }
 .sys-stat::after { content:""; position:absolute; left:0; right:0; bottom:0; height:3px; background:var(--ss-c,var(--module-2)); opacity:.85; }
 .sys-stat .ss-lab { font-size:10px; color:var(--text-tertiary); letter-spacing:.03em; display:flex; align-items:center; gap:5px; }
 .sys-stat .ss-val { font-size:22px; font-weight:800; font-variant-numeric:tabular-nums; color:var(--text); margin-top:7px; line-height:1; }
@@ -714,7 +698,7 @@
 .tag.mem { background:color-mix(in oklab, var(--module-2) 18%, transparent); color:var(--module-2); }
 
 .send-hero { display:grid; grid-template-columns:1fr; gap:12px; margin-top:16px; }
-.send-form { background:var(--surface-card); border:1px solid var(--border); border-radius:var(--radius-card); padding:16px; backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); }
+.send-form { background:var(--surface-card); border:1px solid var(--border); border-radius:var(--radius-card); padding:16px; }
 .send-field { margin-bottom:14px; }
 .send-field .lab { font-size:11px; color:var(--text-tertiary); margin-bottom:7px; font-weight:600; letter-spacing:.02em; }
 .send-field input, .send-field textarea, .send-field select { width:100%; box-sizing:border-box; padding:10px 12px; border-radius:var(--radius-tile); border:1px solid var(--border); background:var(--surface-nested); color:var(--text); font-size:13px; }
