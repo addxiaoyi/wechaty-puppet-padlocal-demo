@@ -750,16 +750,17 @@
     background: oklch(14% 0.018 240);
   }
   .drawer .dclose { display: none; }
-  .drawer .dh { padding: 30px 22px 20px; }
-  .drawer .ditem { padding: 11px 18px; font-size: 14px; border-radius: var(--radius-tile); margin: 2px 12px; }
+  .drawer .dh { padding: 28px 16px 18px; }
+  .drawer .ditem { padding: 11px 14px; font-size: 14px; border-radius: var(--radius-tile); margin: 2px 8px; }
   .drawer .ditem:hover { background: var(--drawer-hover); }
-  .drawer .dsep { margin: 8px 22px; }
+  .drawer .dsep { margin: 8px 16px; }
 
   /* 遮罩：桌面不需要 */
   .scrim { display: none !important; }
 
   /* 底部导航：桌面隐藏（由侧边栏接管） */
   .nav { display: none; }
+  .kbd-hint { bottom: 24px; }
 
   /* 弹层：从底部抽屉改为居中对话框 */
   .overlay { align-items: center; padding: 24px; }
@@ -789,6 +790,11 @@
 
   /* 关键信息密度：卡片适当放宽内边距 */
   .card, .panel, .quote { border-radius: var(--radius-card); }
+}
+
+/* 超宽屏：内容列随视口温和放大，仍保持可读宽度 */
+@media (min-width: 1680px) {
+  .app { max-width: 1440px; }
 }
 </style>
 </head>
