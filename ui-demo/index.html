@@ -65,7 +65,7 @@
     /* ---- 字体与布局 ---- */
     --font: "Instrument Sans", -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
     --nav-h: 64px;
-    --sidebar-w: 0px;
+    --sidebar-w: 296px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   :focus-visible { outline: 2px solid var(--module-2); outline-offset: 2px; border-radius: 4px; }
@@ -268,7 +268,7 @@
   /* ---------- drawer ---------- */
   .scrim { position: fixed; inset: 0; background: color-mix(in srgb, var(--text) 42%, transparent); z-index: 40; opacity:0; pointer-events:none; transition: opacity .22s; }
   .scrim.show { opacity:1; pointer-events:auto; }
-  .drawer { position: fixed; top:0; bottom:0; left:0; width: 296px; max-width: 82vw; z-index: 50; transform: translateX(-104%);
+  .drawer { position: fixed; top:0; bottom:0; left:0; width: var(--sidebar-w); max-width: 82vw; z-index: 50; transform: translateX(-104%);
     transition: transform .26s cubic-bezier(.2,.8,.25,1); overflow-y:auto;
     background: var(--drawer-bg); color:var(--drawer-text); }
   .drawer.show { transform: translateX(0); }
