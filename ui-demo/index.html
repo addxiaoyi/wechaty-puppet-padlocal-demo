@@ -1298,6 +1298,9 @@ const api = {
   rooms:         ()       => apiGet("/rooms"),
   roomMembers:   (id)     => apiGet("/rooms/"+id+"/members"),
   sendMessage:   (payload)=> apiSend("/send", null, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) }),
+  setAlias:      (id, alias)=> apiSend("/contacts/"+id+"/alias", null, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ alias }) }),
+  setTopic:      (id, topic)=> apiSend("/rooms/"+id+"/topic", null, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ topic }) }),
+  clearUsage:    ()       => apiSend("/usage", null, { method:"DELETE" }),
 };
 // 子页统一页头：标题 + 返回按钮
 function botPageHead(title, sub, backTo){
@@ -1628,6 +1631,7 @@ function renderBotUsage(){
           <div class="um-total" id="usage-total">—</div>
           <div class="um-sub">累计 Token 消耗</div>
           <span class="um-pill">${icon("activity",12,2)} 输入 / 输出占比</span>
+          <button class="btn danger ghost" id="usage-clear" style="margin-top:10px;align-self:flex-start">${icon("trash",14,1.8)} 清空用量记录</button>
         </div>
       </div>
       <div class="dash-stats">
@@ -1706,6 +1710,15 @@ function renderBotUsage(){
     }catch(e){ showError(rel, e, retry); }
   })();
   $("#bot-back").onclick = ()=>go('bot');
+
+  $("#usage-clear").onclick = ()=>{
+    apiConfirm("清空用量记录","将删除全部 Token 用量历史（调用次数 / 输入输出 Token），此操作不可恢复。", async ()=>{
+      const res = await api.clearUsage();
+      if(res && res.ok) toast.success(`已清空 ${res.removed??0} 条用量记录`);
+      else toast.error((res && res.error) || "清空失败");
+      renderBotUsage();
+    }, "清空");
+  };
 }
 
 /* 对话类独立页：filter = 'p'私聊 / 'g'群聊 / null全部，每张能力卡一个页面 */
@@ -2255,9 +2268,41 @@ function renderBotContacts(m){
         <div class="cnt-body"><div class="cnt-name">${hl(display, kwTrim)}</div>
           <div class="cnt-alias">${c.alias ? '备注：'+hl(c.alias, kwTrim) : '未设置备注'}</div></div>
         <span class="cnt-id">${esc(c.id.slice(-8))}</span>
-        <span class="cnt-act">${icon("msg",13,1.8)} 私聊</span></div>`;
+        <span class="cnt-act" data-act="send">${icon("msg",13,1.8)} 私聊</span>
+        <span class="cnt-act" data-act="alias" title="设置备注">${icon("edit",13,1.8)} 备注</span></div>`;
     }).join("");
-    el.querySelectorAll(".cnt-row").forEach(row=>{ row.onclick = ()=>{ openSendTo(row.dataset.id, row.dataset.name, 'contact'); }; });
+    el.querySelectorAll(".cnt-row").forEach(row=>{
+      const id = row.dataset.id;
+      const cur = cache.find(c=>c.id===id);
+      row.querySelector('[data-act="send"]').onclick = (e)=>{ e.stopPropagation(); openSendTo(id, cur ? (cur.alias||cur.name) : '', 'contact'); };
+      row.querySelector('[data-act="alias"]').onclick = (e)=>{ e.stopPropagation(); editAlias(id, cur); };
+    });
+  };
+
+  const editAlias = (id, cur)=>{
+    const name = cur ? (cur.alias || cur.name || '') : '';
+    const overlay = document.createElement("div");
+    overlay.className = "overlay";
+    overlay.innerHTML = `<div class="modal" style="max-width:420px"><div class="grab"></div><h2>设置备注</h2>
+      <div class="sub">为 <b>${esc(cur ? (cur.name||id) : id)}</b> 设置备注（留空则清除备注）</div>
+      <input id="alias-input" style="margin-top:12px" value="${esc(name)}" placeholder="输入新备注…"/>
+      <div class="modal-actions"><button class="btn ghost" id="alias-cancel">取消</button><button class="btn" id="alias-ok">${icon("check",15,2)} 保存</button></div></div>`;
+    document.body.appendChild(overlay);
+    const close = ()=>overlay.remove();
+    overlay.onclick = e=>{ if(e.target===overlay) close(); };
+    overlay.querySelector("#alias-cancel").onclick = close;
+    overlay.querySelector("#alias-ok").onclick = async ()=>{
+      const val = overlay.querySelector("#alias-input").value.trim();
+      const btn = overlay.querySelector("#alias-ok");
+      btn.disabled = true; btn.innerHTML = `<span class="spinner"></span> 保存中`;
+      try{
+        const res = await api.setAlias(id, val);
+        if(res && res.ok) toast.success("备注已更新");
+        else toast.error((res && res.error) || "设置失败");
+      }catch(e){ toast.error(e.message || "设置失败"); }
+      close();
+      refresh();
+    };
   };
 
   // 输入防抖：暂停 200ms 后再过滤，避免大量联系人下的频繁重绘
@@ -2315,11 +2360,39 @@ function renderBotRooms(m){
       <div class="cnt-meta" id="rm-meta"></div>
       <div id="rm-members" style="overflow-y:auto;flex:1;border:1px solid var(--border);border-radius:var(--radius-tile)">${botSuffix("加载成员…",'off')}</div>
       <div class="modal-actions"><button class="btn ghost" id="rm-close">关闭</button>
+        <button class="btn ghost" id="rm-rename">${icon("edit",14,2)} 改名</button>
         <button class="btn" id="rm-send">${icon("bolt",14,2)} 群发消息</button></div></div>`;
     document.body.appendChild(overlay);
     overlay.querySelector("#rm-close").onclick = ()=>overlay.remove();
     overlay.onclick = e=>{ if(e.target===overlay) overlay.remove(); };
     overlay.querySelector("#rm-send").onclick = ()=>{ overlay.remove(); openSendTo(roomId, topic, 'room'); };
+    overlay.querySelector("#rm-rename").onclick = ()=>{
+      const rn = document.createElement("div");
+      rn.className = "overlay";
+      rn.innerHTML = `<div class="modal" style="max-width:420px"><div class="grab"></div><h2>修改群名</h2>
+        <div class="sub">原群名：<b>${esc(topic||'未命名群聊')}</b></div>
+        <input id="topic-input" style="margin-top:12px" value="${esc(topic||'')}" placeholder="输入新群名…"/>
+        <div class="modal-actions"><button class="btn ghost" id="topic-cancel">取消</button><button class="btn" id="topic-ok">${icon("check",15,2)} 保存</button></div></div>`;
+      document.body.appendChild(rn);
+      const closeRn = ()=>rn.remove();
+      rn.onclick = e=>{ if(e.target===rn) closeRn(); };
+      rn.querySelector("#topic-cancel").onclick = closeRn;
+      rn.querySelector("#topic-ok").onclick = async ()=>{
+        const val = rn.querySelector("#topic-input").value.trim();
+        const btn = rn.querySelector("#topic-ok");
+        if(val === ''){ toast.error("群名不能为空"); return; }
+        btn.disabled = true; btn.innerHTML = `<span class="spinner"></span> 保存中`;
+        let saved = false;
+        try{
+          const res = await api.setTopic(roomId, val);
+          if(res && res.ok){ saved = true; toast.success("群名已修改"); }
+          else toast.error((res && res.error) || "修改失败");
+        }catch(e){ toast.error(e.message || "修改失败"); }
+        closeRn();
+        if(saved) overlay.remove();
+        refresh();
+      };
+    };
 
     const box = overlay.querySelector("#rm-members");
     let members = [];
@@ -2431,20 +2504,23 @@ function renderBotSend(m){
   $("#send-clear").onclick = ()=>{ $text.value=""; renderPreview(); };
 
   let sending = false;
-  const doSend = async ()=>{
+  const doSend = ()=>{
     if(sending) return;
     const text = $text.value.trim();
     if(!selected.id || !text) return;
-    sending = true;
-    $go.disabled = true;
-    $go.innerHTML = `<span class="spinner"></span> 发送中`;
-    try{
-      const payload = curType==='contact' ? { contactId:selected.id, text } : { roomId:selected.id, text };
-      const res = await api.sendMessage(payload);
-      if(res && res.ok){ toast.success("发送成功"); $text.value=""; }
-      else toast.error((res && res.error) || "发送失败");
-    }catch(e){ toast.error(e.message || "发送失败"); }
-    finally{ sending = false; $go.innerHTML = `${icon("bolt",15,2)} 发送`; renderPreview(); }
+    const targetType = curType==='contact' ? '私聊' : '群聊';
+    apiConfirm("确认发送", `将向 <b>${esc(selected.name||selected.id)}</b>（${targetType}）发送消息，请确认内容无误。`, async ()=>{
+      sending = true;
+      $go.disabled = true;
+      $go.innerHTML = `<span class="spinner"></span> 发送中`;
+      try{
+        const payload = curType==='contact' ? { contactId:selected.id, text } : { roomId:selected.id, text };
+        const res = await api.sendMessage(payload);
+        if(res && res.ok){ toast.success("发送成功"); $text.value=""; }
+        else toast.error((res && res.error) || "发送失败");
+      }catch(e){ toast.error(e.message || "发送失败"); }
+      finally{ sending = false; $go.innerHTML = `${icon("bolt",15,2)} 发送`; renderPreview(); }
+    }, "发送");
   };
   $go.onclick = doSend;
   $text.addEventListener("keydown", e=>{ if((e.ctrlKey||e.metaKey) && e.key==="Enter"){ e.preventDefault(); doSend(); } });
