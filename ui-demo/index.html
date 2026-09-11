@@ -25,16 +25,16 @@
     --text-tertiary: oklch(58% 0.02 235);
 
     /* ---- 主色（单一克制青，弱饱和） ---- */
-    --accent: oklch(70% 0.09 210);
-    --accent-muted: oklch(28% 0.04 210);
+    --accent: oklch(72% 0.08 210);
+    --accent-muted: oklch(28% 0.035 210);
     --on-accent: oklch(14% 0.02 240);
 
     /* ---- 模块色（收敛为同族冷色，低饱和，仅表征差异不做霓虹） ---- */
-    --module-1: oklch(68% 0.08 180);     /* 在线/完成 */
-    --module-2: oklch(66% 0.08 235);     /* 专注/群聊 */
-    --module-3: oklch(72% 0.06 95);      /* 用量/强调（弱暖） */
-    --module-4: oklch(66% 0.09 30);      /* 记忆（弱洋红） */
-    --module-5: oklch(68% 0.09 300);     /* 召回/向量（弱紫） */
+    --module-1: oklch(70% 0.07 180);     /* 在线/完成 */
+    --module-2: oklch(68% 0.07 235);     /* 专注/群聊 */
+    --module-3: oklch(72% 0.055 95);     /* 用量/强调（弱暖） */
+    --module-4: oklch(68% 0.07 30);      /* 记忆（弱洋红） */
+    --module-5: oklch(70% 0.07 300);     /* 召回/向量（弱紫） */
 
     /* ---- 危险色 ---- */
     --danger: oklch(64% 0.14 25);
@@ -53,14 +53,14 @@
     --page-texture: none;
 
     /* ---- 圆角（收敛，硬朗克制） ---- */
-    --radius-control: 7px;
-    --radius-tile: 10px;
-    --radius-card: 14px;
-    --radius-sheet: 16px;
+    --radius-control: 6px;
+    --radius-tile: 8px;
+    --radius-card: 12px;
+    --radius-sheet: 14px;
 
     /* ---- 阴影（极轻，仅作层级，不做体积感） ---- */
-    --shadow-card: 0 1px 2px oklab(0 0 0/.24);
-    --shadow-overlay: 0 12px 32px -16px oklab(0 0 0/.5);
+    --shadow-card: 0 1px 1px oklab(0 0 0/.14);
+    --shadow-overlay: 0 10px 28px -14px oklab(0 0 0/.45);
 
     /* ---- 字体与布局 ---- */
     --font: "Instrument Sans", -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
@@ -97,7 +97,7 @@
   .topbar .title { font-size: 16px; font-weight: 700; letter-spacing: -.01em; flex: 1; line-height: 1.2; }
   .topbar .title small { display:block; font-size: 11px; font-weight: 500; color: var(--text-secondary); letter-spacing:.02em; margin-top: 2px; }
   .date-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary);
-    background: var(--surface-card); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; box-shadow: var(--shadow-card); }
+    background: var(--surface-card); border: 1px solid var(--border); border-radius: var(--radius-tile); padding: 6px 12px; box-shadow: var(--shadow-card); }
   .date-chip svg { color: var(--text-tertiary); }
 
   /* ---------- generic card / section ---------- */
@@ -117,9 +117,8 @@
   .greet p { color: var(--text-secondary); font-size: 13px; margin-top: 5px; }
   .greet .add { position: absolute; top: 16px; right: 16px; z-index: 2; border:none; cursor:pointer;
     display:inline-flex; align-items:center; gap:6px; background: var(--accent); color:var(--on-accent);
-    font-size: 13px; font-weight: 700; padding: 9px 15px 9px 12px; border-radius: 999px; box-shadow: var(--shadow-overlay);
-    transition: transform .12s, filter .15s; }
-  .greet .add:active { transform: scale(.95); filter: brightness(1.15); }
+    font-size: 13px; font-weight: 700; padding: 9px 15px 9px 12px; border-radius: var(--radius-tile); transition: filter .15s; }
+  .greet .add:active { filter: brightness(1.08); }
   .greet .add svg { margin-top: -1px; }
 
   /* ---------- quote card ---------- */
@@ -152,10 +151,10 @@
   .trend-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; height: 120px;
     color: var(--text-tertiary); font-size: 12px; margin-top: 8px; }
   .quick-grid { display:grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-  .qbtn { display:flex; flex-direction:column; align-items:center; gap:9px; padding: 15px 6px 12px; border:none; cursor:pointer;
-    border-radius: var(--radius-tile); background: var(--surface-card); border:1px solid var(--border); box-shadow: var(--shadow-card);
-    text-align:center; transition: transform .12s, border-color .15s, box-shadow .15s; }
-  .qbtn:active { transform: scale(.95); border-color: var(--border-input); box-shadow: var(--shadow-overlay); }
+  .qbtn { display:flex; flex-direction:column; align-items:center; gap:9px; padding: 14px 6px 10px; border:none; cursor:pointer;
+    border-radius: var(--radius-tile); background: var(--surface-card); border:1px solid var(--border);
+    text-align:center; transition: border-color .15s, box-shadow .15s; }
+  .qbtn:active { border-color: var(--border-input); }
   .qbtn .e { position: relative; width: 44px; height: 44px; border-radius: var(--radius-tile); display:grid; place-items:center; }
   .qbtn .e .qplus { position:absolute; right:-3px; bottom:-3px; width:17px; height:17px; border-radius:50%;
     background: var(--accent); color:var(--on-accent); display:grid; place-items:center; border: 2px solid var(--surface-card); }
@@ -719,6 +718,8 @@
     max-width: none;
     padding-left: var(--sidebar-w);
     background: oklch(12% 0.015 245);
+    font-size: 15.5px;
+    line-height: 1.6;
   }
 
   /* 顶部栏：实色贴合页面底色，取消渐变与毛玻璃，随内容列同宽 */
@@ -737,7 +738,7 @@
 
   /* 主内容：居中且留白，不再被底部导航挤压 */
   .app {
-    padding: 0 32px 64px;
+    padding: 0 36px 72px;
     max-width: 1280px; margin: 0 auto;
   }
 
