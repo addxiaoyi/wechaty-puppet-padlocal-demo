@@ -33,6 +33,7 @@ export interface MemoryPayload {
 
 export interface MemoryRow extends MemoryPayload {
   id: number
+  createdAt: number
 }
 
 export interface ConversationRow {
@@ -249,7 +250,7 @@ export function addMemory(m: MemoryPayload): void {
 export function listMemoryRows(contactId: string, roomId: string | null): MemoryRow[] {
   const rows = db
     .prepare(
-      `SELECT id, contact_id as contactId, room_id as roomId, content, content_vector as vector, created_at
+      `SELECT id, contact_id as contactId, room_id as roomId, content, content_vector as vector, created_at as createdAt
        FROM memories
        WHERE contact_id = ? AND room_id IS ?
        ORDER BY id ASC`
@@ -321,7 +322,7 @@ export function memoriesByIds(ids: number[]): MemoryRow[] {
   const marks = ids.map(() => '?').join(',')
   return db
     .prepare(
-      `SELECT id, contact_id as contactId, room_id as roomId, content, created_at
+      `SELECT id, contact_id as contactId, room_id as roomId, content, created_at as createdAt
        FROM memories WHERE id IN (${marks}) ORDER BY id DESC`
     )
     .all(...ids) as unknown as MemoryRow[]
@@ -331,14 +332,14 @@ export function allMemories(contactId?: string): MemoryRow[] {
   if (contactId) {
     return db
       .prepare(
-        `SELECT id, contact_id as contactId, room_id as roomId, content, created_at
+        `SELECT id, contact_id as contactId, room_id as roomId, content, created_at as createdAt
          FROM memories WHERE contact_id = ? ORDER BY id DESC`
       )
       .all(contactId) as unknown as MemoryRow[]
   }
   return db
     .prepare(
-      `SELECT id, contact_id as contactId, room_id as roomId, content, created_at
+      `SELECT id, contact_id as contactId, room_id as roomId, content, created_at as createdAt
        FROM memories ORDER BY id DESC`
     )
     .all() as unknown as MemoryRow[]
@@ -348,7 +349,7 @@ export function allMemories(contactId?: string): MemoryRow[] {
 export function recentConversations(limit = 50): ConversationRow[] {
   return db
     .prepare(
-      `SELECT id, contact_id as contactId, room_id as roomId, role, content, created_at
+      `SELECT id, contact_id as contactId, room_id as roomId, role, content, created_at as createdAt
        FROM conversations ORDER BY id DESC LIMIT ?`
     )
     .all(limit) as unknown as ConversationRow[]
@@ -362,7 +363,7 @@ export function listConversations(
 ): ConversationRow[] {
   const rows = db
     .prepare(
-      `SELECT id, contact_id as contactId, room_id as roomId, role, content, created_at
+      `SELECT id, contact_id as contactId, room_id as roomId, role, content, created_at as createdAt
        FROM conversations
        WHERE contact_id = ? AND room_id IS ?
        ORDER BY id DESC LIMIT ?`
@@ -442,7 +443,7 @@ export function addMessageRecord(rec: MessageRecord): void {
 export function recentMessageTypes(limit = 50): MessageRow[] {
   const rows = db
     .prepare(
-      `SELECT id, contact_id as contactId, room_id as roomId, type, meta, created_at
+      `SELECT id, contact_id as contactId, room_id as roomId, type, meta, created_at as createdAt
        FROM messages ORDER BY id DESC LIMIT ?`
     )
     .all(limit) as unknown as Array<Omit<MessageRow, 'meta'> & { meta: string | null }>
@@ -478,7 +479,7 @@ export function addRecall(rec: RecallRecord): void {
 export function recentRecalls(limit = 20): RecallRow[] {
   const rows = db
     .prepare(
-      `SELECT id, contact_id as contactId, room_id as roomId, query, hit_ids as hitIds, hit_count as hitCount, created_at
+      `SELECT id, contact_id as contactId, room_id as roomId, query, hit_ids as hitIds, hit_count as hitCount, created_at as createdAt
        FROM recall_log ORDER BY id DESC LIMIT ?`
     )
     .all(limit) as unknown as Array<Omit<RecallRow, 'hitIds'> & { hitIds: string }>

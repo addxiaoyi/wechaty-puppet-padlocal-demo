@@ -1068,10 +1068,6 @@ function wireRetry(el, retry){ if(!el) return; el.querySelectorAll("[data-retry]
 // 快捷：展示错误 + 绑定重试（兼容旧用法），附带全局错误提示
 function showError(el, err, retryF){
   const msg = err?.message || err || '加载失败';
-  if(msg.includes('登录已失效')){
-    toast.error(msg);
-    return;
-  }
   botFail(el, msg);
   wireRetry(el, retryF);
   if(!window._lastErrMsg || window._lastErrMsg !== msg){
@@ -1085,13 +1081,6 @@ function showError(el, err, retryF){
 function toast(msg, type='info'){
   if(!msg) return;
   const txt = String(msg);
-  if(type==='error' && txt.includes('登录已失效') && !window._sessionRedirected){
-    window._sessionRedirected = true;
-    let left = 3;
-    const tick = ()=>{ const s = el?.querySelector('span'); if(s) s.textContent = `${txt}（${left}s 后自动刷新）`; };
-    const timer = setInterval(()=>{ left--; if(left<=0){ clearInterval(timer); location.reload(); } else tick(); }, 1000);
-    setTimeout(tick, 0);
-  }
   let container = document.querySelector('.toast-container');
   if(!container){
     container = document.createElement('div');
@@ -1184,8 +1173,7 @@ async function apiGet(path, params){
   if(!r.ok){
     const err = await r.json().catch(()=>null);
     const raw = msgFromErr(err);
-    const isToken = raw && /session token|token/.test(raw) && (r.status===401||r.status===403);
-    throw new Error(isToken ? "登录已失效，请刷新页面后重新登录" : (raw === "请求失败" ? `请求失败 (${r.status})` : raw));
+    throw new Error(raw === "请求失败" ? `请求失败 (${r.status})` : raw);
   }
   return r.json();
 }
@@ -1195,8 +1183,7 @@ async function apiSend(path, params, opts={}){
   if(!r.ok){
     const err = await r.json().catch(()=>null);
     const raw = msgFromErr(err);
-    const isToken = raw && /session token|token/.test(raw) && (r.status===401||r.status===403);
-    throw new Error(isToken ? "登录已失效，请刷新页面后重新登录" : (raw === "请求失败" ? `请求失败 (${r.status})` : raw));
+    throw new Error(raw === "请求失败" ? `请求失败 (${r.status})` : raw);
   }
   return r.json();
 }
@@ -1376,8 +1363,8 @@ function renderBotHome(m){
       if(trend.length){ chart.innerHTML = botTrendSVG(trend); wireTrendHover(chart, trend); }
       else chart.innerHTML = `<div class="dl-empty">暂无用量数据</div>`;
 
-      renderLog([...msgs.map(mm=>({t:mm.created_at||mm.createdAt, kind:"in", msg:`${mm.type||"msg"} · ${mm.contact_id||mm.contactId||""}`} )),
-                 ...rec.map(rr=>({t:rr.createdAt||rr.created_at, kind:"recall", msg:`命中 ${rr.hitCount} 条 · ${rr.query||""}`}))]);
+      renderLog([...msgs.map(mm=>({t:mm.createdAt, kind:"in", msg:`${mm.type||"msg"} · ${mm.contactId||""}`} )),
+                 ...rec.map(rr=>({t:rr.createdAt, kind:"recall", msg:`命中 ${rr.hitCount} 条 · ${rr.query||""}`}))]);
     }catch(e){ if(!failed){ failed=true; toast.error("数据加载失败："+(e.message||"未知错误")); } }
   };
 
@@ -1674,7 +1661,7 @@ function renderBotConvs(title, sub, filter, extra){
         <span class="role ${mm.role}">${ROLE_LABEL[mm.role]||mm.role}</span>
         <span class="who">${esc(mm.contactId||'匿名')}${mm.roomId?'<i class="grp">群</i>':''}</span>
         <span class="txt">${esc(mm.content)}</span>
-        <span class="muted">${new Date(mm.created_at).toLocaleString("zh-CN",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</span>
+        <span class="muted">${new Date(mm.createdAt).toLocaleString("zh-CN",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</span>
         <button class="btn ghost danger mc-del" data-id="${mm.id}" title="删除该对话记录" aria-label="删除该对话记录">${icon("trash",13)}</button></div>`).join("");
       el.querySelectorAll(".mrow-link").forEach(row=>{
         row.onclick=()=>openConv(row.dataset.c, row.dataset.r||null);
@@ -1861,7 +1848,7 @@ function renderBotMem(){
           ${editingId === mm.id
             ? `<textarea class="mem-edit-box" rows="2">${esc(mm.content)}</textarea>`
             : `<div class="mc-txt">${esc(mm.content)}</div>`}
-          <div class="mc-date">${new Date(mm.created_at).toLocaleDateString("zh-CN")}</div>
+          <div class="mc-date">${new Date(mm.createdAt).toLocaleDateString("zh-CN")}</div>
         </div>
         <div class="mc-acts">
           ${editingId === mm.id
@@ -2013,7 +2000,7 @@ function renderBotRecall(){
             if(box){
               box.innerHTML = `<b>${esc((row.querySelector(".txt b")?.textContent||""))} · 命中记忆</b><br/>` +
                 (mems.length ? mems.map(m=>`<div style="margin-top:6px;padding:8px;background:var(--surface-nested);border-radius:8px;border:1px solid var(--border)">` +
-                  `<div style="font-size:11px;color:var(--text-tertiary)">${esc(m.contactId||'')} · ${new Date(m.created_at).toLocaleDateString("zh-CN")}</div>` +
+                  `<div style="font-size:11px;color:var(--text-tertiary)">${esc(m.contactId||'')} · ${new Date(m.createdAt).toLocaleDateString("zh-CN")}</div>` +
                   `<div style="margin-top:4px">${esc(m.content)}</div></div>`).join("") : `<div style="margin-top:6px;color:var(--text-secondary)">记忆源记录缺失</div>`);
             }
           }catch(e){ alert("加载失败："+(e&&e.message||e)); }
@@ -2039,7 +2026,7 @@ function renderBotRecall(){
       if(!list.length){ el.innerHTML=`<div class="empty"><span class="e">${icon("leaf",24)}</span><p>暂无记忆</p></div>`; return; }
       el.innerHTML = list.map(mm=>`<div class="mrow mrow-mem" data-id="${mm.id}"><div class="who">${esc(mm.contactId||'匿名')}</div>
         <div class="txt">${esc(mm.content)}</div>
-        <span class="muted">${new Date(mm.created_at).toLocaleDateString("zh-CN")}</span>
+        <span class="muted">${new Date(mm.createdAt).toLocaleDateString("zh-CN")}</span>
         <button class="btn ghost danger mc-del" data-id="${mm.id}" title="删除该记忆" aria-label="删除该记忆">${icon("trash",13)}</button></div>`).join("");
       el.querySelectorAll(".mrow-mem[data-id]").forEach(row=>{
         const delBtn = row.querySelector(".mc-del");
@@ -2647,7 +2634,7 @@ function renderBot(view){
 
 function botTrendSVG(data){
   const w=320, h=110, px=10, pt=12, pb=18, iw=w-2*px, ih=h-pt-pb;
-  const norm = data.map(x=>({ date:x.date, inTokens:(x.inTokens??x.in_tokens)||0, outTokens:(x.outTokens??x.out_tokens)||0 }));
+  const norm = data.map(x=>({ date:x.date, inTokens:x.inTokens||0, outTokens:x.outTokens||0 }));
   const pts = norm.map(x=> x.inTokens + x.outTokens);
   const max = Math.max(...pts, 1);
   const co=(i,v)=>[px+iw*(i/(data.length-1||1)), pt+ih*(1-v/max)];
@@ -2733,7 +2720,7 @@ function openConv(contactId, roomId){
       const arr = list.slice().reverse();
       box.innerHTML = arr.length ? arr.map(mm=>{
         const meta = mm.meta||{};
-        return `<div class="bmsg ${mm.role}" data-id="${mm.id}"><div class="nm">${ROLE_LABEL[mm.role]||mm.role} · ${new Date(mm.created_at).toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"})}<button class="btn ghost danger mc-del" data-id="${mm.id}" title="删除该条消息" aria-label="删除该条消息">${icon("trash",12)}</button></div><div class="bd">${escFmtMsg(mm)}</div></div>`;
+        return `<div class="bmsg ${mm.role}" data-id="${mm.id}"><div class="nm">${ROLE_LABEL[mm.role]||mm.role} · ${new Date(mm.createdAt).toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"})}<button class="btn ghost danger mc-del" data-id="${mm.id}" title="删除该条消息" aria-label="删除该条消息">${icon("trash",12)}</button></div><div class="bd">${escFmtMsg(mm)}</div></div>`;
       }).join("")
         : `<div class="empty"><span class="e">${icon("msg",24)}</span><p>暂无历史会话</p></div>`;
       box.querySelectorAll(".bmsg .mc-del").forEach(btn=>{
