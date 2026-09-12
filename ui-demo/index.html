@@ -922,56 +922,12 @@ const CONFIG = {
     "复盘一下，为下一周留点方向。",               // 周日
   ],
 
-  // 今日概览环形（value 为 0-100 的完成度，calc 返回 {value, sub}）
-  overview: [
-    { key: "todo",  label: "今日计划", icon: "list", color: "var(--accent)",
-      calc: d => { const it=d.todo||[]; const done=it.filter(x=>x.done).length; return { value: it.length?Math.round(done/it.length*100):0, sub: `${done}/${it.length} 项` }; } },
-    { key: "checkin", label: "打卡", icon: "leaf", color: "var(--module-1)",
-      calc: d => { const it=d.checkin||[]; const t=today(); const done=it.filter(x=>x.log&&x.log[t]).length; return { value: it.length?Math.round(done/it.length*100):0, sub: `${done}/${it.length} 项` }; } },
-    { key: "read", label: "阅读", icon: "book", color: "var(--module-2)",
-      calc: d => avgProgress(d.read) },
-    { key: "sport", label: "运动", icon: "activity", color: "var(--module-3)",
-      calc: d => avgProgress(d.sport) },
-  ],
-
-  // 本周状态趋势（真实数据：读取用户填写的 __trend，7 个数字；没有就留空）
-  trend: {
-    title: "本周状态趋势", unit: "分",
-    series: d => (Array.isArray(d.__trend) && d.__trend.length===7) ? d.__trend : [],
-  },
-
-  // 快速记录按钮（点了直接给对应模块新建）
-  quickAdd: [
-    { label: "记运动", icon: "activity", module: "sport",   tint: "color-mix(in oklab, var(--accent) 16%, transparent)", color: "var(--accent)" },
-    { label: "记打卡", icon: "check",    module: "checkin", tint: "color-mix(in oklab, var(--accent) 16%, transparent)", color: "var(--accent)" },
-    { label: "记一笔", icon: "wallet",   module: "money",   tint: "color-mix(in oklab, var(--accent) 16%, transparent)", color: "var(--accent)" },
-    { label: "记想法", icon: "pen",      module: "note",    tint: "color-mix(in oklab, var(--accent) 16%, transparent)", color: "var(--accent)" },
-  ],
-
   // ============ 模块定义 ============
   modules: [
     {
       key: "bot", name: "微信机器人", icon: "bolt", tint: "color-mix(in oklab, var(--accent) 16%, transparent)", color: "var(--accent)",
       type: "bot", desc: "状态 · 用量 · 记忆 · 会话分析",
       api: "/api",
-    },
-    {
-      key: "todo", name: "今日计划", icon: "list", color: "var(--accent)", type: "todo",
-    },
-    {
-      key: "checkin", name: "打卡", icon: "leaf", color: "var(--module-1)", type: "checkin",
-    },
-    {
-      key: "read", name: "阅读", icon: "book", color: "var(--module-2)", type: "progress",
-    },
-    {
-      key: "sport", name: "运动", icon: "activity", color: "var(--module-3)", type: "progress",
-    },
-    {
-      key: "money", name: "金钱", icon: "wallet", color: "var(--module-4)", type: "finance",
-    },
-    {
-      key: "note", name: "想法", icon: "pen", color: "var(--module-5)", type: "note",
     },
   ],
 };
@@ -3110,7 +3066,7 @@ function stopPoll(){ if(pollTimer){ clearInterval(pollTimer); pollTimer=null; } 
 function lockScroll(){ scrollLock = true; document.body.style.overflow = 'hidden'; }
 function unlockScroll(){ scrollLock = false; document.body.style.overflow = ''; }
 /* 合法路由：NapCat 机器人工作台侧边栏一级页 */
-const VALID_ROUTES = ['dashboard','network','config','logs','debug','file_manager','terminal','plugins','plugin_store','extension','about'];
+const VALID_ROUTES = ['dashboard','network','config','logs','debug','debug/http','debug/ws','file_manager','terminal','plugins','plugin_store','extension','about'];
 // 侧边栏一级页 → 机器人子视图（复用既有渲染函数）
 const NAPCAT_TO_SUB = {
   dashboard:'home',
@@ -3118,6 +3074,8 @@ const NAPCAT_TO_SUB = {
   config:'config',
   logs:'logs',
   debug:'logs',
+  'debug/http':'logs',
+  'debug/ws':'logs',
   file_manager:'contacts',
   terminal:'send',
   plugins:'ai',
@@ -3128,6 +3086,7 @@ const NAPCAT_TO_SUB = {
 // 旧 bot- 子页 → 侧边栏一级页（迁移映射）
 const NAPCAT_ROUTE_BY_SUB = {
   home:'dashboard', sys:'network', config:'config', logs:'logs',
+  'debug/http':'debug', 'debug/ws':'debug',
   usage:'plugin_store', ai:'plugins', mem:'extension',
   contacts:'file_manager', send:'terminal', rooms:'file_manager',
   msg:'extension', recall:'extension', group:'plugins',
@@ -3149,10 +3108,12 @@ function go(v){
 }
 const NAPCAT_TITLES = {
   dashboard:['仪表盘','状态 · 用量 · 记忆 · 会话'],
-  network:['网络状态','连接 · 进程 · 实时网速'],
+  network:['网络配置','连接 · 进程 · 实时网速'],
   config:['在线配置','提示词 · 模型 · 开关'],
   logs:['运行日志','实时拦截 console 输出'],
   debug:['调试面板','WebSocket / HTTP 测试'],
+  'debug/http':['HTTP 调试','WebUI 接口测试'],
+  'debug/ws':['WebSocket 调试','实时通信测试'],
   file_manager:['好友管理','联系人 · 备注 · 私聊'],
   terminal:['主动发消息','私聊 / 群发 一键触达'],
   plugins:['插件中心','AI 智能回复 · 群聊应答'],
@@ -3191,9 +3152,27 @@ function doRender(){
     const [t,s] = NAPCAT_TITLES[route] || ['仪表盘',''];
     $("#topTitle").textContent = t;
     $("#crumb").title = s;
-    // about 采用占位页
+    // about：NapCat 工作台信息页
     if(route === 'about'){
-      $("#screen").innerHTML = `<div class="page"><h1>关于</h1><p>NapCat 机器人工作台 · 参考 NapCat WebUI 侧边栏布局</p></div>`;
+      $("#screen").innerHTML = `<div class="page" style="padding:4px 2px">
+        <div class="card" style="padding:26px 22px">
+          <h1 style="font-family:var(--font-heading);font-size:26px;font-weight:600;margin-bottom:6px">NapCat 机器人工作台</h1>
+          <p style="color:var(--text-secondary);font-size:13px;margin:0 0 18px">状态 · 用量 · 记忆 · 会话 · 调试</p>
+          <div class="prow" style="display:flex;flex-direction:column;gap:12px;font-size:14px">
+            <div style="display:flex;gap:12px;align-items:flex-start"><span style="min-width:84px;color:var(--text-tertiary)">项目</span><span>NapCat 前端工作台（单页 · 本地运行）</span></div>
+            <div style="display:flex;gap:12px;align-items:flex-start"><span style="min-width:84px;color:var(--text-tertiary)">参考</span><span>NextNapCatWebUI 侧边栏布局结构与菜单</span></div>
+            <div style="display:flex;gap:12px;align-items:flex-start"><span style="min-width:84px;color:var(--text-tertiary)">功能</span><span>基础信息 · 网络配置 · 在线配置 · 运行日志 · 接口调试（HTTP / WebSocket）· 好友 · 消息 · 用量 · 记忆</span></div>
+            <div style="display:flex;gap:12px;align-items:flex-start"><span style="min-width:84px;color:var(--text-tertiary)">数据</span><span>仅存在本机，不落服务端</span></div>
+          </div>
+        </div>
+        <div class="card" style="padding:16px 22px;margin-top:12px;font-size:12px;color:var(--text-secondary)">
+          <div style="display:flex;gap:16px;flex-wrap:wrap">
+            <a href="https://github.com/NapNeko/NapCatQQ" target="_blank" rel="noreferrer" style="color:var(--accent)">GitHub</a>
+            <a href="https://napcat.napneko.icu/" target="_blank" rel="noreferrer" style="color:var(--accent)">文档</a>
+            <span>快捷键：'?' 查看</span>
+          </div>
+        </div>
+      </div>`;
       return;
     }
     // 其他均走机器人子视图复用
@@ -3219,29 +3198,32 @@ function doRender(){
 }
 
 /* ---------- drawer ---------- */
-// NapCat WebUI 侧边栏：面板 → 网络/调试 → 资源 → 插件 → 系统 → 关于
+// NapCat WebUI 侧边栏：基础信息 → 网络配置 → 其他配置 → 系统日志 → 接口调试(HTTP/WebSocket) → 关于我们
 const DRAWER_NAV = [
-  { group: "面板", items: [
+  { group: "基础信息", items: [
     { go: "dashboard",   icon: "home",    label: "仪表盘" },
+  ]},
+  { group: "网络配置", items: [
     { go: "network",     icon: "activity",label: "网络状态" },
   ]},
-  { group: "调试", items: [
-    { go: "logs",        icon: "list",    label: "运行日志" },
-    { go: "debug",       icon: "target",  label: "调试面板" },
-  ]},
-  { group: "资源", items: [
-    { go: "file_manager",icon: "user",    label: "好友管理" },
-    { go: "terminal",    icon: "send",    label: "发消息" },
-  ]},
-  { group: "插件", items: [
-    { go: "plugins",     icon: "bolt",    label: "插件中心" },
-    { go: "plugin_store",icon: "chart",   label: "Token 用量" },
-  ]},
-  { group: "扩展", items: [
-    { go: "extension",   icon: "leaf",    label: "记忆扩展" },
-  ]},
-  { group: "系统", items: [
+  { group: "其他配置", items: [
     { go: "config",      icon: "gear",    label: "在线配置" },
+  ]},
+  { group: "系统日志", items: [
+    { go: "logs",        icon: "list",    label: "运行日志" },
+  ]},
+  { group: "接口调试", items: [
+    { go: "debug/http",  icon: "send",    label: "HTTP 接口" },
+    { go: "debug/ws",    icon: "msg",     label: "WebSocket 接口" },
+  ]},
+  { group: "机器人功能", items: [
+    { go: "file_manager",icon: "user",    label: "好友管理" },
+    { go: "terminal",    icon: "send",    label: "主动发消息" },
+    { go: "plugins",     icon: "bolt",    label: "AI 回复 / 群应答" },
+    { go: "plugin_store",icon: "chart",   label: "Token 用量" },
+    { go: "extension",   icon: "leaf",    label: "扩展记忆" },
+  ]},
+  { group: "关于我们", items: [
     { go: "about",       icon: "quote",   label: "关于" },
   ]},
 ];
