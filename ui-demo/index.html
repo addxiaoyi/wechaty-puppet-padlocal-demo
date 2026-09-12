@@ -895,32 +895,14 @@
 
 <script>
 /* ============================================================
-   CONFIG — 唯一需要定制的地方。
-   modules 里每个模块 = 一个功能页；type 决定它长什么样、记什么字段。
-   支持的 type：
-     todo     今日计划/待办（勾选 + 优先级）
-     checkin  习惯打卡（连续天数，每天清零）
-     progress 长期计划（进度条：当前/目标）
-     finance  记账（收入/支出 + 分类 + 金额）
-     note     内容记录/日记（标题 + 正文 + 心情标签）
-   图标用 icon 字段（取自下方 ICONS 图标库，全部为单色线性图标）。
+   CONFIG — 全局配置。
+   modules 里每个模块 = 一个功能页；目前仅保留 NapCat 机器人。
    ============================================================ */
 const CONFIG = {
-  storageKey: "meridian-workbench-v1",   // 换 key 可强制重置
+  storageKey: "napcat-workbench-v1",     // 仅存头像等本地偏好
   owner: "NapCat 机器人",                  // 抽屉顶部标题
   slogan: "状态 · 用量 · 记忆 · 会话",
   brand: "N",                          // 抽屉左上角字符标（品牌缩写）
-
-  // 每日一句（一周七天各一句，按星期轮换：周一→周日）
-  quotes: [
-    "新的一周，从把最重要的一件事做好开始。",   // 周一
-    "保持节奏，稳一点也没关系。",                 // 周二
-    "把大目标拆小，今天只推进一步。",             // 周三
-    "坚持到一半时最难，也最值得。",               // 周四
-    "收个尾，给这一周一个交代。",                 // 周五
-    "允许自己慢下来，好好休息也是正事。",         // 周六
-    "复盘一下，为下一周留点方向。",               // 周日
-  ],
 
   // ============ 模块定义 ============
   modules: [
@@ -984,30 +966,14 @@ function icon(name, size=22, sw=1.7){
 }
 
 /* ============================================================
-   ENGINE — 一般无需改动
+   ENGINE — 核心工具
    ============================================================ */
-function isoToday(){ return new Date().toISOString().slice(0,10); }
-function today(){ return isoToday(); }
-function avgProgress(list){
-  if(!list||!list.length) return { value: 0, sub: "0" };
-  const v = Math.round(list.reduce((s,x)=>s+Math.min(100,(x.current/x.target)*100||0),0)/list.length);
-  return { value: v, sub: `${list.length} 项` };
-}
-const modOf = k => CONFIG.modules.find(m=>m.key===k);
 const $ = s => document.querySelector(s);
 
-const store = {
-  load(){
-    const raw = localStorage.getItem(CONFIG.storageKey);
-    if(raw){ try { return JSON.parse(raw); } catch(e){} }
-    const d = {};
-    CONFIG.modules.forEach(m => d[m.key] = structuredClone(m.seed||[]));
-    return d;
-  },
-  save(){ localStorage.setItem(CONFIG.storageKey, JSON.stringify(data)); },
-};
-let data = store.load();
-function persist(){ store.save(); render(); }
+// 头像持久化：仅本地保存品牌头像
+const AVATAR_KEY = CONFIG.storageKey + ":avatar";
+let avatar = localStorage.getItem(AVATAR_KEY) || null;
+function saveAvatar(){ localStorage.setItem(AVATAR_KEY, avatar || ""); }
 
 /* ---------- chrome icons ---------- */
 $("#btn-menu").innerHTML = icon("menu", 20);
@@ -1024,242 +990,6 @@ document.querySelectorAll('#nav .n').forEach(n=>{
   n.innerHTML = `<span>${icon(iconMap[t]||'grid',18)}</span><span>${map[t]||t}</span>`;
 });
 
-/* ---------- ring svg ---------- */
-function ringSVG(pct, color){
-  const r=25, c=2*Math.PI*r, off=c*(1-Math.min(100,pct)/100);
-  return `<svg class="gauge" viewBox="0 0 60 60"><circle cx="30" cy="30" r="${r}" fill="none" stroke="var(--border)" stroke-width="5.5"/>
-    <circle cx="30" cy="30" r="${r}" fill="none" stroke="${color}" stroke-width="5.5" stroke-linecap="round"
-      stroke-dasharray="${c}" stroke-dashoffset="${off}"/></svg>`;
-}
-
-/* ---------- HOME ---------- */
-function renderHome(){
-  const now = new Date();
-  const dow = (now.getDay()+6)%7;               // 周一=0 … 周日=6
-  const q = CONFIG.quotes[dow % CONFIG.quotes.length];
-  const hour = now.getHours();
-  const hi = hour<5?"夜深了":hour<11?"早上好":hour<13?"中午好":hour<18?"下午好":"晚上好";
-
-  // overview rings
-  const rings = CONFIG.overview.map(o=>{
-    const r=o.calc(data);
-    return `<div class="ring" data-open="${o.key}"><div class="dial">${ringSVG(r.value,o.color)}<span class="mid" style="color:${o.color}">${icon(o.icon,23)}</span></div>
-      <div class="pct">${r.value}%</div><div class="lbl">${o.label}</div><div class="sub">${r.sub}</div></div>`;
-  }).join("");
-
-  // pinned tasks (置顶) — 跨模块收集 item.pinned；就地交互，不跳转
-  const pins=[];
-  CONFIG.modules.forEach(m=>(data[m.key]||[]).forEach(x=>{ if(x.pinned) pins.push({m,x}); }));
-  const chkMark=icon("check",13,2.6);
-  const pinSub=(m,x)=>{
-    if(m.type==="checkin") return `${m.name} · 连续 ${streak(x.log)} 天`;
-    if(m.type==="progress"){ const pct=Math.round((x.current/x.target)*100||0); return `${m.name} · ${x.current}/${x.target} ${x.unit||m.unit||''} · ${Math.min(100,pct)}%`; }
-    return m.name;
-  };
-  const pinCtl=(m,x)=>{
-    if(m.type==="checkin"){ const on=!!(x.log&&x.log[today()]); return `<div class="pin-chk js-pin-chk ${on?'on':''}" data-mkey="${m.key}" data-id="${x.id}">${chkMark}</div>`; }
-    if(m.type==="todo"){ return `<div class="pin-chk js-pin-chk ${x.done?'on':''}" data-mkey="${m.key}" data-id="${x.id}">${chkMark}</div>`; }
-    if(m.type==="progress"){ return `<div class="pin-step"><button class="js-pin-dec" data-mkey="${m.key}" data-id="${x.id}" aria-label="减">−</button><button class="js-pin-inc" data-mkey="${m.key}" data-id="${x.id}" aria-label="加">+</button></div>`; }
-    return `<span class="arw">${icon("chevron",14,2)}</span>`;
-  };
-  const pinned = pins.length ? pins.map(({m,x})=>`<li class="pin">
-      <span class="pin-ic" style="color:${m.color}">${icon(m.icon,17)}</span>
-      <div class="pin-b js-pin-open" data-mkey="${m.key}" data-id="${x.id}"><div class="pin-t ${(m.type==='todo'&&x.done)?'done':''}">${esc(x.title)}</div><div class="pin-m">${pinSub(m,x)}</div></div>
-      ${pinCtl(m,x)}</li>`).join("")
-    : `<div class="pin-empty">在任意模块点击 <span class="mini-star">${icon("star",13)}</span> 即可把重要任务置顶到这里</div>`;
-
-  // trend
-  const series = CONFIG.trend.series(data);
-  const hasTrend = series.length>0;
-  const avg = hasTrend ? Math.round(series.reduce((a,b)=>a+b,0)/series.length) : 0;
-  const trend = hasTrend ? trendSVG(series)
-    : `<div class="trend-empty">${icon("chart",22)}<span>暂无本周数据</span></div>`;
-
-  const quick = CONFIG.quickAdd.map(q=>`<button class="qbtn" data-quick="${q.module}"><span class="e" style="background:${q.tint};color:${q.color}">${icon(q.icon,20)}<i class="qplus">${icon("plus",10,3)}</i></span><span class="l">${q.label}</span></button>`).join("");
-
-  $("#screen").innerHTML = `
-    <div class="greet"><h1>${hi}</h1><p>欢迎回到${CONFIG.owner}</p></div>
-    <div class="quote"><span class="tag">${icon("quote",13)} 今日一句</span><div class="txt">${esc(q)}</div></div>
-    <h2 class="sec-title">今日概览</h2>
-    <div class="card rings">${rings}</div>
-    <h2 class="sec-title">置顶任务</h2>
-    <ul class="pin-list">${pinned}</ul>
-    <h2 class="sec-title">快速记录</h2>
-    <div class="quick-grid">${quick}</div>
-    <div class="panel trend-panel"><div class="ph">${icon("chart",15)} ${CONFIG.trend.title}${hasTrend?`<span class="avg">均 ${avg}${CONFIG.trend.unit}</span>`:''}</div>
-      ${trend}${hasTrend?`<div class="trend-x"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>`:''}</div>`;
-
-  wireHome();
-}
-
-function trendSVG(series){
-  const w=320, h=120, padX=10, padTop=14, padBot=18;
-  const max=Math.max(...series), min=Math.min(...series);
-  const rng=(max-min)||1;
-  const innerW=w-2*padX, innerH=h-padTop-padBot;
-  const pts=series.map((v,i)=>{
-    const x=padX+innerW*i/(series.length-1);
-    const y=padTop+innerH*(1-(v-min)/rng);
-    return [x,y];
-  });
-  const line=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
-  const area=line+` L ${padX+innerW} ${h-padBot} L ${padX} ${h-padBot} Z`;
-  const dots=pts.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3" fill="#fff" stroke="var(--module-2)" stroke-width="2"/>`).join('');
-  return `<svg class="trend-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet">
-    <defs><linearGradient id="tg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--module-2)" stop-opacity=".22"/><stop offset="1" stop-color="var(--module-2)" stop-opacity="0"/></linearGradient></defs>
-    <path d="${area}" fill="url(#tg)"/><path d="${line}" fill="none" stroke="var(--module-2)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>${dots}</svg>`;
-}
-
-/* ---------- donut chart (支出占比) ---------- */
-function donutSVG(segs){
-  const total=segs.reduce((s,x)=>s+x.amount,0)||1;
-  const r=42, c=2*Math.PI*r; let acc=0; const out=[];
-  segs.forEach(s=>{
-    const len=(s.amount/total)*c;
-    out.push(`<circle cx="52" cy="52" r="${r}" fill="none" stroke="${s.color}" stroke-width="14"
-      stroke-dasharray="${len.toFixed(2)} ${(c-len).toFixed(2)}" stroke-dashoffset="${(c-acc).toFixed(2)}" transform="rotate(-90 52 52)"/>`);
-    acc+=len;
-  });
-  return `<svg viewBox="0 0 104 104" width="104" height="104">${out.join("")}</svg>`;
-}
-
-/* ---------- calendar grid (打卡月视图) ---------- */
-let calMonth=null, calItemId=null;
-function renderCalendar(m, it){
-  if(!it.length) return "";
-  const now=new Date();
-  const cm=calMonth||{y:now.getFullYear(),m:now.getMonth()};
-  const item=it.find(x=>x.id===calItemId)||it[0]; calItemId=item.id;
-  const y=cm.y, mo=cm.m;
-  const startDow=new Date(y,mo,1).getDay();
-  const days=new Date(y,mo+1,0).getDate();
-  const todayIso=isoToday();
-  const log=item.log||{};
-  const chips=it.map(x=>`<button type="button" class="cal-chip ${x.id===item.id?'on':''}" data-calitem="${x.id}">${esc(x.title)}</button>`).join("");
-  let cells="", monthCount=0;
-  for(let i=0;i<startDow;i++) cells+=`<li class="cal-cell blank" aria-hidden="true"></li>`;
-  for(let d=1;d<=days;d++){
-    const ds=`${y}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const on=!!log[ds]; if(on) monthCount++;
-    cells+=`<li><button type="button" class="cal-cell ${on?'on':''} ${ds===todayIso?'today':''}" data-date="${ds}"${on?` style="background:${m.color};border-color:${m.color}"`:''}>${d}</button></li>`;
-  }
-  return `<div class="panel cal-panel">
-    <div class="cal-hd"><button class="cal-nav" data-cal="prev" aria-label="上月">${icon("chevron",16,2)}</button>
-      <span class="cal-title">${y}年${mo+1}月</span>
-      <button class="cal-nav" data-cal="next" aria-label="下月">${icon("chevron",16,2)}</button></div>
-    <div class="cal-chips">${chips}</div>
-    <div class="cal-dow">${"日一二三四五六".split("").map(x=>`<span>${x}</span>`).join("")}</div>
-    <ul class="cal-grid">${cells}</ul>
-    <div class="cal-foot">${icon("flame",13)} 连续 ${streak(log)} 天 · 本月 ${monthCount}/${days} 天</div></div>`;
-}
-function wireCalendar(key, it){
-  const block=$("#screen").querySelector(".cal-panel"); if(!block) return;
-  block.querySelectorAll("[data-cal]").forEach(el=>el.onclick=()=>{
-    const now=new Date(); let y=calMonth?calMonth.y:now.getFullYear(), mo=calMonth?calMonth.m:now.getMonth();
-    if(el.dataset.cal==="prev"){ mo--; if(mo<0){mo=11;y--;} }
-    else { mo++; if(mo>11){mo=0;y++;} }
-    calMonth={y,m:mo}; render();
-  });
-  block.querySelectorAll("[data-calitem]").forEach(el=>el.onclick=()=>{ calItemId=+el.dataset.calitem; render(); });
-  block.querySelectorAll(".cal-cell[data-date]").forEach(el=>el.onclick=()=>{
-    const item=it.find(x=>x.id===calItemId)||it[0]; if(!item) return;
-    const ds=el.dataset.date; item.log=item.log||{};
-    const wasOn=!!item.log[ds];
-    const todayIso=isoToday();
-    // 今天之前的日期取消打卡：高风险（会断连续），先确认
-    if(wasOn && ds<todayIso){
-      confirmCalUncheck(item, ds);
-      return;
-    }
-    if(wasOn) delete item.log[ds]; else item.log[ds]=true;
-    persist();
-    if(wasOn) showCalUndo(item, ds);
-  });
-}
-let calToastTimer=null;
-function showCalUndo(item, ds){
-  let t=$("#calToast");
-  if(!t){ t=document.createElement("div"); t.id="calToast"; t.className="cal-toast"; document.body.appendChild(t); }
-  t.innerHTML=`已取消 ${ds.slice(5)} 打卡<button type="button" id="calUndo">撤销</button>`;
-  t.classList.add("show");
-  const undo=$("#calUndo"); if(undo) undo.onclick=()=>{ item.log=item.log||{}; item.log[ds]=true; persist(); hideCalToast(); };
-  clearTimeout(calToastTimer);
-  calToastTimer=setTimeout(hideCalToast, 4000);
-}
-function hideCalToast(){ const t=$("#calToast"); if(t) t.classList.remove("show"); }
-function confirmCalUncheck(item, ds){
-  const overlay=document.createElement("div"); overlay.className="overlay";
-  overlay.innerHTML=`<div class="modal"><div class="grab"></div><h2>取消打卡</h2>
-    <div class="sub">取消 ${ds} 的打卡可能会中断连续天数，确定吗？</div>
-    <div class="modal-actions"><button class="btn ghost" id="cu-cancel">保留</button><button class="btn danger" id="cu-ok">取消打卡</button></div></div>`;
-  document.body.appendChild(overlay);
-  const close=()=>overlay.remove();
-  overlay.onclick=e=>{ if(e.target===overlay) close(); };
-  overlay.querySelector("#cu-cancel").onclick=close;
-  overlay.querySelector("#cu-ok").onclick=()=>{ delete item.log[ds]; persist(); close(); showCalUndo(item, ds); };
-}
-
-function wireHome(){
-  $("#screen").querySelectorAll("[data-open]").forEach(el=>el.onclick=()=>go(el.dataset.open));
-  $("#screen").querySelectorAll("[data-quick]").forEach(el=>el.onclick=()=>{ go(el.dataset.quick); openEditor(el.dataset.quick,null); });
-  const find=el=>(data[el.dataset.mkey]||[]).find(i=>i.id==el.dataset.id);
-  // 置顶卡：就地打卡 / 完成
-  $("#screen").querySelectorAll(".js-pin-chk").forEach(el=>el.onclick=e=>{
-    e.stopPropagation(); const m=modOf(el.dataset.mkey), x=find(el); if(!x) return;
-    if(m.type==="todo"){ x.done=!x.done; }
-    else if(m.type==="checkin"){ x.log=x.log||{}; const t=today(); x.log[t]?delete x.log[t]:x.log[t]=true; }
-    persist();
-  });
-  // 置顶卡：就地改数字
-  $("#screen").querySelectorAll(".js-pin-inc").forEach(el=>el.onclick=e=>{ e.stopPropagation(); const x=find(el); if(!x) return; x.current=(+x.current||0)+1; persist(); });
-  $("#screen").querySelectorAll(".js-pin-dec").forEach(el=>el.onclick=e=>{ e.stopPropagation(); const x=find(el); if(!x) return; x.current=Math.max(0,(+x.current||0)-1); persist(); });
-  // 置顶卡：点标题区查看详情 / 改状态
-  $("#screen").querySelectorAll(".js-pin-open").forEach(el=>el.onclick=()=>openEditor(el.dataset.mkey, find(el)));
-}
-
-/* ---------- INSIGHT ---------- */
-function renderInsight(){
-  // 模块完成度柱状条
-  const DONUT_COLORS=["var(--module-4)","var(--module-3)","var(--module-5)","var(--module-2)","var(--module-1)","var(--danger)","var(--text-tertiary)"];
-  const bars = CONFIG.modules.map(m=>{
-    const it=data[m.key]||[]; let pct=0, label="";
-    if(m.type==="todo"){ const d=it.filter(x=>x.done).length; pct=it.length?Math.round(d/it.length*100):0; label=`${d}/${it.length}`; }
-    else if(m.type==="checkin"){ const t=today(); const d=it.filter(x=>x.log&&x.log[t]).length; pct=it.length?Math.round(d/it.length*100):0; label=`${d}/${it.length}`; }
-    else if(m.type==="progress"){ pct=avgProgress(it).value; label=`${pct}%`; }
-    else if(m.type==="finance"){ const e=it.filter(x=>x.type==="expense").reduce((s,x)=>s+ +x.amount,0); label=`¥${e}`; }
-    else { label=`${it.length} 条`; }
-    return {m, pct, label};
-  });
-  const barAvg = bars.length ? Math.round(bars.reduce((s,b)=>s+b.pct,0)/bars.length) : 0;
-  const barList = bars.map(b=>`<li class="bar-row" data-open="${b.m.key}" role="button" tabindex="0">
-    <span class="bar-ic" style="color:${b.m.color}">${icon(b.m.icon,17)}</span>
-    <span class="bar-name">${b.m.name}</span>
-    <div class="pbar"><i style="width:${Math.min(100,b.pct)}%;background:${b.m.color}"></i></div>
-    <span class="bar-pct">${b.label}</span></li>`).join("");
-
-  // 支出构成 donut
-  const money = data.money||[];
-  const exps = money.filter(x=>x.type==="expense");
-  const totalExp = exps.reduce((s,x)=>s+ +x.amount,0);
-  const cats = (modOf("money")&&modOf("money").categories)||[];
-  let segs = cats.map(c=>({ cat:c, amount: exps.filter(x=>x.category===c).reduce((s,x)=>s+ +x.amount,0) }))
-    .filter(s=>s.amount>0).sort((a,b)=>b.amount-a.amount);
-  segs.forEach((s,i)=>s.color=DONUT_COLORS[i%DONUT_COLORS.length]);
-  const donut = segs.length ? donutSVG(segs) : `<div class="donut-empty">${icon("wallet",22)}<span>暂无</span></div>`;
-  const legend = segs.map(s=>{ const p=totalExp?Math.round(s.amount/totalExp*100):0;
-    return `<div class="legend-item"><span class="legend-dot" style="background:${s.color}"></span>
-      <span class="legend-name">${esc(s.cat)}</span><span class="legend-amt">¥${s.amount}</span><span class="legend-pct">${p}%</span></div>`; }).join("");
-
-  $("#screen").innerHTML = `<div class="greet"><h1>洞察</h1><p>各模块进展一览 · 记录—执行—统计—反馈</p></div>
-    <h2 class="sec-title">模块完成度</h2>
-    <div class="panel"><div class="ph">${icon("chart",15)} 模块完成度<span class="avg">均 ${barAvg}%</span></div>
-      <ul class="bar-list">${barList}</ul></div>
-    <h2 class="sec-title">支出构成</h2>
-    <div class="panel"><div class="ph">${icon("wallet",15)} 支出构成<span class="avg">合计 ¥${totalExp}</span></div>
-      <div class="donut-wrap"><div class="donut">${donut}${segs.length?`<span class="donut-mid">¥${totalExp}</span>`:''}</div>
-        <div class="donut-legend">${legend}</div></div></div>`;
-  $("#screen").querySelectorAll("[data-open]").forEach(el=>el.onclick=()=>go(el.dataset.open));
-}
 
 /* ---------- BOT VIEW 统一渲染状态组件 ---------- */
 // 统一加载态组件：任一“加载中”槽位都走这里
@@ -1317,6 +1047,25 @@ function toast(msg, type='info'){
 }
 toast.success = (msg)=>toast(msg, 'success');
 toast.error = (msg)=>toast(msg, 'error');
+
+/* ---------- 危险操作确认弹窗 ---------- */
+function apiConfirm(title, messageHtml, onConfirm){
+  const overlay = document.createElement("div");
+  overlay.className = "overlay";
+  overlay.innerHTML = `<div class="modal" style="max-width:420px"><div class="grab"></div><h2>${esc(title)}</h2>
+    <div class="sub">${messageHtml||""}</div>
+    <div class="modal-actions"><button class="btn ghost" id="ac-cancel">取消</button><button class="btn danger" id="ac-ok">${icon("check",15,2)} 确认</button></div></div>`;
+  document.body.appendChild(overlay);
+  const close = ()=>overlay.remove();
+  overlay.onclick = e=>{ if(e.target===overlay) close(); };
+  overlay.querySelector("#ac-cancel").onclick = close;
+  overlay.querySelector("#ac-ok").onclick = async ()=>{
+    const btn = overlay.querySelector("#ac-ok");
+    btn.disabled = true; btn.innerHTML = `<span class="spinner"></span> 处理中`;
+    try{ await onConfirm(); close(); }
+    catch(e){ toast.error(e.message || "操作失败"); btn.disabled = false; btn.innerHTML = `${icon("check",15,2)} 确认`; }
+  };
+}
 toast.info = (msg)=>toast(msg, 'info');
 toast.warning = (msg)=>toast(msg, 'warning');
 
@@ -2644,6 +2393,168 @@ function renderBotSend(m){
   loadPicker();
 }
 
+/* ---------- 接口调试（HTTP / WebSocket） ---------- */
+function renderBotDebug(view){
+  stopPoll();
+  const active = view === 'debug/ws' ? 'debug/ws' : 'debug/http';
+  $("#screen").innerHTML = botPageHead("接口调试","向工作台后端发起真实请求，排查接口与连通性")
+    + `<div style="margin-top:16px">
+      <div class="cfg-switches" style="gap:8px;margin-bottom:14px">
+        <button class="btn${active==='debug/http'?'':' ghost'}" data-dbg-tab="debug/http">HTTP 接口</button>
+        <button class="btn${active==='debug/ws'?'':' ghost'}" data-dbg-tab="debug/ws">WebSocket 接口</button>
+      </div>
+      <div class="panel" id="db-box"></div>
+    </div>`;
+  $("#bot-refer").onclick = ()=>go(active);
+  $("#screen").querySelectorAll("[data-dbg-tab]").forEach(el=>{
+    el.onclick = ()=>go(el.dataset.dbgTab);
+  });
+  if(active === 'debug/ws') renderDebugWs();
+  else renderDebugHttp();
+}
+
+function renderDebugHttp(){
+  const box = $("#db-box");
+  box.innerHTML = `
+    <div class="cfg-field">
+      <div class="lab">请求方法</div>
+      <select id="db-method"><option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option></select>
+    </div>
+    <div class="cfg-field" style="margin-top:12px">
+      <div class="lab">接口路径（相对工作台，例：/api/bot/status）</div>
+      <input id="db-url" value="/api/bot/status"/>
+    </div>
+    <div class="cfg-field" style="margin-top:12px" id="db-body-wrap">
+      <div class="lab">请求体（JSON，GET 可留空）</div>
+      <textarea id="db-body" rows="5" placeholder='{"key":"value"}'></textarea>
+    </div>
+    <div style="margin-top:14px"><button class="btn" id="db-send">${icon("send",15,2)} 发送请求</button></div>
+    <div class="cfg-field" style="margin-top:16px">
+      <div class="lab">响应</div>
+      <div class="lv-body" id="db-res" style="max-height:280px;border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text-secondary)">
+        <div class="lv-empty">发送请求后在此查看状态码与返回内容</div>
+      </div>
+    </div>`;
+
+  const $m = $("#db-method"), $u = $("#db-url"), $b = $("#db-body"), $r = $("#db-res"), $send = $("#db-send");
+  const sync = ()=>{ $("#db-body-wrap").style.display = ($m.value==='GET'||$m.value==='DELETE') ? 'none' : ''; };
+  $m.onchange = sync; sync();
+
+  const paint = (head, body, ok)=>{
+    $r.innerHTML = `<div class="lv-row"><span class="lv-lv ${ok?'info':'error'}">${esc(head)}</span></div><pre style="margin:0;white-space:pre-wrap;word-break:break-all">${esc(body)}</pre>`;
+  };
+
+  $send.onclick = async ()=>{
+    const method = $m.value;
+    let url = $u.value.trim();
+    if(!url){ toast.error("请填写接口路径"); return; }
+    if(url[0] !== '/') url = '/' + url;
+    let payload;
+    if(method==='POST'||method==='PUT'){
+      const raw = $b.value.trim();
+      if(raw){ try{ JSON.parse(raw); payload = raw; }catch(e){ toast.error("请求体不是合法 JSON"); return; } }
+    }
+    $send.disabled = true; $send.innerHTML = `<span class="spinner"></span> 请求中`;
+    const t0 = performance.now();
+    try{
+      const res = await fetch(url, {
+        method,
+        headers: payload ? { "Content-Type":"application/json" } : undefined,
+        body: payload || undefined,
+      });
+      const ms = Math.round(performance.now()-t0);
+      const text = await res.text();
+      let pretty = text;
+      try{ pretty = JSON.stringify(JSON.parse(text), null, 2); }catch(e){}
+      paint(`${res.status} ${res.statusText||''} · ${ms}ms`, pretty || '(空响应)', res.ok);
+    }catch(e){
+      paint('请求失败', e.message || String(e), false);
+    }finally{
+      $send.disabled = false; $send.innerHTML = `${icon("send",15,2)} 发送请求`;
+    }
+  };
+}
+
+let debugSocket = null;
+function renderDebugWs(){
+  const box = $("#db-box");
+  box.innerHTML = `
+    <div class="cfg-field">
+      <div class="lab">WebSocket 地址</div>
+      <input id="ws-url" value="${attr((location.protocol==='https:'?'wss://':'ws://')+location.host+'/ws')}"/>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;margin-top:12px">
+      <button class="btn" id="ws-connect">${icon("link",15,2)} 连接</button>
+      <button class="btn ghost" id="ws-disconnect" disabled>断开</button>
+      <span class="hero-pill off" id="ws-state">未连接</span>
+    </div>
+    <div class="cfg-field" style="margin-top:16px">
+      <div class="lab">发送内容（JSON 或文本）</div>
+      <textarea id="ws-msg" rows="4" placeholder='{"action":"getFriendList"}'></textarea>
+    </div>
+    <div style="margin-top:12px"><button class="btn ghost" id="ws-send" disabled>${icon("send",15,2)} 发送</button></div>
+    <div class="cfg-field" style="margin-top:16px">
+      <div class="lab">通信日志</div>
+      <div class="lv-body" id="ws-log" style="max-height:280px;border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+        <div class="lv-empty">连接后在此查看收发消息</div>
+      </div>
+    </div>`;
+
+  const $url = $("#ws-url"), $st = $("#ws-state"), $conn = $("#ws-connect"),
+        $disc = $("#ws-disconnect"), $send = $("#ws-send"), $log = $("#ws-log"), $msg = $("#ws-msg");
+
+  const setState = (lab, pill)=>{ $st.textContent = lab; $st.className = `hero-pill ${pill}`; };
+  const line = (dir, text)=>{
+    if($log.querySelector('.lv-empty')) $log.innerHTML = '';
+    $log.insertAdjacentHTML('beforeend', `<div class="lv-row"><span class="lv-lv ${dir==='→'?'info':'warn'}">${dir}</span><span class="lv-msg">${esc(text)}</span></div>`);
+    $log.scrollTop = $log.scrollHeight;
+  };
+
+  const close = ()=>{
+    if(debugSocket){
+      debugSocket.onopen = debugSocket.onmessage = debugSocket.onerror = debugSocket.onclose = null;
+      try{ debugSocket.close(); }catch(e){}
+      debugSocket = null;
+    }
+  };
+  close();
+  setState('未连接', 'off');
+  $conn.disabled = false; $disc.disabled = true; $send.disabled = true;
+
+  $conn.onclick = ()=>{
+    const raw = $url.value.trim();
+    if(!raw){ toast.error("请填写 WebSocket 地址"); return; }
+    if(!/^wss?:\/\//i.test(raw)){ toast.error("地址需以 ws:// 或 wss:// 开头"); return; }
+    close();
+    setState('连接中…', 'scan');
+    $conn.disabled = true;
+    let sock;
+    try{ sock = new WebSocket(raw); }
+    catch(e){ setState('连接失败', 'off'); $conn.disabled = false; toast.error(e.message || '地址不合法'); return; }
+    debugSocket = sock;
+    sock.onopen = ()=>{
+      setState('已连接', 'on'); $disc.disabled = false; $send.disabled = false;
+      line('·', `已连接到 ${raw}`);
+    };
+    sock.onmessage = ev=>line('←', typeof ev.data === 'string' ? ev.data : '[二进制数据]');
+    sock.onerror = ()=>{ line('·','连接出错'); toast.error("WebSocket 连接出错"); };
+    sock.onclose = ev=>{
+      if(debugSocket !== sock) return;
+      debugSocket = null;
+      setState('已断开', 'off'); $conn.disabled = false; $disc.disabled = true; $send.disabled = true;
+      line('·', `连接关闭（code ${ev.code||0}）`);
+    };
+  };
+  $disc.onclick = ()=>{ close(); setState('已断开','off'); $conn.disabled=false; $disc.disabled=true; $send.disabled=true; };
+  $send.onclick = ()=>{
+    if(!debugSocket || debugSocket.readyState !== WebSocket.OPEN){ toast.error("尚未连接"); return; }
+    const text = $msg.value;
+    if(!text.trim()){ toast.error("请输入发送内容"); return; }
+    debugSocket.send(text);
+    line('→', text);
+  };
+}
+
 function renderBot(view){
   const m = CONFIG.modules.find(x=>x.key==="bot");
   if(view==='usage') return renderBotUsage(m);
@@ -2655,6 +2566,7 @@ function renderBot(view){
   if(view==='config')return renderBotConfig(m);
   if(view==='sys')   return renderBotSys(m);
   if(view==='logs')  return renderBotLogs(m);
+  if(view==='debug' || view==='debug/http' || view==='debug/ws') return renderBotDebug(view);
   if(view==='contacts') return renderBotContacts(m);
   if(view==='rooms') return renderBotRooms(m);
   if(view==='send')  return renderBotSend(m);
@@ -2786,270 +2698,6 @@ function openConv(contactId, roomId){
   load();
 }
 
-/* ---------- MODULE VIEW ---------- */
-function renderModule(key){
-  const m=modOf(key); const it=data[key]||[];
-  if(m.type==="bot"){ renderBot(m); return; }
-  const t=today();
-  let head="", extra="";
-  if(m.type==="finance"){
-    const inc=it.filter(x=>x.type==="income").reduce((s,x)=>s+ +x.amount,0);
-    const exp=it.filter(x=>x.type==="expense").reduce((s,x)=>s+ +x.amount,0);
-    head=`<div class="mod-summary">
-      <div class="mini"><div class="l">收入</div><div class="v" style="color:var(--module-1)">¥${inc}</div></div>
-      <div class="mini"><div class="l">支出</div><div class="v" style="color:var(--danger)">¥${exp}</div></div>
-      <div class="mini"><div class="l">结余</div><div class="v">¥${inc-exp}</div></div></div>`;
-  } else if(m.type==="todo"){
-    const done=it.filter(x=>x.done).length; const pct=it.length?Math.round(done/it.length*100):0;
-    head=headHero(m, `${done}/${it.length}`, "今日已完成", pct);
-  } else if(m.type==="checkin"){
-    const done=it.filter(x=>x.log&&x.log[t]).length; const pct=it.length?Math.round(done/it.length*100):0;
-    head=headHero(m, `${done}/${it.length}`, "今日已打卡", pct);
-  } else if(m.type==="progress"){
-    const p=avgProgress(it);
-    head=headHero(m, `${p.value}%`, `平均进度 · ${it.length} 项`, p.value);
-  } else if(m.type==="note"){
-    const todayN=it.filter(x=>x.date===t).length;
-    head=headHero(m, `${it.length}`, `条记录 · 今日 ${todayN} 条`, null);
-  }
-  if(m.type==="checkin") extra=renderCalendar(m,it);
-  const body = it.length ? it.map(x=>recHTML(m,x)).join("")
-    : `<div class="empty"><span class="e">${icon(m.icon,26)}</span><p>还没有记录，点上方「新建」添加第一条吧</p></div>`;
-  $("#screen").innerHTML = `<div class="greet"><h1>${m.name}</h1><p>${m.desc}</p>
-      <button class="add" id="btn-add">${icon("plus",16,2.2)}新建</button></div>
-    <div style="margin-top:16px">${head}${extra}
-      <h2 class="sec-title">记录</h2>${body}</div>`;
-  wireModule(key);
-}
-
-/* per-module hero header: compact strip — icon + big number + label + optional progress bar */
-function headHero(m, big, label, pct){
-  const inner=`<div class="hero-ic" style="background:${m.tint};color:${m.color}">${icon(m.icon,20)}</div>
-    <div style="flex:1;min-width:0"><div class="hero-tx"><span class="hero-v">${big}</span><span class="hero-l">${label}</span></div>
-    ${pct!=null?`<div class="hero-bar"><i style="width:${Math.min(100,pct)}%;background:${m.color}"></i></div>`:''}</div>`;
-  if(m.cover) return `<div class="hero has-cover"><div class="hero-bg" style="background-image:url('${attr(m.cover)}')"></div><div class="hero-inner">${inner}</div></div>`;
-  return `<div class="hero">${inner}</div>`;
-}
-
-function recHTML(m,x){
-  const pin=`<button class="pin-btn js-pin ${x.pinned?'on':''}" data-id="${x.id}" title="置顶" aria-label="置顶">${icon("star",15)}</button>`;
-  const del=`<button class="del js-del" data-id="${x.id}" title="删除" aria-label="删除">${icon("trash",16)}</button>`;
-  const acts=`<div class="acts">${pin}${del}</div>`;
-  const chkMark=icon("check",14,2.4);
-  const thumb=x.image?`<img class="thumb" src="${attr(x.image)}" alt="">`:'';
-  const customMeta=(m.fields||[]).filter(f=>x[f.key]).map(f=>`<span class="meta-tag">${esc(x[f.key])}</span>`).join("");
-  const customBlock=customMeta?`<div class="meta-line">${customMeta}</div>`:'';
-  const layout=x.layout||'default';
-  const layoutCls=`rec-layout-${layout}`;
-
-  // feature layout: 大图在上 + 标题 + 正文 (适合有图记录)
-  if(layout==='feature' && x.image){
-    const body=(x.content||x.note||'').trim();
-    return `<div class="rec ${layoutCls}">${acts}<div class="top" data-edit="${x.id}" style="flex-direction:column">
-      ${thumb}
-      <div class="feat-title">${esc(x.title||'无标题')}</div>
-      ${body?`<div class="feat-body">${esc(body)}</div>`:''}
-      ${customBlock?`<div style="padding:0 12px 12px">${customBlock}</div>`:''}</div></div>`;
-  }
-  // quote layout: 大字居中 (适合短文本/灵感/金句)
-  if(layout==='quote'){
-    const text=(x.content||x.title||'').trim();
-    return `<div class="rec ${layoutCls}">${acts}<div class="top" data-edit="${x.id}" style="flex-direction:column;align-items:center;text-align:center">
-      <div class="quote-text">${esc(text)}</div>
-      ${x.mood?`<div class="quote-meta">${esc(x.mood)}${x.date?` · ${esc(x.date)}`:''}</div>`:(x.date?`<div class="quote-meta">${esc(x.date)}</div>`:'')}
-      ${customBlock?`<div style="margin-top:8px">${customBlock}</div>`:''}</div></div>`;
-  }
-
-  // default layout (原有逻辑)
-  if(m.type==="todo"){
-    const p=(m.priorities||[]).find(p=>p.key===x.priority);
-    return `<div class="rec ${layoutCls}">${acts}<div class="top">
-      <div class="chk js-chk ${x.done?'on':''}" data-id="${x.id}">${chkMark}</div>
-      ${thumb}
-      <div class="body" data-edit="${x.id}"><div class="rname ${x.done?'done':''}">${esc(x.title)}</div>
-      <div class="rmeta">${p?`<span class="badge" style="background:${p.color};color:${p.text}"><span class="dot"></span>${p.label}</span>`:''}</div>
-      ${x.note?`<div class="rnote">${esc(x.note)}</div>`:''}${customBlock}</div></div></div>`;
-  }
-  if(m.type==="checkin"){
-    const on=!!(x.log&&x.log[today()]); const st=streak(x.log);
-    return `<div class="rec ${layoutCls}">${acts}<div class="top">
-      <div class="chk js-chk ${on?'on':''}" data-id="${x.id}">${chkMark}</div>
-      ${thumb}
-      <div class="body" data-edit="${x.id}"><div class="rname">${esc(x.title)}</div>
-      <div class="rmeta"><span class="streak">${icon("flame",13)} 连续 ${st} 天</span>${on?'<span class="badge" style="background:var(--accent-muted);color:var(--accent)">今日已打卡</span>':''}</div>${customBlock}</div></div></div>`;
-  }
-  if(m.type==="progress"){
-    const pct=Math.min(100,Math.round((x.current/x.target)*100||0));
-    return `<div class="rec ${layoutCls}">${acts}<div class="top">${thumb}<div class="body" data-edit="${x.id}">
-      <div class="rname">${esc(x.title)}</div>
-      <div class="rmeta"><span style="color:var(--text-secondary);font-size:13px">${x.current}/${x.target} ${x.unit||m.unit||''} · ${pct}%</span></div>
-      <div class="pbar"><i style="width:${pct}%;background:${m.color}"></i></div>
-      ${x.note?`<div class="rnote">${esc(x.note)}</div>`:''}${customBlock}</div></div></div>`;
-  }
-  if(m.type==="finance"){
-    const inc=x.type==="income";
-    return `<div class="rec ${layoutCls}">${acts}<div class="top">${thumb}<div class="body" data-edit="${x.id}">
-      <div class="rname">${esc(x.title)}</div>
-      <div class="rmeta"><span class="badge" style="background:var(--surface-nested);color:var(--text-secondary)">${esc(x.category||'其他')}</span><span style="color:var(--text-secondary);font-size:12px">${x.date||''}</span></div>${customBlock}</div>
-      <div class="amt ${inc?'inc':'exp'}" style="margin-left:auto">${inc?'+':'-'}¥${x.amount}</div></div></div>`;
-  }
-  // note
-  return `<div class="rec ${layoutCls}">${acts}<div class="top">${thumb}<div class="body" data-edit="${x.id}">
-    <div class="rname">${esc(x.title||'无标题')}</div>
-    <div class="rmeta">${x.mood?`<span class="badge" style="background:var(--accent-muted);color:var(--accent)">${esc(x.mood)}</span>`:''}<span style="color:var(--text-secondary);font-size:12px">${x.date||''}</span></div>
-    ${x.content?`<div class="rnote">${esc(x.content)}</div>`:''}${customBlock}</div></div></div>`;
-}
-
-function streak(log){
-  if(!log) return 0; let n=0; const d=new Date();
-  for(;;){ const key=d.toISOString().slice(0,10); if(log[key]){ n++; d.setDate(d.getDate()-1); } else break; }
-  return n;
-}
-
-function wireModule(key){
-  const m=modOf(key);
-  $("#screen").querySelectorAll(".js-chk").forEach(el=>el.onclick=e=>{
-    e.stopPropagation(); const x=(data[key]).find(i=>i.id==el.dataset.id);
-    if(m.type==="todo"){ x.done=!x.done; }
-    else if(m.type==="checkin"){ x.log=x.log||{}; const t=today(); x.log[t]?delete x.log[t]:x.log[t]=true; }
-    persist();
-  });
-  $("#screen").querySelectorAll("[data-edit]").forEach(el=>el.onclick=()=>openEditor(key,(data[key]).find(i=>i.id==el.dataset.edit)));
-  $("#screen").querySelectorAll(".js-del").forEach(el=>el.onclick=e=>{ e.stopPropagation(); confirmDelete(key, el.dataset.id); });
-  $("#screen").querySelectorAll(".js-pin").forEach(el=>el.onclick=e=>{ e.stopPropagation(); const x=(data[key]).find(i=>i.id==el.dataset.id); x.pinned=!x.pinned; persist(); });
-  const add=$("#btn-add"); if(add) add.onclick=()=>openEditor(key,null);
-  if(m.type==="checkin") wireCalendar(key, data[key]||[]);
-}
-
-/* ---------- EDITOR MODAL (per type) ---------- */
-function openEditor(key, item){
-  const m=modOf(key); const editing=!!item;
-  const d = item || newItem(m);
-  let fields="";
-  if(m.type==="todo"){
-    fields=`<div class="field"><label>任务</label><input id="f-title" value="${attr(d.title)}" placeholder="要做什么？"/></div>
-      <div class="field"><label>优先级</label><div class="seg" id="f-prio">${(m.priorities||[]).map(p=>`<div class="opt ${p.key===d.priority?'on':''}" data-v="${p.key}">${p.label}</div>`).join("")}</div></div>
-      <div class="field"><label>备注</label><textarea id="f-note" placeholder="补充说明">${esc(d.note||'')}</textarea></div>`;
-  } else if(m.type==="checkin"){
-    fields=`<div class="field"><label>打卡项</label><input id="f-title" value="${attr(d.title)}" placeholder="例如：喝够 8 杯水"/></div>
-      <p class="sub" style="margin:0">保存后可在列表点击左侧方块打卡；连续天数自动统计，每天从零开始。</p>`;
-  } else if(m.type==="progress"){
-    fields=`<div class="field"><label>名称</label><input id="f-title" value="${attr(d.title)}" placeholder="书名 / 目标"/></div>
-      <div class="frow"><div class="field"><label>当前</label><input id="f-cur" type="number" value="${d.current??0}"/></div>
-      <div class="field"><label>目标</label><input id="f-tgt" type="number" value="${d.target??1}"/></div>
-      <div class="field"><label>单位</label><input id="f-unit" value="${attr(d.unit||m.unit||'')}"/></div></div>
-      <div class="field"><label>摘录 / 想法</label><textarea id="f-note" placeholder="随手记">${esc(d.note||'')}</textarea></div>`;
-  } else if(m.type==="finance"){
-    fields=`<div class="field"><label>类型</label><div class="seg" id="f-ftype">
-        <div class="opt ${d.type!=='income'?'on':''}" data-v="expense">支出</div>
-        <div class="opt ${d.type==='income'?'on':''}" data-v="income">收入</div></div></div>
-      <div class="frow"><div class="field"><label>项目</label><input id="f-title" value="${attr(d.title)}" placeholder="午餐 / 稿费"/></div>
-      <div class="field"><label>金额 ¥</label><input id="f-amt" type="number" value="${d.amount??''}" placeholder="0"/></div></div>
-      <div class="field"><label>分类</label><div class="seg" style="flex-wrap:wrap" id="f-cat">${(m.categories||[]).map(c=>`<div class="opt ${c===d.category?'on':''}" data-v="${attr(c)}" style="flex:0 0 auto">${esc(c)}</div>`).join("")}</div></div>
-      <div class="field"><label>日期</label><input id="f-date" type="date" value="${d.date||isoToday()}"/></div>`;
-  } else { // note
-    fields=`<div class="field"><label>标题</label><input id="f-title" value="${attr(d.title)}" placeholder="给这条起个名"/></div>
-      ${(m.moods&&m.moods.length)?`<div class="field"><label>标签 / 心情</label><div class="seg" style="flex-wrap:wrap" id="f-mood">${m.moods.map(md=>`<div class="opt ${md===d.mood?'on':''}" data-v="${attr(md)}" style="flex:0 0 auto">${md}</div>`).join("")}</div></div>`:''}
-      <div class="field"><label>内容</label><textarea id="f-content" placeholder="写点什么…">${esc(d.content||'')}</textarea></div>
-      <div class="field"><label>日期</label><input id="f-date" type="date" value="${d.date||isoToday()}"/></div>`;
-  }
-
-  // layout variant selector
-  const layoutOpts=[{v:'default',l:'标准'},{v:'feature',l:'大图'},{v:'quote',l:'引文'}];
-  fields=`<div class="field"><label>卡片样式</label><div class="seg" id="f-layout">${layoutOpts.map(o=>`<div class="opt ${o.v===(d.layout||'default')?'on':''}" data-v="${o.v}">${o.l}</div>`).join("")}</div></div>`+fields;
-
-  // custom fields (from m.fields config) — rendered after type-specific fields
-  (m.fields||[]).forEach(f=>{
-    const v=d[f.key]||"";
-    if(f.type==="select") fields+=`<div class="field"><label>${esc(f.label)}</label><div class="seg" style="flex-wrap:wrap" id="f-cf-${f.key}">${(f.options||[]).map(o=>`<div class="opt ${o===v?'on':''}" data-v="${attr(o)}" style="flex:0 0 auto">${esc(o)}</div>`).join("")}</div></div>`;
-    else if(f.type==="textarea") fields+=`<div class="field"><label>${esc(f.label)}</label><textarea id="f-cf-${f.key}" placeholder="${attr(f.placeholder||'')}">${esc(v)}</textarea></div>`;
-    else if(f.type==="number") fields+=`<div class="field"><label>${esc(f.label)}</label><input id="f-cf-${f.key}" type="number" value="${attr(v)}" placeholder="${attr(f.placeholder||'')}"/></div>`;
-    else fields+=`<div class="field"><label>${esc(f.label)}</label><input id="f-cf-${f.key}" value="${attr(v)}" placeholder="${attr(f.placeholder||'')}"/></div>`;
-  });
-  // shared image URL field (all types)
-  fields+=`<div class="field"><label>图片 URL（可选）</label><input id="f-image" value="${attr(d.image||'')}" placeholder="https://…"/></div>`;
-
-  const overlay=document.createElement("div"); overlay.className="overlay";
-  overlay.innerHTML=`<div class="modal"><div class="grab"></div>
-    <h2>${editing?'编辑':'新建'} · ${m.name}</h2><div class="sub">${m.desc}</div>
-    ${fields}
-    <div class="modal-actions">${editing?'<button class="link-danger" id="m-del">删除</button>':''}
-      <button class="btn ghost" id="m-cancel">取消</button><button class="btn" id="m-save">保存</button></div></div>`;
-  document.body.appendChild(overlay);
-  const close=()=>overlay.remove();
-  overlay.onclick=e=>{ if(e.target===overlay) close(); };
-  overlay.querySelector("#m-cancel").onclick=close;
-  // segmented pickers
-  overlay.querySelectorAll(".seg").forEach(seg=>seg.querySelectorAll(".opt").forEach(o=>o.onclick=()=>{
-    seg.querySelectorAll(".opt").forEach(x=>x.classList.remove("on")); o.classList.add("on");
-  }));
-  if(editing) overlay.querySelector("#m-del").onclick=()=>{ close(); confirmDelete(key, d.id); };
-  overlay.querySelector("#m-save").onclick=()=>{
-    const val=id=>{ const el=overlay.querySelector(id); return el?el.value:undefined; };
-    const seg=id=>{ const el=overlay.querySelector(id+" .on"); return el?el.dataset.v:undefined; };
-    d.title=(val("#f-title")||"").trim()||"未命名";
-    d.layout=seg("#f-layout")||'default';
-    if(m.type==="todo"){ d.priority=seg("#f-prio")||d.priority; d.note=(val("#f-note")||"").trim(); }
-    else if(m.type==="progress"){ d.current=Math.max(0,+val("#f-cur")||0); d.target=Math.max(1,+val("#f-tgt")||1); d.unit=(val("#f-unit")||"").trim(); d.note=(val("#f-note")||"").trim(); }
-    else if(m.type==="finance"){ d.type=seg("#f-ftype")||"expense"; d.amount=Math.max(0,+val("#f-amt")||0); d.category=seg("#f-cat")||(m.categories&&m.categories[0])||"其他"; d.date=val("#f-date"); }
-    else if(m.type==="note"){ d.mood=seg("#f-mood")||d.mood||""; d.content=(val("#f-content")||"").trim(); d.date=val("#f-date"); }
-    // save custom fields
-    (m.fields||[]).forEach(f=>{
-      if(f.type==="select") d[f.key]=seg("#f-cf-"+f.key)||d[f.key]||"";
-      else if(f.type==="number") d[f.key]=Math.max(0,+val("#f-cf-"+f.key)||0);
-      else d[f.key]=(val("#f-cf-"+f.key)||"").trim();
-    });
-    // save image
-    d.image=(val("#f-image")||"").trim();
-    if(!editing) (data[key]=data[key]||[]).unshift(d);
-    persist(); close();
-  };
-}
-
-function newItem(m){
-  const base={ id: Date.now() };
-  let item;
-  if(m.type==="todo") item={...base, title:"", priority:(m.priorities&&m.priorities[1]?m.priorities[1].key:"P1"), done:false, note:""};
-  else if(m.type==="checkin") item={...base, title:"", log:{}};
-  else if(m.type==="progress") item={...base, title:"", current:0, target: (m.unit==="页"?100:20), unit:m.unit||"", note:""};
-  else if(m.type==="finance") item={...base, title:"", type:"expense", amount:"", category:(m.categories&&m.categories[0])||"其他", date:isoToday()};
-  else item={...base, title:"", content:"", mood:(m.moods&&m.moods[0])||"", date:isoToday()};
-  // initialize custom fields
-  (m.fields||[]).forEach(f=>{ if(!(f.key in item)) item[f.key]= f.type==="select"?(f.options&&f.options[0]||""):""; });
-  return item;
-}
-
-/* ---------- delete confirm ---------- */
-function confirmDelete(key,id){
-  const item=(data[key]||[]).find(i=>i.id==id); if(!item) return;
-  const overlay=document.createElement("div"); overlay.className="overlay";
-  overlay.innerHTML=`<div class="modal"><div class="grab"></div><h2>删除记录</h2>
-    <div class="sub">确定删除「${esc(item.title||'这条记录')}」？此操作不可撤销。</div>
-    <div class="modal-actions"><button class="btn ghost" id="c-cancel">取消</button><button class="btn danger" id="c-ok">删除</button></div></div>`;
-  document.body.appendChild(overlay);
-  const close=()=>overlay.remove();
-  overlay.onclick=e=>{ if(e.target===overlay) close(); };
-  overlay.querySelector("#c-cancel").onclick=close;
-  overlay.querySelector("#c-ok").onclick=()=>{ data[key]=data[key].filter(i=>i.id!=id); persist(); close(); };
-}
-
-/* 通用确认弹窗：后端 API 的破坏性操作（删除小助手数据等）统一走这里二次确认 */
-function apiConfirm(title, desc, onOk, okText){
-  const overlay=document.createElement("div"); overlay.className="overlay";
-  overlay.innerHTML=`<div class="modal"><div class="grab"></div><h2>${esc(title)}</h2>
-    <div class="sub">${desc}</div>
-    <div class="modal-actions"><button class="btn ghost" id="c-cancel">取消</button><button class="btn danger" id="c-ok">${esc(okText||'删除')}</button></div></div>`;
-  document.body.appendChild(overlay);
-  const close=()=>overlay.remove();
-  overlay.onclick=e=>{ if(e.target===overlay) close(); };
-  overlay.querySelector("#c-cancel").onclick=close;
-  overlay.querySelector("#c-ok").onclick=async ()=>{
-    const btn=overlay.querySelector("#c-ok");
-    btn.disabled=true; btn.innerHTML=icon("refresh",15,2);
-    try{ await onOk(); close(); }
-    catch(e){ toast.error((e&&e.message)||'操作失败'); btn.disabled=false; btn.innerHTML=esc(okText||'删除'); }
-  };
-}
 
 /* ---------- router / nav ---------- */
 let route = 'dashboard';
@@ -3073,9 +2721,9 @@ const NAPCAT_TO_SUB = {
   network:'sys',
   config:'config',
   logs:'logs',
-  debug:'logs',
-  'debug/http':'logs',
-  'debug/ws':'logs',
+  debug:'debug',
+  'debug/http':'debug/http',
+  'debug/ws':'debug/ws',
   file_manager:'contacts',
   terminal:'send',
   plugins:'ai',
@@ -3306,12 +2954,14 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape' && drawerOpen) clos
 
 /* ---------- avatar upload ---------- */
 $("#brandCam").innerHTML = icon("camera",18);
-if(data.__avatar) $("#brandImg").src = data.__avatar;
-function syncUserChip(){ const uc=$("#userChip"); const cur=data.__avatar;
-  uc.textContent = cur ? "" : CONFIG.brand;
-  uc.style.backgroundImage = cur ? `url(${cur})` : "";
-  uc.style.backgroundSize="cover"; uc.style.backgroundPosition="center";
-  uc.style.backgroundRepeat="no-repeat";
+if(avatar) $("#brandImg").src = avatar;
+function syncUserChip(){
+  const uc = $("#userChip");
+  uc.textContent = avatar ? "" : CONFIG.brand;
+  uc.style.backgroundImage = avatar ? `url(${avatar})` : "";
+  uc.style.backgroundSize = "cover";
+  uc.style.backgroundPosition = "center";
+  uc.style.backgroundRepeat = "no-repeat";
 }
 syncUserChip();
 $("#userChip").onclick = openDrawer;
@@ -3320,7 +2970,7 @@ $("#avatarInput").onchange = e => {
   const f = e.target.files && e.target.files[0];
   if(!f) return;
   const reader = new FileReader();
-  reader.onload = () => { data.__avatar = reader.result; $("#brandImg").src = reader.result; store.save(); syncUserChip(); };
+  reader.onload = () => { avatar = reader.result; $("#brandImg").src = avatar; saveAvatar(); syncUserChip(); };
   reader.readAsDataURL(f);
   e.target.value = "";
 };
