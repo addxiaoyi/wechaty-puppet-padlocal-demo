@@ -288,10 +288,10 @@
   .nav .n:active { color: var(--text); }
 
   /* ---------- drawer ---------- */
-  .scrim { position: fixed; inset: 0; background: color-mix(in srgb, var(--text) 42%, transparent); z-index: 40; opacity:0; pointer-events:none; transition: opacity .22s; }
+  .scrim { position: fixed; inset: 0; background: color-mix(in srgb, var(--text) 42%, transparent); z-index: 40; opacity:0; pointer-events:none; }
   .scrim.show { opacity:1; pointer-events:auto; }
   .drawer { position: fixed; top:0; bottom:0; left:0; width: var(--sidebar-w); max-width: 82vw; z-index: 50; transform: translateX(-104%);
-    transition: transform .26s cubic-bezier(.2,.8,.25,1); overflow-y:auto;
+    overflow-y:auto;
     background: var(--drawer-bg); color:var(--drawer-text); touch-action: pan-y; }
   .drawer.show { transform: translateX(0); }
   .drawer.drawer-open { pointer-events:auto; }
@@ -2785,14 +2785,17 @@ function render(){
   const screen = $("#screen");
   const routeChanged = route !== lastRenderedRoute;
   lastRenderedRoute = route;
-  // GSAP 过渡：淡出 → 换内容 → 淡入并轻微上移；仅路由切换时触发
+  // GSAP 路由过渡：淡出 → 换内容 → 轻弹式淡入 → 卡片错落入场
   if(!(typeof gsap!=='undefined' && routeChanged)){ doRender(); return; }
-  // 若正在过渡中，先停止旧的，避免回调错乱
   if(routeTween) routeTween.kill();
   routeTween = gsap.timeline();
-  routeTween.to(screen, {opacity:0, duration:0.12, ease:"power1.in"})
+  routeTween.to(screen, {scale:0.97, opacity:0, duration:0.1, ease:"power1.in"})
     .add(()=>{ doRender(); })
-    .fromTo(screen, {opacity:0, y:8}, {opacity:1, y:0, duration:0.22, ease:"power2.out"});
+    .fromTo(screen, {scale:0.97, opacity:0, y:12}, {scale:1, opacity:1, y:0, duration:0.26, ease:"power2.out"})
+    .add(()=>{
+      const cards = screen.querySelectorAll(".card, .panel, .log-view, .bot-head, .dash-log");
+      if(cards.length) gsap.from(cards, {y:14, opacity:0, duration:0.24, stagger:0.04, ease:"power2.out"});
+    });
 }
 function doRender(){
   // 根据 NapCat 侧边栏路由分发
@@ -2891,17 +2894,20 @@ function buildDrawer(){
   syncDrawerActive();
 }
 function isDesktop(){ return window.matchMedia('(min-width: 768px)').matches; }
+const drawerTl = gsap.timeline({paused:true});
+drawerTl.to("#drawer", {x:"0%", ease:"power2.out", duration:0.26})
+        .to("#scrim", {opacity:1, ease:"power2.inOut", duration:0.22}, 0);
 function openDrawer(){
   if(isDesktop()) return;                 // 桌面侧边栏常驻，无需抽屉交互
   syncDrawerActive();
   drawerOpen = true;
-  $("#drawer").classList.add("show"); $("#scrim").classList.add("show");
+  drawerTl.play(0);
   lockScroll();
 }
 function closeDrawer(){
   if(!drawerOpen) return;
   drawerOpen = false;
-  $("#drawer").classList.remove("show"); $("#scrim").classList.remove("show");
+  drawerTl.reverse();
   unlockScroll();
 }
 
