@@ -823,10 +823,16 @@
   .drawer {
     position: fixed; top: 0; bottom: 0; left: 0; z-index: 40;
     width: var(--sidebar-w); max-width: none;
-    transform: none;
+    transform: none; pointer-events: auto;
     border-right: 1.5px solid var(--text);
     background-color: var(--drawer-bg);
+    background-image:
+      linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
+    background-size: 28px 28px;
+    color: var(--drawer-text);
   }
+  .drawer:not(.show) { pointer-events: auto; }
   .drawer .dclose { display: none; }
   .drawer .dh { padding: 28px 16px 18px; }
   .drawer .dgroup-label { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--drawer-text-mute); padding: 18px 22px 6px; }
