@@ -854,6 +854,7 @@
   .app { max-width: 1440px; }
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
 </head>
 <body>
 <div class="blob-field" aria-hidden="true"></div>
@@ -3140,6 +3141,17 @@ function syncNavActive(){
   $("#nav").querySelectorAll(".n").forEach(n=>n.classList.toggle("active", n.dataset.nav === navKey));
 }
 function render(){
+  const screen = $("#screen");
+  if(typeof gsap!=='undefined'){
+    gsap.to(screen, {opacity:0, duration:0.12, ease:"power1.in", onComplete: () => {
+      doRender();
+      gsap.fromTo(screen, {opacity:0, y:8}, {opacity:1, y:0, duration:0.22, ease:"power2.out"});
+    }});
+  }else{
+    doRender();
+  }
+}
+function doRender(){
   // 根据顶层路由分发到不同页面
   if(route==='insight'){
     $("#topTitle").textContent = '洞察';
