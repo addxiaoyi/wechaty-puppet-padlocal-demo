@@ -1018,6 +1018,10 @@ function wireRetry(el, retry){ if(!el) return; el.querySelectorAll("[data-retry]
 // 快捷：展示错误 + 绑定重试（兼容旧用法），附带全局错误提示
 function showError(el, err, retryF){
   const msg = err?.message || err || '加载失败';
+  if(msg.includes('登录已失效')){
+    toast.error(msg);
+    return;
+  }
   botFail(el, msg);
   wireRetry(el, retryF);
   if(!window._lastErrMsg || window._lastErrMsg !== msg){
@@ -1030,6 +1034,11 @@ function showError(el, err, retryF){
 /* ---------- Toast 通知系统 ---------- */
 function toast(msg, type='info'){
   if(!msg) return;
+  const txt = String(msg);
+  if(type==='error' && txt.includes('登录已失效') && !window._sessionRedirected){
+    window._sessionRedirected = true;
+    setTimeout(()=> location.reload(), 1500);
+  }
   let container = document.querySelector('.toast-container');
   if(!container){
     container = document.createElement('div');
@@ -1039,7 +1048,7 @@ function toast(msg, type='info'){
   const el = document.createElement('div');
   el.className = `toast ${type}`;
   const iconMap = { success:'check', error:'alert', info:'msg', warning:'alert' };
-  el.innerHTML = `${icon(iconMap[type]||'msg',15)}<span>${esc(msg)}</span>`;
+  el.innerHTML = `${icon(iconMap[type]||'msg',15)}<span>${esc(txt)}</span>`;
   container.appendChild(el);
   const remove = ()=>{ el.remove(); if(!container.children.length) container.remove(); };
   el.querySelector('.toast');
