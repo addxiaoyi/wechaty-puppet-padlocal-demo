@@ -871,9 +871,9 @@
 
 <!-- bottom nav -->
 <div class="nav" id="nav">
-  <div class="n active" data-nav="bot"></div>
-  <div class="n" data-nav="drawer"></div>
-  <div class="n" data-nav="refresh"></div>
+  <div class="n active" data-nav="home"></div>
+  <div class="n" data-nav="insight"></div>
+  <div class="n" data-nav="bot"></div>
 </div>
 
 <!-- drawer -->
@@ -1064,8 +1064,8 @@ $("#drawerClose").innerHTML = icon("close", 16);
 })();
 document.querySelectorAll('#nav .n').forEach(n=>{
   const t=n.dataset.nav;
-  const map = { bot:'机器人', drawer:'菜单', refresh:'刷新' };
-  const iconMap = { bot:'bolt', drawer:'grid', refresh:'refresh' };
+  const map = { home:'工作台', insight:'洞察', bot:'机器人' };
+  const iconMap = { home:'home', insight:'chart', bot:'bolt' };
   n.innerHTML = `<span>${icon(iconMap[t]||'grid',18)}</span><span>${map[t]||t}</span>`;
 });
 
@@ -3097,6 +3097,7 @@ function apiConfirm(title, desc, onOk, okText){
 }
 
 /* ---------- router / nav ---------- */
+let route = 'home';
 let botView = 'home';
 let drawerOpen = false;
 let scrollLock = false;
@@ -3105,18 +3106,26 @@ let pollTimer = null;
 function stopPoll(){ if(pollTimer){ clearInterval(pollTimer); pollTimer=null; } }
 function lockScroll(){ scrollLock = true; document.body.style.overflow = 'hidden'; }
 function unlockScroll(){ scrollLock = false; document.body.style.overflow = ''; }
+/* 合法路由：workbench 首页 / 洞察 / 微信机器人 / 6 个业务模块 */
+const VALID_ROUTES = ['home','insight','bot','todo','checkin','read','sport','money','note'];
+function routeFor(v){
+  if(typeof v==='string' && VALID_ROUTES.indexOf(v)>=0) return v;
+  if(typeof v==='string' && v.indexOf('bot-')===0) return v;  // 子页也合法
+  return 'home';
+}
 function go(v){
   closeDrawer();
   stopPoll();  // 切页先停轮询，再重渲染
-  if(typeof v==='string' && v.indexOf('bot-')===0) botView = v.slice(4);   // 能力卡 → 子页
-  else if(v==='bot') botView = 'home';                                     // 底部机器人 → 首页
+  route = routeFor(v);
+  if(route==='bot') botView = 'home';                       // 机器人首页
+  else if(route.indexOf('bot-')===0) botView = route.slice(4);  // 能力卡子页
   syncDrawerActive();
   syncNavActive();
   render();
   window.scrollTo({top:0});
 }
 function syncDrawerActive(){
-  const key = botView === 'home' ? 'bot' : ('bot-' + botView);
+  const key = route;
   $("#drawerList").querySelectorAll(".ditem").forEach(el=>{
     const on = el.dataset.go === key;
     el.classList.toggle("active", on);
@@ -3124,36 +3133,71 @@ function syncDrawerActive(){
   });
 }
 function syncNavActive(){
-  // 工作台以机器人为主：底部导航固定高亮“机器人”，菜单通过抽屉管理
-  $("#nav").querySelectorAll(".n").forEach(n=>n.classList.toggle("active", n.dataset.nav === 'bot'));
+  // 底部导航只高亮一级视图；模块页归属"工作台"，机器人子页归属"机器人"
+  let navKey = route;
+  if(route.indexOf('bot-')===0) navKey = 'bot';
+  else if(route!=='home' && route!=='insight' && route!=='bot') navKey = 'home';
+  $("#nav").querySelectorAll(".n").forEach(n=>n.classList.toggle("active", n.dataset.nav === navKey));
 }
 function render(){
-  // 工作台整体为微信机器人服务：子页标题随能力卡切换，首页显示模块标题
-  const subTitles = {
-    usage:['Token 用量','用量 · 趋势 · 排行'],
-    ai:['AI 智能回复','连续上下文 · 私聊'],
-    group:['群聊 @ 应答','进群才会响应'],
-    msg:['多类型消息','文本 · 图片 · 语音 …'],
-    mem:['记忆学习','长期记忆库'],
-    recall:['向量召回','相关记忆 · 注入上下文'],
-    config:['在线配置','提示词 · 模型 · 开关'],
-    sys:['系统监控','CPU · 内存 · 网络 · 负载'],
-    logs:['运行日志','实时拦截 console 输出'],
-    contacts:['好友管理','联系人 · 备注 · 私聊'],
-    rooms:['群聊管理','群列表 · 成员 · 群发'],
-    send:['主动发消息','私聊 / 群发 一键触达'],
-  };
-  const [t,s] = subTitles[botView] || ['微信机器人', CONFIG.slogan];
-  $("#topTitle").textContent = t;
-  $("#crumb").title = s;
-  syncNavActive();
-  renderBot(botView);
+  // 根据顶层路由分发到不同页面
+  if(route==='insight'){
+    $("#topTitle").textContent = '洞察';
+    $("#crumb").title = '各模块进展一览';
+    renderInsight();
+    return;
+  }
+  if(route==='home'){
+    $("#topTitle").textContent = '工作台';
+    $("#crumb").title = CONFIG.slogan;
+    renderHome();
+    return;
+  }
+  if(route==='bot' || route.indexOf('bot-')===0){
+    const subTitles = {
+      home:['微信机器人','状态 · 用量 · 记忆 · 会话'],
+      usage:['Token 用量','用量 · 趋势 · 排行'],
+      ai:['AI 智能回复','连续上下文 · 私聊'],
+      group:['群聊 @ 应答','进群才会响应'],
+      msg:['多类型消息','文本 · 图片 · 语音 …'],
+      mem:['记忆学习','长期记忆库'],
+      recall:['向量召回','相关记忆 · 注入上下文'],
+      config:['在线配置','提示词 · 模型 · 开关'],
+      sys:['系统监控','CPU · 内存 · 网络 · 负载'],
+      logs:['运行日志','实时拦截 console 输出'],
+      contacts:['好友管理','联系人 · 备注 · 私聊'],
+      rooms:['群聊管理','群列表 · 成员 · 群发'],
+      send:['主动发消息','私聊 / 群发 一键触达'],
+    };
+    const [t,s] = subTitles[botView] || ['微信机器人', CONFIG.slogan];
+    $("#topTitle").textContent = t;
+    $("#crumb").title = s;
+    renderBot(botView);
+    return;
+  }
+  // 业务模块页（todo/checkin/read/sport/money/note）
+  const m = modOf(route);
+  $("#topTitle").textContent = m ? m.name : route;
+  $("#crumb").title = m ? m.desc : '';
+  renderModule(route);
 }
 
 /* ---------- drawer ---------- */
 // 抽屉导航：图标去重、按使用频率分组（系统管理置底）、可键盘聚焦
 const DRAWER_NAV = [
-  { group: "总览", items: [
+  { group: "工作台", items: [
+    { go: "home",    icon: "home",    label: "今日概览" },
+    { go: "insight", icon: "chart",   label: "洞察" },
+  ]},
+  { group: "业务模块", items: [
+    { go: "todo",    icon: "list",    label: "今日计划" },
+    { go: "checkin", icon: "leaf",    label: "打卡" },
+    { go: "read",    icon: "book",    label: "阅读" },
+    { go: "sport",   icon: "activity",label: "运动" },
+    { go: "money",   icon: "wallet",  label: "金钱" },
+    { go: "note",    icon: "pen",     label: "想法" },
+  ]},
+  { group: "微信机器人", items: [
     { go: "bot",        icon: "bolt",    label: "微信机器人" },
     { go: "bot-usage",  icon: "chart",   label: "Token 用量" },
   ]},
@@ -3211,12 +3255,7 @@ function closeDrawer(){
 $("#btn-menu").onclick=openDrawer;
 $("#drawerClose").onclick=closeDrawer;
 $("#scrim").onclick=closeDrawer;
-$("#nav").querySelectorAll(".n").forEach(n=>n.onclick=()=>{
-  const t=n.dataset.nav;
-  if(t==="drawer") openDrawer();
-  else if(t==="refresh"){ render(); toast.info('已刷新'); }
-  else go('bot');   // 机器人 → 首页
-});
+$("#nav").querySelectorAll(".n").forEach(n=>n.onclick=()=>go(n.dataset.nav));
 
 // Esc 关闭抽屉
 document.addEventListener('keydown',e=>{ if(e.key==='Escape' && drawerOpen) closeDrawer(); });
