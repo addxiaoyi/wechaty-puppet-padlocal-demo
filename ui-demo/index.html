@@ -605,6 +605,8 @@
   .bmsg.assistant { background:var(--surface-nested); border:1px solid var(--border); }
 
 /* ---------- 控制台仪表盘（NapCat 级专业看板） ---------- */
+.dash-top { display:grid; grid-template-columns:1fr; gap:10px; margin-top:16px; }
+.dash-top .dash-stats { margin-top:0; }
 .dash-hero { position:relative; display:flex; gap:14px; align-items:center; padding:16px 16px; border-radius:var(--radius-card);
   background:var(--surface-card);
   border:1px solid var(--border); overflow:hidden; }
@@ -801,6 +803,7 @@
     padding: 18px 0 12px;
     background: var(--surface-card);
     border-bottom: 1.5px solid var(--text);
+    box-shadow: inset 0 -3px 0 color-mix(in oklab, var(--accent) 55%, transparent);
   }
   .topbar .menu-btn { display: none; }
   .crumb { font-size: 20px; gap: 10px; }
@@ -813,11 +816,14 @@
     padding: 0 24px 72px;
     max-width: 1280px; margin: 0 auto;
   }
-  /* 视觉层级：在桌面增加面板内边距与标题间距 */
-  .panel { padding: 16px; }
-  .sec-title { margin: 32px 2px 14px; font-size: 15px; }
-  .sec-title::before { height: 16px; }
-  .greet { padding: 28px 24px; }
+  /* 视觉层级：桌面增加面板内边距、字阶与页头气势 */
+  .panel { padding: 18px; }
+  .sec-title { margin: 44px 2px 18px; font-size: 24px; font-family: var(--font-heading); letter-spacing: .01em; text-transform: none; color: var(--text); }
+  .sec-title::before { height: 20px; width: 5px; border-radius: 0; background: var(--accent); }
+  .greet { padding: 34px 30px 30px; box-shadow: var(--shadow-lift), inset 0 -4px 0 color-mix(in oklab, var(--accent) 45%, transparent); }
+  .greet h1 { font-size: 46px; }
+  .greet p { font-size: 12px; margin-top: 10px; }
+  .greet .add, .ghead-actions { top: 30px; right: 30px; }
 
   /* 抽屉 → 常驻左侧栏 */
   .drawer {
@@ -871,6 +877,17 @@
 
   /* 看板栅格：从 4 列窄屏 → 桌面更多列 / 更宽间距 */
   .dash-stats { grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  /* 首页锚点：状态环 | 4 数据卡，桌面并行形成节奏 */
+  .dash-top { grid-template-columns: 1fr 1fr; gap: 16px; }
+  .dash-top .dash-hero { height: 100%; padding: 22px; min-height: 148px; }
+  .dash-top .dash-stats { grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 0; }
+  .dstat strong.dv { font-size: 27px; }
+  .dstat { transition: border-color .18s, box-shadow .18s; }
+  .dstat:hover { border-color: var(--border-strong); box-shadow: var(--shadow-card); }
+  .dstat::after { transition: height .18s, opacity .18s; }
+  .dstat:hover::after { height: 4px; opacity: 1; }
+  .hero-meta .hm-name { font-size: 24px; }
+  .sys-stat .ss-val { font-size: 26px; }
   .sys-hero { grid-template-columns: repeat(4, 1fr); gap: 14px; }
   .rings { grid-template-columns: repeat(4, 1fr); gap: 12px; }
   .rs-grid { grid-template-columns: repeat(4, 1fr); gap: 14px; }
@@ -1261,12 +1278,14 @@ function renderBotHome(m){
     <div class="greet"><h1>${m.name}</h1><p>${m.desc}</p>
       <button class="add" id="bot-refresh">${icon("bolt",16,2)}刷新</button></div>
     <div style="margin-top:16px">
-      <div id="bot-hero">${statusRing('idle', m.name)}</div>
-      <div class="dash-stats" id="bot-stats">
-        <div class="dstat" style="--ds-c:var(--module-1)"><strong class="dv" id="st-calls">—</strong><span class="dl">调用次数</span><span class="du">累计</span></div>
-        <div class="dstat" style="--ds-c:var(--module-3)"><strong class="dv" id="st-tokens">—</strong><span class="dl">Token 消耗</span><span class="du">输入 + 输出</span></div>
-        <div class="dstat" style="--ds-c:var(--module-5)"><strong class="dv" id="st-recall">—</strong><span class="dl">召回命中</span><span class="du">命中率</span></div>
-        <div class="dstat" style="--ds-c:var(--module-2)"><strong class="dv" id="st-msgs">—</strong><span class="dl">消息总数</span><span class="du">近 50 条</span></div>
+      <div class="dash-top">
+        <div id="bot-hero">${statusRing('idle', m.name)}</div>
+        <div class="dash-stats" id="bot-stats">
+          <div class="dstat" style="--ds-c:var(--module-1)"><strong class="dv" id="st-calls">—</strong><span class="dl">调用次数</span><span class="du">累计</span></div>
+          <div class="dstat" style="--ds-c:var(--module-3)"><strong class="dv" id="st-tokens">—</strong><span class="dl">Token 消耗</span><span class="du">输入 + 输出</span></div>
+          <div class="dstat" style="--ds-c:var(--module-5)"><strong class="dv" id="st-recall">—</strong><span class="dl">召回命中</span><span class="du">命中率</span></div>
+          <div class="dstat" style="--ds-c:var(--module-2)"><strong class="dv" id="st-msgs">—</strong><span class="dl">消息总数</span><span class="du">近 50 条</span></div>
+        </div>
       </div>
 
       <h2 class="sec-title">Token 吞吐 <span class="sec-badge">7 天</span></h2>
