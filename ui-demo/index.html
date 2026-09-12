@@ -1070,7 +1070,10 @@ function toast(msg, type='info'){
   const txt = String(msg);
   if(type==='error' && txt.includes('登录已失效') && !window._sessionRedirected){
     window._sessionRedirected = true;
-    setTimeout(()=> location.reload(), 1500);
+    let left = 3;
+    const tick = ()=>{ const s = el?.querySelector('span'); if(s) s.textContent = `${txt}（${left}s 后自动刷新）`; };
+    const timer = setInterval(()=>{ left--; if(left<=0){ clearInterval(timer); location.reload(); } else tick(); }, 1000);
+    setTimeout(tick, 0);
   }
   let container = document.querySelector('.toast-container');
   if(!container){
