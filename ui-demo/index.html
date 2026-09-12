@@ -870,11 +870,9 @@
   <div id="screen"></div>
 </div>
 
-<!-- bottom nav -->
-<div class="nav" id="nav">
-  <div class="n active" data-nav="home"></div>
-  <div class="n" data-nav="insight"></div>
-  <div class="n" data-nav="bot"></div>
+<!-- bottom nav hidden: NapCat layout uses sidebar only -->
+<div class="nav" id="nav" style="display:none">
+  <div class="n active" data-nav="dashboard"></div>
 </div>
 
 <!-- drawer -->
@@ -909,9 +907,9 @@
    ============================================================ */
 const CONFIG = {
   storageKey: "meridian-workbench-v1",   // 换 key 可强制重置
-  owner: "微信机器人",                  // 抽屉顶部标题
+  owner: "NapCat 机器人",                  // 抽屉顶部标题
   slogan: "状态 · 用量 · 记忆 · 会话",
-  brand: "机",                          // 抽屉左上角字符标（品牌缩写）
+  brand: "N",                          // 抽屉左上角字符标（品牌缩写）
 
   // 每日一句（一周七天各一句，按星期轮换：周一→周日）
   quotes: [
@@ -3098,7 +3096,7 @@ function apiConfirm(title, desc, onOk, okText){
 }
 
 /* ---------- router / nav ---------- */
-let route = 'home';
+let route = 'dashboard';
 let botView = 'home';
 let drawerOpen = false;
 let scrollLock = false;
@@ -3111,24 +3109,57 @@ let pollTimer = null;
 function stopPoll(){ if(pollTimer){ clearInterval(pollTimer); pollTimer=null; } }
 function lockScroll(){ scrollLock = true; document.body.style.overflow = 'hidden'; }
 function unlockScroll(){ scrollLock = false; document.body.style.overflow = ''; }
-/* 合法路由：workbench 首页 / 洞察 / 微信机器人 / 6 个业务模块 */
-const VALID_ROUTES = ['home','insight','bot','todo','checkin','read','sport','money','note'];
+/* 合法路由：NapCat 机器人工作台侧边栏一级页 */
+const VALID_ROUTES = ['dashboard','network','config','logs','debug','file_manager','terminal','plugins','plugin_store','extension','about'];
+// 侧边栏一级页 → 机器人子视图（复用既有渲染函数）
+const NAPCAT_TO_SUB = {
+  dashboard:'home',
+  network:'sys',
+  config:'config',
+  logs:'logs',
+  debug:'logs',
+  file_manager:'contacts',
+  terminal:'send',
+  plugins:'ai',
+  plugin_store:'usage',
+  extension:'mem',
+  about:'home',
+};
+// 旧 bot- 子页 → 侧边栏一级页（迁移映射）
+const NAPCAT_ROUTE_BY_SUB = {
+  home:'dashboard', sys:'network', config:'config', logs:'logs',
+  usage:'plugin_store', ai:'plugins', mem:'extension',
+  contacts:'file_manager', send:'terminal', rooms:'file_manager',
+  msg:'extension', recall:'extension', group:'plugins',
+};
 function routeFor(v){
   if(typeof v==='string' && VALID_ROUTES.indexOf(v)>=0) return v;
-  if(typeof v==='string' && v.indexOf('bot-')===0) return v;  // 子页也合法
-  return 'home';
+  if(typeof v==='string' && v.indexOf('bot-')===0) return NAPCAT_ROUTE_BY_SUB[v.slice(4)] || 'dashboard';
+  return 'dashboard';
 }
 function go(v){
   closeDrawer();
   stopPoll();  // 切页先停轮询，再重渲染
   route = routeFor(v);
-  if(route==='bot') botView = 'home';                       // 机器人首页
-  else if(route.indexOf('bot-')===0) botView = route.slice(4);  // 能力卡子页
+  botView = NAPCAT_TO_SUB[route] || 'home';
   syncDrawerActive();
   syncNavActive();
   render();
   window.scrollTo({top:0});
 }
+const NAPCAT_TITLES = {
+  dashboard:['仪表盘','状态 · 用量 · 记忆 · 会话'],
+  network:['网络状态','连接 · 进程 · 实时网速'],
+  config:['在线配置','提示词 · 模型 · 开关'],
+  logs:['运行日志','实时拦截 console 输出'],
+  debug:['调试面板','WebSocket / HTTP 测试'],
+  file_manager:['好友管理','联系人 · 备注 · 私聊'],
+  terminal:['主动发消息','私聊 / 群发 一键触达'],
+  plugins:['插件中心','AI 智能回复 · 群聊应答'],
+  plugin_store:['Token 用量','用量 · 趋势 · 排行'],
+  extension:['扩展记忆','长期记忆库 · 向量召回'],
+  about:['关于','NapCat 机器人工作台'],
+};
 function syncDrawerActive(){
   const key = route;
   $("#drawerList").querySelectorAll(".ditem").forEach(el=>{
@@ -3138,11 +3169,8 @@ function syncDrawerActive(){
   });
 }
 function syncNavActive(){
-  // 底部导航只高亮一级视图；模块页归属"工作台"，机器人子页归属"机器人"
-  let navKey = route;
-  if(route.indexOf('bot-')===0) navKey = 'bot';
-  else if(route!=='home' && route!=='insight' && route!=='bot') navKey = 'home';
-  $("#nav").querySelectorAll(".n").forEach(n=>n.classList.toggle("active", n.dataset.nav === navKey));
+  // 底部导航隐藏后仍保留高亮逻辑：一律以当前侧边栏项为高亮
+  $("#nav").querySelectorAll(".n").forEach(n=>n.classList.toggle("active", n.dataset.nav === route));
 }
 function render(){
   const screen = $("#screen");
@@ -3158,85 +3186,63 @@ function render(){
     .fromTo(screen, {opacity:0, y:8}, {opacity:1, y:0, duration:0.22, ease:"power2.out"});
 }
 function doRender(){
-  // 根据顶层路由分发到不同页面
-  if(route==='insight'){
-    $("#topTitle").textContent = '洞察';
-    $("#crumb").title = '各模块进展一览';
-    renderInsight();
+  // 根据 NapCat 侧边栏路由分发
+  if(VALID_ROUTES.indexOf(route) >= 0){
+    const [t,s] = NAPCAT_TITLES[route] || ['仪表盘',''];
+    $("#topTitle").textContent = t;
+    $("#crumb").title = s;
+    // about 采用占位页
+    if(route === 'about'){
+      $("#screen").innerHTML = `<div class="page"><h1>关于</h1><p>NapCat 机器人工作台 · 参考 NapCat WebUI 侧边栏布局</p></div>`;
+      return;
+    }
+    // 其他均走机器人子视图复用
+    renderBot(botView);
     return;
   }
-  if(route==='home'){
-    $("#topTitle").textContent = '工作台';
-    $("#crumb").title = CONFIG.slogan;
-    renderHome();
-    return;
-  }
-  if(route==='bot' || route.indexOf('bot-')===0){
-    const subTitles = {
-      home:['微信机器人','状态 · 用量 · 记忆 · 会话'],
-      usage:['Token 用量','用量 · 趋势 · 排行'],
-      ai:['AI 智能回复','连续上下文 · 私聊'],
-      group:['群聊 @ 应答','进群才会响应'],
-      msg:['多类型消息','文本 · 图片 · 语音 …'],
-      mem:['记忆学习','长期记忆库'],
-      recall:['向量召回','相关记忆 · 注入上下文'],
-      config:['在线配置','提示词 · 模型 · 开关'],
-      sys:['系统监控','CPU · 内存 · 网络 · 负载'],
-      logs:['运行日志','实时拦截 console 输出'],
-      contacts:['好友管理','联系人 · 备注 · 私聊'],
-      rooms:['群聊管理','群列表 · 成员 · 群发'],
-      send:['主动发消息','私聊 / 群发 一键触达'],
-    };
-    const [t,s] = subTitles[botView] || ['微信机器人', CONFIG.slogan];
+  // 兼容旧 bot- 链接
+  if(route.indexOf('bot-')===0){
+    const sub = route.slice(4);
+    botView = sub;
+    const [t,s] = NAPCAT_TITLES[NAPCAT_ROUTE_BY_SUB[sub]||'dashboard'] || ['仪表盘',''];
     $("#topTitle").textContent = t;
     $("#crumb").title = s;
     renderBot(botView);
     return;
   }
-  // 业务模块页（todo/checkin/read/sport/money/note）
-  const m = modOf(route);
-  $("#topTitle").textContent = m ? m.name : route;
-  $("#crumb").title = m ? m.desc : '';
-  renderModule(route);
+  // 未知路由回退到仪表盘
+  route = 'dashboard';
+  botView = 'home';
+  $("#topTitle").textContent = '仪表盘';
+  $("#crumb").title = '状态 · 用量 · 记忆 · 会话';
+  renderBot('home');
 }
 
 /* ---------- drawer ---------- */
-// 抽屉导航：图标去重、按使用频率分组（系统管理置底）、可键盘聚焦
+// NapCat WebUI 侧边栏：面板 → 网络/调试 → 资源 → 插件 → 系统 → 关于
 const DRAWER_NAV = [
-  { group: "工作台", items: [
-    { go: "home",    icon: "home",    label: "今日概览" },
-    { go: "insight", icon: "chart",   label: "洞察" },
+  { group: "面板", items: [
+    { go: "dashboard",   icon: "home",    label: "仪表盘" },
+    { go: "network",     icon: "activity",label: "网络状态" },
   ]},
-  { group: "业务模块", items: [
-    { go: "todo",    icon: "list",    label: "今日计划" },
-    { go: "checkin", icon: "leaf",    label: "打卡" },
-    { go: "read",    icon: "book",    label: "阅读" },
-    { go: "sport",   icon: "activity",label: "运动" },
-    { go: "money",   icon: "wallet",  label: "金钱" },
-    { go: "note",    icon: "pen",     label: "想法" },
-  ]},
-  { group: "微信机器人", items: [
-    { go: "bot",        icon: "bolt",    label: "微信机器人" },
-    { go: "bot-usage",  icon: "chart",   label: "Token 用量" },
-  ]},
-  { group: "会话", items: [
-    { go: "bot-ai",     icon: "quote",   label: "AI 回复" },
-    { go: "bot-group",  icon: "at",      label: "群聊 @" },
-    { go: "bot-msg",    icon: "msg",     label: "消息类型" },
-    { go: "bot-send",   icon: "send",    label: "主动发消息" },
-  ]},
-  { group: "记忆", items: [
-    { go: "bot-mem",    icon: "leaf",    label: "记忆学习" },
-    { go: "bot-recall", icon: "target",  label: "向量召回" },
+  { group: "调试", items: [
+    { go: "logs",        icon: "list",    label: "运行日志" },
+    { go: "debug",       icon: "target",  label: "调试面板" },
   ]},
   { group: "资源", items: [
-    { go: "bot-contacts", icon: "user",  label: "好友" },
-    { go: "bot-rooms",    icon: "users", label: "群聊" },
+    { go: "file_manager",icon: "user",    label: "好友管理" },
+    { go: "terminal",    icon: "send",    label: "发消息" },
+  ]},
+  { group: "插件", items: [
+    { go: "plugins",     icon: "bolt",    label: "插件中心" },
+    { go: "plugin_store",icon: "chart",   label: "Token 用量" },
+  ]},
+  { group: "扩展", items: [
+    { go: "extension",   icon: "leaf",    label: "记忆扩展" },
   ]},
   { group: "系统", items: [
-    { go: "bot-config", icon: "gear",     label: "配置" },
-    { go: "bot-sys",    icon: "activity", label: "监控" },
-    { go: "bot-logs",   icon: "list",     label: "日志" },
+    { go: "config",      icon: "gear",    label: "在线配置" },
+    { go: "about",       icon: "quote",   label: "关于" },
   ]},
 ];
 function buildDrawer(){
