@@ -3102,6 +3102,10 @@ let route = 'home';
 let botView = 'home';
 let drawerOpen = false;
 let scrollLock = false;
+// 记录上次渲染的路由：只有路由变化才做整页过渡，数据刷新/persist 不闪屏
+let lastRenderedRoute = route;
+// 当前过渡时间线，快速连点时先 kill 旧的，避免内容替换回调丢失
+let routeTween = null;
 // 页面级轮询句柄集中管理：离开页面即清，防止后台定时器泄漏
 let pollTimer = null;
 function stopPoll(){ if(pollTimer){ clearInterval(pollTimer); pollTimer=null; } }
@@ -3142,14 +3146,16 @@ function syncNavActive(){
 }
 function render(){
   const screen = $("#screen");
-  if(typeof gsap!=='undefined'){
-    gsap.to(screen, {opacity:0, duration:0.12, ease:"power1.in", onComplete: () => {
-      doRender();
-      gsap.fromTo(screen, {opacity:0, y:8}, {opacity:1, y:0, duration:0.22, ease:"power2.out"});
-    }});
-  }else{
-    doRender();
-  }
+  const routeChanged = route !== lastRenderedRoute;
+  lastRenderedRoute = route;
+  // GSAP 过渡：淡出 → 换内容 → 淡入并轻微上移；仅路由切换时触发
+  if(!(typeof gsap!=='undefined' && routeChanged)){ doRender(); return; }
+  // 若正在过渡中，先停止旧的，避免回调错乱
+  if(routeTween) routeTween.kill();
+  routeTween = gsap.timeline();
+  routeTween.to(screen, {opacity:0, duration:0.12, ease:"power1.in"})
+    .add(()=>{ doRender(); })
+    .fromTo(screen, {opacity:0, y:8}, {opacity:1, y:0, duration:0.22, ease:"power2.out"});
 }
 function doRender(){
   // 根据顶层路由分发到不同页面
