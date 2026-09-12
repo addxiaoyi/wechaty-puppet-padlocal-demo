@@ -179,7 +179,7 @@
   .qbtn .l { font-size: 12px; font-weight: 600; color: var(--text); }
 
   /* ---------- pinned tasks ---------- */
-  .pin-list { display:flex; flex-direction:column; gap: 8px; }
+  .pin-list { display:flex; flex-direction:column; gap: 8px; list-style:none; }
   .pin { display:flex; align-items:center; gap: 11px; padding: 12px 14px; border-radius: var(--radius-tile);
     background: var(--surface-card); border: 1px solid var(--border); box-shadow: var(--shadow-card); }
   .pin-ic { width: 32px; height: 32px; border-radius: var(--radius-tile); display:grid; place-items:center; flex:0 0 auto;
@@ -881,7 +881,7 @@
     <button class="dclose" id="drawerClose" aria-label="关闭抽屉"></button>
     <div class="brand" id="drawerBrand" title="点击更换头像"><img src="assets/avatar.jpg" alt="头像" id="brandImg"/><span class="brand-cam" id="brandCam"></span></div>
     <input type="file" id="avatarInput" accept="image/*" hidden/>
-    <div><h2 id="drawerName">我的工作台</h2><p id="drawerSlogan">Personal Workbench</p></div>
+    <header><h2 id="drawerName">我的工作台</h2><p id="drawerSlogan">Personal Workbench</p></header>
   </div>
   <div class="dsep"></div>
   <div id="drawerList"></div>
@@ -1087,10 +1087,10 @@ function renderHome(){
     if(m.type==="progress"){ return `<div class="pin-step"><button class="js-pin-dec" data-mkey="${m.key}" data-id="${x.id}" aria-label="减">−</button><button class="js-pin-inc" data-mkey="${m.key}" data-id="${x.id}" aria-label="加">+</button></div>`; }
     return `<span class="arw">${icon("chevron",14,2)}</span>`;
   };
-  const pinned = pins.length ? pins.map(({m,x})=>`<div class="pin">
+  const pinned = pins.length ? pins.map(({m,x})=>`<li class="pin">
       <span class="pin-ic" style="color:${m.color}">${icon(m.icon,17)}</span>
       <div class="pin-b js-pin-open" data-mkey="${m.key}" data-id="${x.id}"><div class="pin-t ${(m.type==='todo'&&x.done)?'done':''}">${esc(x.title)}</div><div class="pin-m">${pinSub(m,x)}</div></div>
-      ${pinCtl(m,x)}</div>`).join("")
+      ${pinCtl(m,x)}</li>`).join("")
     : `<div class="pin-empty">在任意模块点击 <span class="mini-star">${icon("star",13)}</span> 即可把重要任务置顶到这里</div>`;
 
   // trend
@@ -1108,7 +1108,7 @@ function renderHome(){
     <div class="sec-title">今日概览</div>
     <div class="card rings">${rings}</div>
     <div class="sec-title">置顶任务</div>
-    <div class="pin-list">${pinned}</div>
+    <ul class="pin-list">${pinned}</ul>
     <div class="sec-title">快速记录</div>
     <div class="quick-grid">${quick}</div>
     <div class="panel trend-panel"><div class="ph">${icon("chart",15)} ${CONFIG.trend.title}${hasTrend?`<span class="avg">均 ${avg}${CONFIG.trend.unit}</span>`:''}</div>
@@ -1298,14 +1298,14 @@ function renderSuccess(el, txt){ if(!el) return; el.innerHTML = botSuffix(txt||'
 // 空态：text 与 icon 可选，action 支持自定义按钮 HTML
 function renderEmpty(el, { text='暂无数据', icon=icon("alert",24), action='' } = {}){
   if(!el) return;
-  el.innerHTML = `<div class="empty"><span class="e">${icon}</span><div>${text}</div>${action?`<div style="margin-top:10px">${action}</div>`:''}</div>`;
+  el.innerHTML = `<div class="empty"><span class="e">${icon}</span><p>${text}</p>${action?`<div style="margin-top:10px">${action}</div>`:''}</div>`;
 }
 // 错误/失败态：默认「机器人服务未连接」，可传自定义 message
 function botFail(el, msg){
   if(!el) return;
   const txt = msg || '机器人服务未连接';
   const icn = msg ? icon("alert",20) : icon("refresh",24);
-  el.innerHTML = `<div class="empty"><span class="e">${icn}</span><div>${txt}</div>
+  el.innerHTML = `<div class="empty"><span class="e">${icn}</span><p>${txt}</p>
     <div style="margin-top:10px"><button class="btn" data-retry style="max-width:120px">重试</button></div></div>`;
 }
 // 为容器内「[data-retry]」按钮统一绑定重试回调；无回调则把容器整体当作触发目标
@@ -1688,7 +1688,7 @@ function renderBotConfig(m){
         $("#cfg-save").style.opacity = dirty ? "1" : ".5";
       };
 
-      if(!llmOk) box.insertAdjacentHTML("afterbegin", `<div class="empty" style="margin-bottom:12px"><span class="e">${icon("alert",20)}</span><div>LLM 未配置：请在 .env 中填写 API Key 后重启服务</div></div>`);
+      if(!llmOk) box.insertAdjacentHTML("afterbegin", `<div class="empty" style="margin-bottom:12px"><span class="e">${icon("alert",20)}</span><p>LLM 未配置：请在 .env 中填写 API Key 后重启服务</p></div>`);
       const save=$("#cfg-save");
       save.disabled=true;
       save.style.opacity=".5";
@@ -1840,7 +1840,7 @@ function renderBotUsage(){
     loadTrend();
     const rel=$("#w-rank");
     try{ const list = await api.usageByContact();
-      if(!list.length){ rel.innerHTML=`<div class="empty"><span class="e">${icon("user",24)}</span><div>暂无用户用量</div></div>`; return; }
+      if(!list.length){ rel.innerHTML=`<div class="empty"><span class="e">${icon("user",24)}</span><p>暂无用户用量</p></div>`; return; }
       const maxTok = Math.max(...list.map(u=>u.totalTokens||0), 1);
       rel.innerHTML = list.map((u,i)=>`<div class="rank-row ${i<3?'top'+(i+1):''}" data-c="${esc(u.contactId||'')}">
         <span class="r-idx">${i+1}</span>
@@ -1873,7 +1873,7 @@ function renderBotConvs(title, sub, filter, extra){
       let arr=list.slice().reverse();
       if(filter==='p') arr=arr.filter(mm=>!mm.roomId);
       else if(filter==='g') arr=arr.filter(mm=>!!mm.roomId);
-      if(!arr.length){ el.innerHTML=`<div class="empty"><span class="e">${icon("msg",24)}</span><div>暂无对话</div></div>`; return; }
+      if(!arr.length){ el.innerHTML=`<div class="empty"><span class="e">${icon("msg",24)}</span><p>暂无对话</p></div>`; return; }
       el.innerHTML = arr.map(mm=>`<div class="mrow mrow-msg mrow-link" data-id="${mm.id}" data-c="${esc(mm.contactId||'')}" data-r="${esc(mm.roomId||'')}" data-role="${mm.role}">
         <span class="role ${mm.role}">${ROLE_LABEL[mm.role]||mm.role}</span>
         <span class="who">${esc(mm.contactId||'匿名')}${mm.roomId?'<i class="grp">群</i>':''}</span>
@@ -1934,7 +1934,7 @@ function renderBotMsg(){
   const load = async ()=>{
     const el=$("#w-msg");
     try{ const list = await api.messages(50, activeType); const arr=(list||[]).slice().reverse();
-      if(!arr.length){ el.innerHTML=`<div class="empty"><span class="e">${icon("msg",24)}</span><div>暂无消息，收到新消息后这里会实时展示</div></div>`; return; }
+      if(!arr.length){ el.innerHTML=`<div class="empty"><span class="e">${icon("msg",24)}</span><p>暂无消息，收到新消息后这里会实时展示</p></div>`; return; }
       el.innerHTML = `<div class="recall-summary">${msgTypeSummary(arr)}</div>` + arr.map(mm=>{
         const type = mm.type||'';
         return `<div class="mrow mrow-msg" data-id="${mm.id}" data-c="${esc(mm.contactId||'')}" data-r="${esc(mm.roomId||'')}">
@@ -2056,7 +2056,7 @@ function renderBotMem(){
       $("#mem-users").textContent = users;
       $("#mem-source").textContent = list.filter(mm=>!mm.roomId).length + " 私";
 
-      if(!filtered.length){ el.innerHTML=`<div class="empty" style="padding:20px 0"><span class="e">${icon("leaf",24)}</span><div>${searchKey?'没有匹配『'+searchKey+'』的记忆，清除搜索词或再试':list.length?'暂无记忆，填写上方表单或在聊天里说『记住 事项』':'暂无记忆'}</div></div>`; return; }
+      if(!filtered.length){ el.innerHTML=`<div class="empty" style="padding:20px 0"><span class="e">${icon("leaf",24)}</span><p>${searchKey?'没有匹配『'+searchKey+'』的记忆，清除搜索词或再试':list.length?'暂无记忆，填写上方表单或在聊天里说『记住 事项』':'暂无记忆'}</p></div>`; return; }
       el.innerHTML = filtered.map(mm=>`<div class="mem-card ${selected.has(mm.id)?'sel':''}" data-id="${mm.id}">
         <label class="mc-check"><input type="checkbox" class="js-mem-check" data-id="${mm.id}" ${selected.has(mm.id)?'checked':''}/></label>
         <div class="mc-ico">${icon("leaf",16,1.8)}</div>
@@ -2198,7 +2198,7 @@ function renderBotRecall(){
   const loadHits = async ()=>{
     const el=$("#w-recall");
     try{ const list = await api.recalls(20);
-      if(!list.length){ el.innerHTML=`<div class="empty"><span class="e">${icon("target",24)}</span><div>暂无召回记录，机器人被提问并命中记忆后会在这里展示</div></div>`; return; }
+      if(!list.length){ el.innerHTML=`<div class="empty"><span class="e">${icon("target",24)}</span><p>暂无召回记录，机器人被提问并命中记忆后会在这里展示</p></div>`; return; }
       el.innerHTML = `<div class="recall-summary">${recallSummary(list)}</div>` +
         list.map(rr=>`<div class="mrow mrow-mem recall-hit" data-id="${rr.id}" data-ids="${esc((rr.hitIds||[]).join(','))}">
         <span class="role msg-type">${rr.hitCount} 命中</span>
@@ -2240,7 +2240,7 @@ function renderBotRecall(){
   const loadSrc = async ()=>{
     const el=$("#w-recall-src");
     try{ const list = await api.memories();
-      if(!list.length){ el.innerHTML=`<div class="empty"><span class="e">${icon("leaf",24)}</span><div>暂无记忆</div></div>`; return; }
+      if(!list.length){ el.innerHTML=`<div class="empty"><span class="e">${icon("leaf",24)}</span><p>暂无记忆</p></div>`; return; }
       el.innerHTML = list.map(mm=>`<div class="mrow mrow-mem" data-id="${mm.id}"><div class="who">${esc(mm.contactId||'匿名')}</div>
         <div class="txt">${esc(mm.content)}</div>
         <span class="muted">${new Date(mm.created_at).toLocaleDateString("zh-CN")}</span>
@@ -2401,7 +2401,7 @@ function renderBotContacts(m){
     const kwTrim = (kw||"").trim().toLowerCase();
     const list = cache.filter(c => !kwTrim || (c.name||"").toLowerCase().includes(kwTrim) || (c.alias||"").toLowerCase().includes(kwTrim));
     $("#cnt-meta").textContent = kwTrim ? `匹配 ${list.length} / ${cache.length} 位联系人` : `共 ${cache.length} 位联系人`;
-    if(!list.length){ el.innerHTML = `<div class="empty"><span class="e">${icon("user",24)}</span><div>${cache.length ? "无匹配联系人" : "暂无联系人"}</div></div>`; return; }
+    if(!list.length){ el.innerHTML = `<div class="empty"><span class="e">${icon("user",24)}</span><p>${cache.length ? "无匹配联系人" : "暂无联系人"}</p></div>`; return; }
     el.innerHTML = list.map(c=>{
       const display = c.alias ? c.name + ' · ' + c.alias : c.name;
       return `<div class="cnt-row" data-id="${attr(c.id)}" data-name="${attr(c.alias||c.name||'')}">
@@ -2476,7 +2476,7 @@ function renderBotRooms(m){
     const el = $("#rm-list");
     try{
       const rooms = await api.rooms();
-      if(!Array.isArray(rooms) || !rooms.length){ el.innerHTML = `<div class="empty"><span class="e">${icon("msg",24)}</span><div>暂无群聊</div></div>`; return; }
+      if(!Array.isArray(rooms) || !rooms.length){ el.innerHTML = `<div class="empty"><span class="e">${icon("msg",24)}</span><p>暂无群聊</p></div>`; return; }
       el.innerHTML = rooms.map(r=>`<div class="cnt-row" data-id="${attr(r.id)}" data-topic="${attr(r.topic||'')}">
         <div class="cnt-ava">${icon("msg",18,1.8)}</div>
         <div class="cnt-body"><div class="cnt-name">${esc(r.topic || '未命名群聊')}</div>
@@ -2541,7 +2541,7 @@ function renderBotRooms(m){
       const kwTrim = (kw||"").trim().toLowerCase();
       const list = members.filter(c => !kwTrim || (c.name||"").toLowerCase().includes(kwTrim) || (c.alias||"").toLowerCase().includes(kwTrim));
       overlay.querySelector("#rm-meta").textContent = kwTrim ? `匹配 ${list.length} / ${members.length} 位成员` : `共 ${members.length} 位成员`;
-      if(!list.length){ box.innerHTML = `<div class="empty"><span class="e">${icon("user",24)}</span><div>${members.length ? "无匹配成员" : "暂无成员"}</div></div>`; return; }
+      if(!list.length){ box.innerHTML = `<div class="empty"><span class="e">${icon("user",24)}</span><p>${members.length ? "无匹配成员" : "暂无成员"}</p></div>`; return; }
       box.innerHTML = list.map(c=>`<div class="cnt-row" style="cursor:default">
         <div class="cnt-ava">${esc(firstChar(c.name, c.alias))}</div>
         <div class="cnt-body"><div class="cnt-name">${esc(c.alias ? c.name + ' · ' + c.alias : c.name)}</div>
@@ -2776,7 +2776,7 @@ function openConv(contactId, roomId){
         const meta = mm.meta||{};
         return `<div class="bmsg ${mm.role}" data-id="${mm.id}"><div class="nm">${ROLE_LABEL[mm.role]||mm.role} · ${new Date(mm.created_at).toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"})}<button class="btn ghost danger mc-del" data-id="${mm.id}" title="删除该条消息" aria-label="删除该条消息">${icon("trash",12)}</button></div><div class="bd">${escFmtMsg(mm)}</div></div>`;
       }).join("")
-        : `<div class="empty"><span class="e">${icon("msg",24)}</span><div>暂无历史会话</div></div>`;
+        : `<div class="empty"><span class="e">${icon("msg",24)}</span><p>暂无历史会话</p></div>`;
       box.querySelectorAll(".bmsg .mc-del").forEach(btn=>{
         btn.onclick=async (e)=>{
           e.stopPropagation();
@@ -2839,7 +2839,7 @@ function renderModule(key){
   }
   if(m.type==="checkin") extra=renderCalendar(m,it);
   const body = it.length ? it.map(x=>recHTML(m,x)).join("")
-    : `<div class="empty"><span class="e">${icon(m.icon,26)}</span><div>还没有记录，点上方「新建」添加第一条吧</div></div>`;
+    : `<div class="empty"><span class="e">${icon(m.icon,26)}</span><p>还没有记录，点上方「新建」添加第一条吧</p></div>`;
   $("#screen").innerHTML = `<div class="greet"><h1>${m.name}</h1><p>${m.desc}</p>
       <button class="add" id="btn-add">${icon("plus",16,2.2)}新建</button></div>
     <div style="margin-top:16px">${head}${extra}
