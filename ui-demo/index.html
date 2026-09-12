@@ -1112,21 +1112,29 @@ function botSuffix(txt, cls){ const s={ ok:'ok', off:'off', scan:'scan' }[cls]||
 /* ---------- API Client 抽象层：端点集中定义，前端不再感知路径拼接 ---------- */
 const BOT_BASE = (CONFIG.modules.find(x=>x.key==="bot")||{}).api||"/api";
 function apiUrl(path, params){ const u=new URL(BOT_BASE+path, location.origin); Object.entries(params||{}).forEach(([k,v])=>{ if(v!=null) u.searchParams.set(k,v); }); return u; }
+function msgFromErr(err){
+  if(err && err.message) return err.message;
+  if(err && err.error) return err.error;
+  return "请求失败";
+}
 async function apiGet(path, params){
   const r=await fetch(apiUrl(path, params));
   if(!r.ok){
-    let msg = `请求失败 (${r.status})`;
-    try{ const err = await r.json(); if(err.message) msg = err.message; else if(err.error) msg = err.error; }catch(e){}
-    throw new Error(msg);
+    const err = await r.json().catch(()=>null);
+    const raw = msgFromErr(err);
+    const isToken = raw && /session token|token/.test(raw) && (r.status===401||r.status===403);
+    throw new Error(isToken ? "登录已失效，请刷新页面后重新登录" : (raw === "请求失败" ? `请求失败 (${r.status})` : raw));
   }
   return r.json();
 }
 async function apiSend(path, params, opts={}){
+  if(!opts.headers) opts.headers = {};
   const r=await fetch(apiUrl(path, params), opts);
   if(!r.ok){
-    let msg = `请求失败 (${r.status})`;
-    try{ const err = await r.json(); if(err.message) msg = err.message; else if(err.error) msg = err.error; }catch(e){}
-    throw new Error(msg);
+    const err = await r.json().catch(()=>null);
+    const raw = msgFromErr(err);
+    const isToken = raw && /session token|token/.test(raw) && (r.status===401||r.status===403);
+    throw new Error(isToken ? "登录已失效，请刷新页面后重新登录" : (raw === "请求失败" ? `请求失败 (${r.status})` : raw));
   }
   return r.json();
 }
