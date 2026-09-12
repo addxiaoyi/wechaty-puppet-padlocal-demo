@@ -4,6 +4,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#1a1a1a" />
 <title>我的工作台</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -73,6 +74,7 @@
     --nav-h: 64px;
     --sidebar-w: 240px;
   }
+  html { color-scheme: dark; }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
   button { -webkit-focus-ring-color: var(--accent); }
@@ -188,14 +190,14 @@
   .pin-m { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
   .pin .arw { color: var(--text-tertiary); flex:0 0 auto; }
   .pin-chk { flex:0 0 auto; width: 24px; height: 24px; border-radius: var(--radius-control); border: 1.6px solid var(--border-input);
-    display:grid; place-items:center; cursor:pointer; background:transparent; color:var(--text-tertiary); transition: all .15s; }
+    display:grid; place-items:center; cursor:pointer; background:transparent; color:var(--text-tertiary); transition: background .15s, color .15s; }
 .pin-chk.on { background:color-mix(in oklab, var(--accent) 12%, transparent); border-color:color-mix(in oklab, var(--accent) 60%, transparent); color:var(--accent); }
   .pin-chk svg { opacity: 0; }
   .pin-chk.on svg { opacity: 1; }
   .pin-step { flex:0 0 auto; display:flex; gap: 6px; }
   .pin-step button { width: 28px; height: 28px; border-radius: var(--radius-control); border: 1px solid var(--border-input);
     background: var(--surface-nested); color: var(--text); font-size: 17px; line-height: 1; cursor:pointer;
-    display:grid; place-items:center; transition: all .15s; }
+    display:grid; place-items:center; transition: background .15s, border-color .15s, color .15s; }
   .pin-step button:active { background: var(--accent-muted); border-color: var(--accent); }
   .pin-empty { padding: 20px 16px; text-align:center; color: var(--text-secondary); font-size: 12px; line-height: 1.7;
     background: var(--surface-card); border: 1px dashed var(--border-input); border-radius: var(--radius-tile); }
@@ -207,7 +209,7 @@
   .rec:active { border-color: var(--border-input); }
   .rec .top { display:flex; align-items:flex-start; gap: 11px; }
   .rec .chk { flex:0 0 auto; width: 22px; height: 22px; border-radius: var(--radius-control); border: 1.6px solid var(--border-input);
-    display:grid; place-items:center; cursor:pointer; background:var(--surface-card); color:#fff; transition: all .15s; margin-top: 1px; }
+    display:grid; place-items:center; cursor:pointer; background:var(--surface-card); color:#fff; transition: background .15s, border-color .15s; margin-top: 1px; }
   .rec .chk.on { background: var(--module-1); border-color: var(--module-1); }
   .rec .chk svg { opacity: 0; }
   .rec .chk.on svg { opacity: 1; }
@@ -220,7 +222,7 @@
   .badge .dot { width:6px;height:6px;border-radius:50%;background:currentColor; }
   .rec .acts { position:absolute; top: 8px; right: 8px; display:flex; gap: 2px; }
   .rec .acts button { border:none; background:transparent; color: var(--text-tertiary); cursor:pointer;
-    width: 30px; height: 30px; border-radius: var(--radius-control); display:grid; place-items:center; transition: all .15s; }
+    width: 30px; height: 30px; border-radius: var(--radius-control); display:grid; place-items:center; transition: background .15s, color .15s; }
   .rec .pin-btn:hover { background: var(--surface-nested); color: var(--module-3); }
   .rec .pin-btn.on { color: var(--module-3); }
   .rec .pin-btn.on svg { fill: var(--module-3); }
@@ -324,7 +326,7 @@
     display:flex; align-items:flex-end; justify-content:center; animation: fade .16s ease; }
   @keyframes fade { from { opacity:0; } }
   .modal { background: var(--surface-card); border-radius: var(--radius-sheet) var(--radius-sheet) 0 0; padding: 22px 20px calc(22px + env(safe-area-inset-bottom));
-    width: 100%; max-width: 480px; box-shadow: 0 -20px 50px color-mix(in srgb, var(--text) 24%, transparent); animation: up .24s cubic-bezier(.2,.8,.25,1); max-height: 88vh; overflow-y:auto; }
+    width: 100%; max-width: 480px; box-shadow: 0 -20px 50px color-mix(in srgb, var(--text) 24%, transparent); animation: up .24s cubic-bezier(.2,.8,.25,1); max-height: 88vh; overflow-y:auto; overscroll-behavior: contain; }
   @keyframes up { from { transform: translateY(30px); opacity:0; } }
   .modal .grab { width: 40px; height: 4px; border-radius:999px; background: var(--border-input); margin: 0 auto 16px; }
   .modal h2 { font-size: 18px; font-weight: 800; letter-spacing:-.01em; }
@@ -373,20 +375,20 @@
   .cal-panel { margin-top:12px; }
   .cal-hd { display:flex; align-items:center; gap:10px; }
   .cal-nav { width:30px; height:30px; border-radius:var(--radius-tile); border:1px solid var(--border-input); background:var(--surface-nested);
-    color:var(--text); cursor:pointer; display:grid; place-items:center; transition: all .15s; }
+    color:var(--text); cursor:pointer; display:grid; place-items:center; transition: background .15s, border-color .15s; }
   .cal-nav:active { background:var(--accent-muted); border-color:var(--accent); }
   .cal-nav[data-cal="prev"] svg { transform: scaleX(-1); }
   .cal-title { flex:1; text-align:center; font-size:14px; font-weight:700; color:var(--text); }
   .cal-chips { display:flex; gap:6px; overflow-x:auto; margin:12px 0 10px; padding-bottom:2px; scrollbar-width:none; }
   .cal-chips::-webkit-scrollbar { display:none; }
   .cal-chip { flex:0 0 auto; font-size:12px; font-weight:600; padding:6px 12px; border-radius:999px;
-    border:1px solid var(--border-input); background:var(--surface-card); color:var(--text-secondary); cursor:pointer; white-space:nowrap; transition: all .15s;
+    border:1px solid var(--border-input); background:var(--surface-card); color:var(--text-secondary); cursor:pointer; white-space:nowrap; transition: background .15s, border-color .15s, color .15s;
     font-family:var(--font); }
   .cal-chip.on { background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
   .cal-dow { display:grid; grid-template-columns:repeat(7,1fr); text-align:center; font-size:12px; color:var(--text-tertiary); font-weight:600; margin-bottom:6px; }
   .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
   .cal-cell { aspect-ratio:1; border-radius:var(--radius-control); display:grid; place-items:center; font-size:12px; font-weight:600;
-    color:var(--text-secondary); background:transparent; border:1px solid var(--border); cursor:pointer; transition: all .15s;
+    color:var(--text-secondary); background:transparent; border:1px solid var(--border); cursor:pointer; transition: background .15s, border-color .15s, color .15s;
     font-family:var(--font-mono); }
 .cal-cell.blank { background:transparent; border:none; cursor:default; }
 .cal-cell.on { color:var(--text); background:color-mix(in oklab, var(--accent) 12%, transparent); border-color:color-mix(in oklab, var(--accent) 50%, transparent); }
@@ -401,6 +403,11 @@
   .cal-foot svg { color:var(--module-3); }
 
   .hidden { display: none !important; }
+  /* Respect user motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+    .ring.breath .ring-core::before { display: none; }
+  }
 </style>
 <style id="botCss">
   /* ---------- 微信机器人看板（玻璃拟态 · 沿用主题变量） ---------- */
@@ -562,7 +569,7 @@
     border:1px solid var(--border); max-height:78vh; display:flex; flex-direction:column; animation:shup .24s cubic-bezier(.34,1.4,.4,1); }
   @keyframes shup { from { transform:translateY(30px); opacity:.6 } }
   .sh-h { display:flex; align-items:center; justify-content:space-between; padding:18px 20px; border-bottom:1px solid var(--border); }
-  .sh-b { padding:12px 20px 30px; overflow-y:auto; }
+  .sh-b { padding:12px 20px 30px; overflow-y:auto; overscroll-behavior: contain; }
   .btn-close { border:none; background:var(--surface-nested); color:var(--text-secondary); border-radius:999px;
     width:30px; height:30px; display:grid; place-items:center; cursor:pointer; }
   .bmsg { border-radius:12px; padding:10px 12px; margin:8px 0; font-size:13px; line-height:1.6; }
@@ -571,38 +578,38 @@
   .bmsg.assistant { background:var(--surface-nested); border:1px solid var(--border); }
 
 /* ---------- 控制台仪表盘（NapCat 级专业看板） ---------- */
-.dash-hero { position:relative; display:flex; gap:16px; align-items:center; padding:18px; border-radius:var(--radius-card);
+.dash-hero { position:relative; display:flex; gap:14px; align-items:center; padding:16px 16px; border-radius:var(--radius-card);
   background:var(--surface-card);
   border:1px solid var(--border); overflow:hidden; }
 .dash-hero::before { display:none; }
 .dash-hero.off { border-color:color-mix(in oklab, var(--danger) 40%, var(--border)); }
 .dash-hero.scan { border-color:color-mix(in oklab, var(--accent) 45%, var(--border)); }
-.ring { --ring-pct:0; --ring-color:var(--accent); position:relative; width:92px; height:92px; flex:0 0 auto; }
+.ring { --ring-pct:0; --ring-color:var(--accent); position:relative; width:88px; height:88px; flex:0 0 auto; }
 .ring svg { width:100%; height:100%; transform:rotate(-90deg); }
-.ring .ring-bg { fill:none; stroke:var(--surface-nested); stroke-width:7; }
-.ring .ring-val { fill:none; stroke:var(--ring-color); stroke-width:7; stroke-linecap:round; stroke-dasharray:0 999;
+.ring .ring-bg { fill:none; stroke:var(--surface-nested); stroke-width:6; }
+.ring .ring-val { fill:none; stroke:var(--ring-color); stroke-width:6; stroke-linecap:round; stroke-dasharray:0 999;
   transition:stroke-dasharray .8s cubic-bezier(.4,0,.2,1), stroke .4s; }
 .ring .ring-core { position:absolute; inset:0; display:grid; place-items:center; }
 .ring .ring-ico { position:absolute; inset:0; display:grid; place-items:center; color:var(--ring-color); }
-.ring.breath .ring-core::before { content:""; position:absolute; width:52px; height:52px; border-radius:50%;
-  background:color-mix(in oklab, var(--ring-color) 24%, transparent); animation:bbreath 2.4s ease-in-out infinite; }
-@keyframes bbreath { 50% { transform:scale(1.35); opacity:.4 } }
+.ring.breath .ring-core::before { content:""; position:absolute; width:48px; height:48px; border-radius:50%;
+  background:color-mix(in oklab, var(--ring-color) 20%, transparent); animation:bbreath 2.4s ease-in-out infinite; }
+@keyframes bbreath { 50% { transform:scale(1.25); opacity:.3 } }
 .hero-meta { flex:1; min-width:0; }
-.hero-meta .hm-state { font-size:13px; font-weight:700; letter-spacing:.02em; color:var(--text); }
+.hero-meta .hm-state { font-size:12px; font-weight:600; letter-spacing:.02em; color:var(--text-secondary); text-transform:uppercase; }
 .hero-meta .hm-name { font-size:20px; font-weight:700; color:var(--text); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.hero-meta .hm-sub { font-size:11px; color:var(--text-tertiary); margin-top:3px; font-variant-numeric:tabular-nums; }
+.hero-meta .hm-sub { font-size:11px; color:var(--text-tertiary); margin-top:2px; font-variant-numeric:tabular-nums; }
 .hero-pill { display:inline-flex; align-items:center; gap:5px; font-size:10px; font-weight:700; letter-spacing:.05em;
-  padding:3px 8px; border-radius:999px; text-transform:uppercase; }
-.hero-pill.on { background:color-mix(in oklab, var(--accent) 14%, transparent); color:var(--accent-muted); border:1px solid color-mix(in oklab, var(--accent) 30%, transparent); }
-.hero-pill.off { background:var(--danger-muted); color:var(--danger); border:1px solid color-mix(in oklab, var(--danger-muted) 40%, transparent); }
-.hero-pill.scan { background:color-mix(in oklab, var(--accent) 14%, transparent); color:var(--accent-muted); border:1px solid color-mix(in oklab, var(--accent) 30%, transparent); }
-.dash-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:12px; }
-.dstat { position:relative; padding:14px 10px; border-radius:var(--radius-tile); background:var(--surface-card);
+  padding:2px 8px; border-radius:999px; text-transform:uppercase; }
+.hero-pill.on { background:transparent; color:var(--accent); }
+.hero-pill.off { background:transparent; color:var(--danger); }
+.hero-pill.scan { background:transparent; color:var(--accent); }
+.dash-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:10px; }
+.dstat { position:relative; padding:12px 8px; border-radius:var(--radius-tile); background:var(--surface-card);
   border:1px solid var(--border); overflow:hidden; }
-.dstat::after { content:""; position:absolute; left:0; right:0; bottom:0; height:3px; background:var(--ds-c,var(--accent));
-  opacity:.85; border-radius:0 0 var(--radius-tile) var(--radius-tile); }
-.dstat .dv { font-family:var(--font-mono); font-size:20px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--text); line-height:1.1; }
-.dstat .dl { font-size:10px; color:var(--text-tertiary); margin-top:5px; letter-spacing:.02em; }
+.dstat::after { content:""; position:absolute; left:0; right:0; bottom:0; height:2px; background:var(--ds-c,var(--accent));
+  opacity:.85; }
+.dstat .dv { font-family:var(--font-mono); font-size:18px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--text); line-height:1.1; }
+.dstat .dl { font-size:10px; color:var(--text-tertiary); margin-top:3px; letter-spacing:.02em; }
 .dstat .du { font-size:9px; color:var(--text-tertiary); opacity:.75; margin-top:1px; }
 .sec-title .sec-badge { font-size:10px; font-weight:600; letter-spacing:.06em; color:var(--accent-muted);
   border:1px solid color-mix(in oklab, var(--accent) 30%, transparent); border-radius:var(--radius-control); padding:2px 8px; background:color-mix(in oklab, var(--accent) 8%, transparent); }
@@ -851,11 +858,11 @@
 <div class="blob-field" aria-hidden="true"></div>
 <div class="app">
   <div class="topbar">
-    <button class="menu-btn" id="btn-menu"></button>
+    <button class="menu-btn" id="btn-menu" aria-label="打开菜单"></button>
     <div class="crumb" id="crumb"><span class="crumb-root" id="crumbRoot">我的工作台</span><span class="crumb-sep"></span><span class="crumb-leaf" id="topTitle">微信机器人</span></div>
     <div class="topbar-right">
       <span class="date-chip" id="dateChip"></span>
-      <button class="user-chip" id="userChip" title="账户">机</button>
+      <button class="user-chip" id="userChip" title="账户" aria-label="账户">机</button>
     </div>
   </div>
   <div id="screen"></div>
@@ -872,7 +879,7 @@
 <div class="scrim" id="scrim"></div>
 <aside class="drawer" id="drawer">
   <div class="dh">
-    <button class="dclose" id="drawerClose"></button>
+    <button class="dclose" id="drawerClose" aria-label="关闭抽屉"></button>
     <div class="brand" id="drawerBrand" title="点击更换头像"><img src="assets/avatar.jpg" alt="头像" id="brandImg"/><span class="brand-cam" id="brandCam"></span></div>
     <input type="file" id="avatarInput" accept="image/*" hidden/>
     <div><h2 id="drawerName">我的工作台</h2><p id="drawerSlogan">Personal Workbench</p></div>
@@ -1874,7 +1881,7 @@ function renderBotConvs(title, sub, filter, extra){
         <span class="who">${esc(mm.contactId||'匿名')}${mm.roomId?'<i class="grp">群</i>':''}</span>
         <span class="txt">${esc(mm.content)}</span>
         <span class="muted">${new Date(mm.created_at).toLocaleString("zh-CN",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</span>
-        <button class="btn ghost danger mc-del" data-id="${mm.id}" title="删除该对话记录">${icon("trash",13)}</button></div>`).join("");
+        <button class="btn ghost danger mc-del" data-id="${mm.id}" title="删除该对话记录" aria-label="删除该对话记录">${icon("trash",13)}</button></div>`).join("");
       el.querySelectorAll(".mrow-link").forEach(row=>{
         row.onclick=()=>openConv(row.dataset.c, row.dataset.r||null);
         const delBtn=row.querySelector(".mc-del");
@@ -1937,7 +1944,7 @@ function renderBotMsg(){
           <span class="who">${esc(mm.contactId||'匿名')}${mm.roomId?'<i class="grp">群</i>':''}</span>
           <span class="txt">${fmtMsgContent(mm)}</span>
           <span class="muted">${fmtDateTime(mm.createdAt)}</span>
-          <button class="btn ghost danger mc-del" data-id="${mm.id}" title="删除该消息记录">${icon("trash",13)}</button></div>`;
+          <button class="btn ghost danger mc-del" data-id="${mm.id}" title="删除该消息记录" aria-label="删除该消息记录">${icon("trash",13)}</button></div>`);
       }).join("");
       el.querySelectorAll(".mrow-msg").forEach(row=>{
         row.onclick=()=>openConv(row.dataset.c, row.dataset.r||null);
@@ -2199,7 +2206,7 @@ function renderBotRecall(){
         <span class="role msg-type">${rr.hitCount} 命中</span>
         <div class="txt"><b>${esc(rr.query)}</b>${rr.roomId?'<i class="grp">群</i>':''}</div>
         <span class="muted">${fmtDateTime(rr.createdAt)}</span>
-        <button class="btn ghost danger mc-del" data-id="${rr.id}" title="删除该召回记录">${icon("trash",13)}</button>
+        <button class="btn ghost danger mc-del" data-id="${rr.id}" title="删除该召回记录" aria-label="删除该召回记录">${icon("trash",13)}</button>
         <span class="muted" style="margin-left:auto;color:var(--accent)">查看详情 ▸</span></div>`).join("");
       el.querySelectorAll(".recall-hit").forEach(row=>{
         row.onclick = async ()=>{
@@ -2239,7 +2246,7 @@ function renderBotRecall(){
       el.innerHTML = list.map(mm=>`<div class="mrow mrow-mem" data-id="${mm.id}"><div class="who">${esc(mm.contactId||'匿名')}</div>
         <div class="txt">${esc(mm.content)}</div>
         <span class="muted">${new Date(mm.created_at).toLocaleDateString("zh-CN")}</span>
-        <button class="btn ghost danger mc-del" data-id="${mm.id}" title="删除该记忆">${icon("trash",13)}</button></div>`).join("");
+        <button class="btn ghost danger mc-del" data-id="${mm.id}" title="删除该记忆" aria-label="删除该记忆">${icon("trash",13)}</button></div>`).join("");
       el.querySelectorAll(".mrow-mem[data-id]").forEach(row=>{
         const delBtn = row.querySelector(".mc-del");
         if(delBtn){
@@ -2755,7 +2762,7 @@ function wireTrendHover(container, data){
 function openConv(contactId, roomId){
   const mask=document.createElement("div"); mask.className="sheet-mask";
   const sheet=document.createElement("div"); sheet.className="sheet";
-  sheet.innerHTML=`<div class="sh-h"><b>${esc(contactId||'匿名')}${roomId?' · 群聊':''}</b><button class="btn-close">${icon("close",16)}</button></div>
+  sheet.innerHTML=`<div class="sh-h"><b>${esc(contactId||'匿名')}${roomId?' · 群聊':''}</b><button class="btn-close" aria-label="关闭会话详情">${icon("close",16)}</button></div>
     <div class="sh-b"><div class="lineq"><span class="spinner"></span><span>加载中…</span></div></div>`;
   mask.appendChild(sheet); document.body.appendChild(mask);
   sheet.querySelector(".btn-close").onclick=()=>mask.remove();
@@ -2769,7 +2776,7 @@ function openConv(contactId, roomId){
       const arr = list.slice().reverse();
       box.innerHTML = arr.length ? arr.map(mm=>{
         const meta = mm.meta||{};
-        return `<div class="bmsg ${mm.role}" data-id="${mm.id}"><div class="nm">${ROLE_LABEL[mm.role]||mm.role} · ${new Date(mm.created_at).toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"})}<button class="btn ghost danger mc-del" data-id="${mm.id}" title="删除该条消息">${icon("trash",12)}</button></div><div class="bd">${escFmtMsg(mm)}</div></div>`;
+        return `<div class="bmsg ${mm.role}" data-id="${mm.id}"><div class="nm">${ROLE_LABEL[mm.role]||mm.role} · ${new Date(mm.created_at).toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"})}<button class="btn ghost danger mc-del" data-id="${mm.id}" title="删除该条消息" aria-label="删除该条消息">${icon("trash",12)}</button></div><div class="bd">${escFmtMsg(mm)}</div></div>`;
       }).join("")
         : `<div class="empty"><span class="e">${icon("msg",24)}</span><div>暂无历史会话</div></div>`;
       box.querySelectorAll(".bmsg .mc-del").forEach(btn=>{
@@ -2852,8 +2859,8 @@ function headHero(m, big, label, pct){
 }
 
 function recHTML(m,x){
-  const pin=`<button class="pin-btn js-pin ${x.pinned?'on':''}" data-id="${x.id}" title="置顶">${icon("star",15)}</button>`;
-  const del=`<button class="del js-del" data-id="${x.id}" title="删除">${icon("trash",16)}</button>`;
+  const pin=`<button class="pin-btn js-pin ${x.pinned?'on':''}" data-id="${x.id}" title="置顶" aria-label="置顶">${icon("star",15)}</button>`;
+  const del=`<button class="del js-del" data-id="${x.id}" title="删除" aria-label="删除">${icon("trash",16)}</button>`;
   const acts=`<div class="acts">${pin}${del}</div>`;
   const chkMark=icon("check",14,2.4);
   const thumb=x.image?`<img class="thumb" src="${attr(x.image)}" alt="">`:'';
@@ -2987,7 +2994,7 @@ function openEditor(key, item){
     else fields+=`<div class="field"><label>${esc(f.label)}</label><input id="f-cf-${f.key}" value="${attr(v)}" placeholder="${attr(f.placeholder||'')}"/></div>`;
   });
   // shared image URL field (all types)
-  fields+=`<div class="field"><label>图片 URL（可选）</label><input id="f-image" value="${attr(d.image||'')}" placeholder="https://..."/></div>`;
+  fields+=`<div class="field"><label>图片 URL（可选）</label><input id="f-image" value="${attr(d.image||'')}" placeholder="https://…"/></div>`;
 
   const overlay=document.createElement("div"); overlay.className="overlay";
   overlay.innerHTML=`<div class="modal"><div class="grab"></div>

@@ -1,0 +1,56 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792]
+   /Contents 4 0 R
+   /Resources << /Font << /F1 5 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 446 >>
+stream
+BT
+/F1 24 w
+70 720 Td
+(墨印暗调 · NapCat  Design Philosophy) Tj
+0 -36 Td
+/F1 14 w
+70 680 Td
+(编辑部质感 · 印刷级克制) Tj
+0 -40 Td
+/F1 12 w
+70 630 Td
+(墨印暗调是一种以编辑部印刷文化的克制与专业为内核的视觉运动。) Tj
+0 -16 Td
+(色阶收敛于暖墨底，编辑部风格以扁平化的构图与精细的排版呈现。) Tj
+0 -16 Td
+(.dash-hero 区域收紧至 88px 环形，.dstat 边距压缩至 8px，)
+0 -16 Td
+(hero-pill 采用透明底 + 线描边，配合暖铜 77% 强调色。) Tj
+0 -16 Td
+(所有 icon-only 按钮补足 aria-label，具备完整可访问性。) Tj
+0 -16 Td
+(全局 transition 显式化，prefers-reduced-motion 完善。) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000266 00000 n 
+0000000862 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+933
+%%EOF
