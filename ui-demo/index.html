@@ -3160,6 +3160,25 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape' && drawerOpen) clos
   document.addEventListener('touchend',()=>{ tracking=false; }, { passive:true });
 })();
 
+// 抽屉内左滑关闭
+(function(){
+  if(!('ontouchstart' in window)) return;
+  let sx=0, sy=0, tracking=false;
+  const drawer = $("#drawer");
+  drawer.addEventListener('touchstart',e=>{
+    if(!drawerOpen) return;
+    const t=e.touches[0];
+    sx=t.clientX; sy=t.clientY; tracking=true;
+  }, { passive:true });
+  drawer.addEventListener('touchmove',e=>{
+    if(!tracking || !drawerOpen) return;
+    const t=e.touches[0];
+    const dx=t.clientX-sx, dy=t.clientY-sy;
+    if(dx < -32 && Math.abs(dx) > Math.abs(dy)){ closeDrawer(); tracking=false; }
+  }, { passive:true });
+  drawer.addEventListener('touchend',()=>{ tracking=false; }, { passive:true });
+})();
+
 /* ---------- avatar upload ---------- */
 $("#brandCam").innerHTML = icon("camera",18);
 if(data.__avatar) $("#brandImg").src = data.__avatar;
