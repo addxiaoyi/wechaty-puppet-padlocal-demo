@@ -438,6 +438,10 @@
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
     .ring.breath::before { display: none; }
+    /* 骨架屏降级为静态占位，避免停在渐变中间 */
+    .skeleton { background:var(--surface-nested); animation:none; }
+    .skeleton::after { display:none; }
+    .sk-bar { animation:none !important; opacity:.6; transform:none !important; }
   }
 
 </style>
@@ -548,12 +552,28 @@
   background:linear-gradient(90deg, var(--surface-nested) 0%, color-mix(in oklab, var(--surface-nested) 55%, var(--surface-card) 45%) 50%, var(--surface-nested) 100%);
   background-size:200% 100%;
   border-radius:var(--radius-control);
-  animation: shimmer 1.6s infinite linear;
+  animation: shimmer 1.6s ease-in-out infinite;
 }
+.skeleton::after { content:""; position:absolute; inset:0;
+  background:linear-gradient(120deg, transparent 30%, color-mix(in oklab, var(--surface-card) 25%, transparent) 50%, transparent 70%);
+  transform:translateX(-100%); animation:sk-glint 2.4s infinite; }
+@keyframes sk-glint { 60%,100% { transform:translateX(100%) } }
 @keyframes shimmer { to { background-position:-200% 0 } }
+/* 错峰：多根骨架条不同步闪动，观感更自然 */
+#bot-stats .dstat:nth-of-type(1) .skeleton { animation-delay:0s; }
+#bot-stats .dstat:nth-of-type(2) .skeleton { animation-delay:.25s; }
+#bot-stats .dstat:nth-of-type(3) .skeleton { animation-delay:.5s; }
+#bot-stats .dstat:nth-of-type(4) .skeleton { animation-delay:.75s; }
+#bot-stats .dstat:nth-of-type(1) .skeleton { width:118px; }
+#bot-stats .dstat:nth-of-type(2) .skeleton { width:96px; }
+#bot-stats .dstat:nth-of-type(3) .skeleton { width:72px; }
+#bot-stats .dstat:nth-of-type(4) .skeleton { width:88px; }
 .skeleton-lg { height:26px; width:132px; }
-.skeleton-md { height:20px; width:96px; }
-.skeleton-sm { height:18px; width:64px; }
+.skeleton-md { height:20px; }
+.skeleton-sm { height:18px; }
+/* 屏幕阅读器专属：视觉隐藏、可被朗读 */
+.sr-only { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden;
+  clip:rect(0 0 0 0); clip-path:inset(50%); border:0; white-space:nowrap; }
 /* progress-dash 替代 spinner */
 .progress-dash { display:inline-block; width:22px; height:22px; border:3px solid var(--border);
   border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle; }
@@ -564,6 +584,14 @@
 .loading-state .progress-dash { margin-right:0; }
 .loading-state.mini { flex-direction:row; min-height:0; padding:14px 16px; gap:8px; }
 .loading-state.mini .progress-dash { width:16px; height:16px; }
+
+/* 图表骨架屏：渐高柱体 + 底轴，占位更贴近真实形态 */
+.sk-chart { position:relative; display:flex; flex-direction:column; gap:8px; min-height:110px; padding:6px 2px 0; }
+.sk-chart .sk-bars { flex:1; display:flex; align-items:flex-end; justify-content:space-between; gap:8px; }
+.sk-chart .sk-bar { flex:1; min-height:14px; border-radius:var(--radius-control); background:var(--surface-nested);
+  animation:skgrow .9s ease-in-out infinite alternate; transform-origin:bottom; }
+@keyframes skgrow { to { opacity:.4; transform:scaleY(.82) } }
+.sk-chart .sk-axis { height:1px; background:var(--border); margin-top:2px; }
 
 /* ---------- toast notifications ---------- */
 .toast-container { position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index:100; display:flex; flex-direction:column; gap:8px; pointer-events:none; }
@@ -1073,6 +1101,14 @@ document.querySelectorAll('#nav .n').forEach(n=>{
 function loadingState(text='加载中…', mini=false){
   return `<div class="loading-state${mini?' mini':''}" role="status" aria-live="polite" aria-busy="true" aria-label="${text}"><span class="progress-dash" aria-hidden="true"></span><span>${text}</span></div>`;
 }
+// 图表骨架屏：用一组渐高柱体占位，比转圈更贴近最终形态
+function chartSkeleton(bars=7){
+  const cols = Array.from({length:bars},(_,i)=>{
+    const h = 26 + ((i*37)%54);            // 稳定的伪随机高度，避免每帧跳动
+    return `<span class="sk-bar" style="height:${h}%;animation-delay:${(i*0.12).toFixed(2)}s" aria-hidden="true"></span>`;
+  }).join("");
+  return `<div class="sk-chart" role="status" aria-busy="true" aria-label="图表数据加载中"><span class="sr-only">图表数据加载中</span><div class="sk-bars">${cols}</div><div class="sk-axis" aria-hidden="true"></div></div>`;
+}
 // 加载中占位（带旋转动画）
 function renderLoading(el, text='加载中…'){ if(!el) return; el.innerHTML = loadingState(text); }
 // 成功占位（可选文字）
@@ -1298,7 +1334,8 @@ function renderBotHome(m){
     <div style="margin-top:16px">
       <div class="dash-top">
         <div id="bot-hero">${statusRing('idle', m.name)}</div>
-        <div class="dash-stats" id="bot-stats">
+        <div class="dash-stats" id="bot-stats" role="group" aria-label="运行数据统计" aria-busy="true">
+          <span class="sr-only" id="stats-live" role="status" aria-live="polite">统计数据加载中</span>
           <div class="dstat" style="--ds-c:var(--module-1)"><strong class="dv" id="st-calls"><span class="skeleton skeleton-md" aria-hidden="true"></span></strong><span class="dl">调用次数</span><span class="du">累计</span></div>
           <div class="dstat" style="--ds-c:var(--module-3)"><strong class="dv" id="st-tokens"><span class="skeleton skeleton-md" aria-hidden="true"></span></strong><span class="dl">Token 消耗</span><span class="du">输入 + 输出</span></div>
           <div class="dstat" style="--ds-c:var(--module-5)"><strong class="dv" id="st-recall"><span class="skeleton skeleton-sm" aria-hidden="true"></span></strong><span class="dl">召回命中</span><span class="du">命中率</span></div>
@@ -1307,7 +1344,7 @@ function renderBotHome(m){
       </div>
 
       <h2 class="sec-title">Token 吞吐 <span class="sec-badge">7 天</span></h2>
-      <div class="dash-chart" id="bot-trend">${loadingState("加载中…")}</div>
+      <div class="dash-chart" id="bot-trend">${chartSkeleton()}</div>
 
       <h2 class="sec-title">机器人控制 <span class="stip">登出 / 停止 / 重启</span></h2>
       <div class="panel bot-ctl">
@@ -1381,18 +1418,32 @@ function renderBotHome(m){
         api.usageSummary(), api.usageDaily(7), api.messages(50), api.recalls(20)
       ]);
       const calls = sum.totalCalls??0, tin = sum.totalIn??0, tout = sum.totalOut??0;
-      $("#st-calls").textContent  = fmtC(calls);
-      $("#st-tokens").textContent = fmtT(tin+tout);
-      $("#st-msgs").textContent   = fmtC(msgs.length);
-
+      const tokenTotal = fmtT(tin+tout);
+      const msgCount = fmtC(msgs.length);
       const hit = rec.filter(r=>(r.hitCount??0)>0).length;
       const rate = rec.length ? hit/rec.length : null;
-      $("#st-recall").textContent = (rate==null) ? "—" : fmtPct(rate);
+      const recallTxt = (rate==null) ? "—" : fmtPct(rate);
+      $("#st-calls").textContent  = fmtC(calls);
+      $("#st-tokens").textContent = tokenTotal;
+      $("#st-msgs").textContent   = msgCount;
+      $("#st-recall").textContent = recallTxt;
+      $("#stats-live").textContent = `调用 ${fmtC(calls)} 次 · Token ${tokenTotal} · 消息 ${msgCount} 条`;
+      $("#bot-stats").removeAttribute("aria-busy");
 
       const chart = $("#bot-trend");
       const trend = (day && day.data) || [];
-      if(trend.length){ chart.innerHTML = botTrendSVG(trend); wireTrendHover(chart, trend); }
-      else chart.innerHTML = `<div class="dl-empty">暂无用量数据</div>`;
+      if(trend.length){
+        chart.innerHTML = botTrendSVG(trend);
+        wireTrendHover(chart, trend);
+        // 图表加载完成，更新可访问性状态
+        const chartLive = document.createElement("span");
+        chartLive.className = "sr-only";
+        chartLive.setAttribute("role", "status");
+        chartLive.textContent = `图表已加载，共 ${trend.length} 天数据`;
+        chart.appendChild(chartLive);
+      } else {
+        chart.innerHTML = `<div class="dl-empty">暂无用量数据</div>`;
+      }
 
       renderLog([...msgs.map(mm=>({t:mm.createdAt, kind:"in", msg:`${mm.type||"msg"} · ${mm.contactId||""}`} )),
                  ...rec.map(rr=>({t:rr.createdAt, kind:"recall", msg:`命中 ${rr.hitCount} 条 · ${rr.query||""}`}))]);
@@ -1607,7 +1658,7 @@ function renderBotUsage(){
           <span class="dc-t">Token 消耗走势</span>
           <span class="dc-legend"><i style="background:var(--module-3)"></i>输入 + 输出</span>
         </div>
-        <div id="w-trend">${loadingState("加载中…")}</div>
+        <div id="w-trend">${chartSkeleton()}</div>
       </div>
       <h2 class="sec-title" style="margin-top:18px"><span class="sec-badge">每用户排行</span></h2>
       <div class="dash-chart" style="padding:8px 14px">
