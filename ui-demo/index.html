@@ -71,8 +71,8 @@
 
     /* ---- 阴影（硬偏移，模拟套印错位，不做羽化） ---- */
     --shadow-card: 2px 2px 0 oklab(0.13 0.005 260/.10);
-    --shadow-lift: 4px 4px 0 oklab(0.13 0.005 260/.14);
-    --shadow-overlay: 6px 6px 0 oklab(0.13 0.005 260/.22);
+    --shadow-lift: var(--shadow-card);
+    --shadow-overlay: var(--shadow-card);
 
     /* ---- 字体：Saira Condensed 图签标题 + IBM Plex 正文 + Plex Mono 数据 ---- */
     --font: "IBM Plex Sans", -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
@@ -447,6 +447,15 @@
   .cal-foot svg { color:var(--module-3); }
 
   .hidden { display: none !important; }
+  /* 屏幕过渡转纯 CSS，克制 UI：去掉 scale 缩放，只做淡出换页、淡入复原 */
+  #screen { transition: opacity .18s ease-out; }
+  #screen.screen-leave { opacity: 0; }
+
+  /* 抽屉过渡：CSS 控制 transform，移除 GSAP 时间轴 */
+  .scrim { transition: opacity .22s ease-in-out, pointer-events .22s; }
+  .drawer { transition: transform .26s ease-out; }
+  .drawer .ditem { transition: background .15s, color .15s, border-color .15s; }
+
   /* Respect user motion preferences */
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
@@ -455,6 +464,8 @@
     .skeleton { background:var(--surface-nested); animation:none; }
     .skeleton::after { display:none; }
     .sk-bar { animation:none !important; opacity:.6; transform:none !important; }
+    /* 路由/抽屉过渡也降级 */
+    #screen, .scrim, .drawer { transition-duration: .01ms !important; }
   }
 
 </style>
@@ -559,22 +570,13 @@
   border-top-color:currentColor; border-radius:50%; animation:spin .7s linear infinite; }
 .skeleton {
   position:relative;
-  overflow:hidden;
-  background:linear-gradient(90deg, var(--surface-nested) 0%, color-mix(in oklab, var(--surface-nested) 55%, var(--surface-card) 45%) 50%, var(--surface-nested) 100%);
-  background-size:200% 100%;
+  background:var(--surface-nested);
   border-radius:var(--radius-control);
-  animation: shimmer 1.6s ease-in-out infinite;
+  /* 克制 UI：单一透明度呼吸，替代 shimmer 渐变 + glint 高光 */
+  animation: sk-pulse 1.4s ease-in-out infinite;
 }
-.skeleton::after { content:""; position:absolute; inset:0;
-  background:linear-gradient(120deg, transparent 30%, color-mix(in oklab, var(--surface-card) 25%, transparent) 50%, transparent 70%);
-  transform:translateX(-100%); animation:sk-glint 2.4s infinite; }
-@keyframes sk-glint { 60%,100% { transform:translateX(100%) } }
-@keyframes shimmer { to { background-position:-200% 0 } }
-/* 错峰：多根骨架条不同步闪动，观感更自然 */
-#bot-stats .dstat:nth-of-type(1) .skeleton { animation-delay:0s; }
-#bot-stats .dstat:nth-of-type(2) .skeleton { animation-delay:.25s; }
-#bot-stats .dstat:nth-of-type(3) .skeleton { animation-delay:.5s; }
-#bot-stats .dstat:nth-of-type(4) .skeleton { animation-delay:.75s; }
+@keyframes sk-pulse { 0%,100% { opacity:1 } 50% { opacity:.55 } }
+/* 多根骨架条仅通过 nth-of-type 设置宽度；错峰动画在克制方向上被移除 */
 #bot-stats .dstat:nth-of-type(1) .skeleton { width:118px; }
 #bot-stats .dstat:nth-of-type(2) .skeleton { width:96px; }
 #bot-stats .dstat:nth-of-type(3) .skeleton { width:72px; }
@@ -599,9 +601,10 @@
 /* 图表骨架屏：渐高柱体 + 底轴，占位更贴近真实形态 */
 .sk-chart { position:relative; display:flex; flex-direction:column; gap:8px; min-height:110px; padding:6px 2px 0; }
 .sk-chart .sk-bars { flex:1; display:flex; align-items:flex-end; justify-content:space-between; gap:8px; }
-.sk-chart .sk-bar { flex:1; min-height:14px; border-radius:var(--radius-control); background:var(--surface-nested);
-  animation:skgrow .9s ease-in-out infinite alternate; transform-origin:bottom; }
-@keyframes skgrow { to { opacity:.4; transform:scaleY(.82) } }
+.sk-chart .sk-bar { flex:1; min-height:14px; border-radius:var(--radius-control); background:var(--surface-nested); }
+/* 克制 UI：纯 opacity 呼吸，无缩放动画 */
+.sk-bar.sk-static { animation: sk-pulse-bar 1.4s ease-in-out infinite; }
+@keyframes sk-pulse-bar { 0%,100% { opacity:1 } 50% { opacity:.55 } }
 .sk-chart .sk-axis { height:1px; background:var(--border); margin-top:2px; }
 
 /* ---------- 骨架屏组件库：列表/卡片/表格/气泡/指标/表单 ---------- */
@@ -1015,7 +1018,6 @@
   .app { max-width: 1440px; }
 }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
 </head>
 <body>
 <div class="blob-field" aria-hidden="true"></div>
@@ -2969,8 +2971,8 @@ let drawerOpen = false;
 let scrollLock = false;
 // 记录上次渲染的路由：只有路由变化才做整页过渡，数据刷新/persist 不闪屏
 let lastRenderedRoute = route;
-// 当前过渡时间线，快速连点时先 kill 旧的，避免内容替换回调丢失
-let routeTween = null;
+// 路由淡入淡出计时器，快速连点时先清旧的
+let routeSwapTimer = null;
 // 页面级轮询句柄集中管理：离开页面即清，防止后台定时器泄漏
 let pollTimer = null;
 const homeTimers = [];
@@ -3051,17 +3053,11 @@ function render(){
   const screen = $("#screen");
   const routeChanged = route !== lastRenderedRoute;
   lastRenderedRoute = route;
-  // GSAP 路由过渡：淡出 → 换内容 → 轻弹式淡入 → 卡片错落入场
-  if(!(typeof gsap!=='undefined' && routeChanged)){ doRender(); return; }
-  if(routeTween) routeTween.kill();
-  routeTween = gsap.timeline();
-  routeTween.to(screen, {scale:0.97, opacity:0, duration:0.1, ease:"power1.in"})
-    .add(()=>{ doRender(); })
-    .fromTo(screen, {scale:0.97, opacity:0, y:12}, {scale:1, opacity:1, y:0, duration:0.26, ease:"power2.out"})
-    .add(()=>{
-      const cards = screen.querySelectorAll(".card, .panel, .log-view, .bot-head, .dash-log");
-      if(cards.length) gsap.from(cards, {y:14, opacity:0, duration:0.24, stagger:0.04, ease:"power2.out"});
-    });
+  // 克制 UI：仅做淡出 → 换内容 → 淡入，无 GSAP 依赖
+  if(!routeChanged){ doRender(); return; }
+  if(routeSwapTimer) clearTimeout(routeSwapTimer);
+  screen.style.opacity = '0';
+  routeSwapTimer = setTimeout(()=>{ doRender(); screen.style.opacity = '1'; }, 180);
 }
 function doRender(){
   // 根据 NapCat 侧边栏路由分发
@@ -3157,28 +3153,17 @@ function buildDrawer(){
     el.onclick=()=>go(el.dataset.go);
     el.onkeydown=(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(el.dataset.go); } };
   });
-  if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches && isDesktop()) playDrawerEntrance();
-  else syncDrawerActive();
-}
-function playDrawerEntrance(){
-  const kids = $("#drawerList").children;
-  if(!kids.length) return;
-  gsap.killTweensOf(kids);
-  gsap.from(kids,{opacity:0,y:16,duration:0.24,stagger:0.035,ease:'power2.out',clearProps:'opacity,transform',onComplete:syncDrawerActive});
+  // 克制 UI：抽屉项入场不再做 GSAP 错落，CSS transform/opacity 过渡即够
+  syncDrawerActive();
 }
 function isDesktop(){ return window.matchMedia('(min-width: 768px)').matches; }
-const drawerTl = gsap.timeline({paused:true});
-drawerTl.to("#drawer", {x:"0%", ease:"power2.out", duration:0.26})
-        .to("#scrim", {opacity:1, ease:"power2.inOut", duration:0.22}, 0)
-        .add(()=>{ if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches) playDrawerEntrance(); }, 0.08);
 function openDrawer(){
   if(isDesktop()) return;                 // 桌面侧边栏常驻，无需抽屉交互
   syncDrawerActive();
   drawerOpen = true;
-  // GSAP 只驱动 transform/opacity；可用性靠 .show，否则 :not(.show) 会掐掉 pointer-events
+  // 纯 CSS 过渡：.show 类驱动 transform / opacity，无需时间轴
   $("#drawer").classList.add("show");
   $("#scrim").classList.add("show");
-  drawerTl.play(0);
   lockScroll();
 }
 function closeDrawer(){
@@ -3186,7 +3171,6 @@ function closeDrawer(){
   drawerOpen = false;
   $("#drawer").classList.remove("show");
   $("#scrim").classList.remove("show");
-  drawerTl.reverse();
   unlockScroll();
 }
 
