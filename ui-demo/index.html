@@ -604,6 +604,50 @@
 @keyframes skgrow { to { opacity:.4; transform:scaleY(.82) } }
 .sk-chart .sk-axis { height:1px; background:var(--border); margin-top:2px; }
 
+/* ---------- 骨架屏组件库：列表/卡片/表格/气泡/指标/表单 ---------- */
+.sk-stack { display:flex; flex-direction:column; gap:10px; }
+.sk-row { display:flex; align-items:center; gap:12px; padding:12px 14px; border:1px solid var(--border); border-radius:var(--radius-tile); background:var(--surface-card); }
+.sk-row.is-flat { border:none; background:none; padding:12px 0; border-bottom:1px solid var(--border); }
+.sk-row:last-child { border-bottom:none; }
+.sk-ico { width:34px; height:34px; border-radius:var(--radius-tile); flex:none; }
+.sk-ico.lg { width:44px; height:44px; border-radius:var(--radius-tile); }
+.sk-col { display:flex; flex-direction:column; gap:7px; flex:1; min-width:0; }
+.sk-line { height:12px; border-radius:var(--radius-control); }
+.sk-line.t { height:14px; }
+.sk-line.s { height:10px; }
+.sk-grid { display:grid; gap:12px; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); }
+.sk-card { display:flex; flex-direction:column; gap:9px; padding:16px; border:1px solid var(--border-strong); border-radius:var(--radius-card); background:var(--surface-card); box-shadow:var(--shadow-card); }
+.sk-card .sk-ico { border-radius:var(--radius-tile); }
+.sk-metric { display:flex; align-items:flex-end; gap:8px; }
+.sk-metric .sk-num { height:30px; width:96px; border-radius:var(--radius-control); }
+.sk-metric .sk-unit { height:12px; width:40px; margin-bottom:5px; border-radius:var(--radius-control); }
+.sk-table { border:1px solid var(--border-strong); border-radius:var(--radius-card); overflow:hidden; background:var(--surface-card); }
+.sk-tr { display:grid; align-items:center; gap:12px; padding:12px 14px; border-top:1px solid var(--border); }
+.sk-tr.head { border-top:none; background:var(--surface-nested); }
+.sk-tr.head .sk-line { height:10px; }
+.sk-chat { display:flex; flex-direction:column; gap:14px; padding:4px 2px; }
+.sk-bubble { max-width:72%; display:flex; flex-direction:column; gap:6px; }
+.sk-bubble .sk-body { padding:10px 12px; border-radius:12px; border:1px solid var(--border); background:var(--surface-card); }
+.sk-bubble.me { align-self:flex-end; align-items:flex-end; }
+.sk-bubble.them { align-self:flex-start; align-items:flex-start; }
+.sk-bubble.me .sk-body { border-color:color-mix(in oklab, var(--accent) 35%, transparent); background:color-mix(in oklab, var(--accent) 8%, var(--surface-card)); }
+.sk-bubble .sk-ava { width:26px; height:26px; border-radius:var(--radius-tile); margin-bottom:4px; }
+/* 失败提示横幅：紧凑、带硬偏移阴影、明确不是空框 */
+.fail-card{display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--border-strong);border-radius:var(--radius-card);background:var(--surface-card);box-shadow:var(--shadow-card);margin-bottom:12px;transition:box-shadow .15s,background-color .15s;}
+.fail-card:hover{box-shadow:var(--shadow-lift);}
+.fail-ico{width:42px;height:42px;display:inline-grid;place-items:center;border-radius:var(--radius-card);background:var(--surface-nested);border:1.5px solid var(--border-strong);color:var(--danger);flex:none;font-size:14px;}
+.fail-txt{flex:1;min-width:0;}
+.fail-msg{margin:0;font-weight:600;color:var(--text);font-size:14px;line-height:1.3;word-break:break-word;}
+.fail-hint{margin:3px 0 0;font-size:11px;color:var(--text-tertiary);}
+/* 未连接预览模式：真实数据缺失时，用静态骨架撑住版式，避免只剩一个 404 空框 */
+.preview-wrap { margin-top:16px; text-align:left; }
+.preview-bar { display:flex; align-items:center; gap:8px; margin-bottom:10px; color:var(--text-tertiary);
+  font-family:var(--font-mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; }
+.preview-bar::after { content:""; flex:1; height:1px; background:repeating-linear-gradient(90deg, var(--border) 0 4px, transparent 4px 8px); }
+/* 预览态：静态无闪动，明确是占位示意而非正在加载 */
+.sk-static { animation:none !important; background:var(--surface-nested) !important; opacity:.5; }
+.sk-static::after { display:none !important; }
+
 /* ---------- toast notifications ---------- */
 .toast-container { position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index:100; display:flex; flex-direction:column; gap:8px; pointer-events:none; }
 .toast { padding:11px 16px; border-radius:var(--radius-tile); font-size:12px; font-weight:500; color:var(--text); background:var(--surface-card); border:1px solid var(--border); display:flex; align-items:center; gap:8px;
@@ -1075,7 +1119,8 @@ const ICONS = {
   send:'<path d="M4 12 20 4l-6 16-3.2-6.2z"/><path d="M11 13.8 20 4"/>',
   users:'<circle cx="9" cy="8" r="3"/><path d="M3.5 19c.6-2.8 2.8-4.5 5.5-4.5s4.9 1.7 5.5 4.5"/><path d="M16 5.6a3 3 0 0 1 0 5.8"/><path d="M17.6 14.7c1.9.4 3 1.9 3.4 4.1"/>',
   at:'<circle cx="12" cy="12" r="3.6"/><path d="M15.6 12v1.4a2.4 2.4 0 0 0 4.8 0V12a8.4 8.4 0 1 0-3.3 6.7"/>',
-  gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/>'
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/>',
+  eye:'<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>'
 };
 function icon(name, size=22, sw=1.7){
   const path = ICONS[name] || ICONS.grid;
@@ -1121,6 +1166,63 @@ function chartSkeleton(bars=7){
   }).join("");
   return `<div class="sk-chart" role="status" aria-busy="true" aria-label="图表数据加载中"><span class="sr-only">图表数据加载中</span><div class="sk-bars">${cols}</div><div class="sk-axis" aria-hidden="true"></div></div>`;
 }
+/* ---------- 骨架屏组件库：列表 / 卡片 / 表格 / 气泡 / 指标 / 表单 ---------- */
+const skLine = (w, tone='') => `<span class="skeleton sk-line${tone?' '+tone:''}" style="width:${w}%" aria-hidden="true"></span>`;
+// 单行列表项：头像块 + 标题 + 副标题
+function skRow(lines=2){
+  const body = lines <= 1
+    ? `<span class="sk-col">${skLine(58,'t')}</span>`
+    : `<span class="sk-col">${skLine(66,'t')}${skLine(40,'s')}</span>`;
+  return `<div class="sk-row"><span class="skeleton sk-ico" aria-hidden="true"></span>${body}</div>`;
+}
+function skeletonList(rows=5){
+  const pattern = [2,2,1,2,1,2];
+  return `<div class="sk-stack" role="status" aria-busy="true" aria-label="内容加载中"><span class="sr-only">内容加载中</span>`
+    + Array.from({length:rows},(_,i)=>skRow(pattern[i%pattern.length])).join("") + `</div>`;
+}
+function skeletonCards(n=6){
+  return `<div class="sk-grid" role="status" aria-busy="true" aria-label="卡片加载中"><span class="sr-only">卡片加载中</span>`
+    + Array.from({length:n},()=>`<div class="sk-card"><span class="skeleton sk-ico" aria-hidden="true"></span>${skLine(56,'t')}${skLine(92,'s')}${skLine(44,'s')}</div>`).join("") + `</div>`;
+}
+function skeletonTable(rows=6, cols=4){
+  const wts = [[30,22,28,18],[24,20,32,22]];
+  const cells = w => w.map((x,i)=>skLine(x, i===0?'t':'')).join("");
+  const head = Array.from({length:cols},()=>42);
+  return `<div class="sk-table" role="status" aria-busy="true" aria-label="表格加载中"><span class="sr-only">表格加载中</span>`
+    + `<div class="sk-tr head" style="grid-template-columns:repeat(${cols},1fr)">${cells(head)}</div>`
+    + Array.from({length:rows},(_,i)=>`<div class="sk-tr" style="grid-template-columns:repeat(${cols},1fr)">${cells(wts[i%2])}</div>`).join("") + `</div>`;
+}
+function skeletonChat(n=4){
+  const bubble = me => {
+    const widths = me ? [60,42] : [72,48];
+    return `<div class="sk-bubble ${me?'me':'them'}">`
+      + (me?``:`<span class="skeleton sk-ava" aria-hidden="true"></span>`)
+      + `<div class="sk-body"><span class="sk-col">${widths.map((x,i)=>skLine(x,i===0?'t':'')).join("")}</span></div></div>`;
+  };
+  return `<div class="sk-chat" role="status" aria-busy="true" aria-label="消息加载中"><span class="sr-only">消息加载中</span>`
+    + Array.from({length:n},(_,i)=>bubble(i%2===1)).join("") + `</div>`;
+}
+function skeletonMetrics(n=4){
+  const nums = [112,92,74,88];
+  return `<div class="sk-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))" role="status" aria-busy="true" aria-label="指标加载中"><span class="sr-only">指标加载中</span>`
+    + Array.from({length:n},(_,i)=>`<div class="sk-card">${skLine(46,'s')}`
+      + `<div class="sk-metric"><span class="skeleton sk-num" style="width:${nums[i%4]}px" aria-hidden="true"></span><span class="skeleton sk-unit" aria-hidden="true"></span></div></div>`).join("") + `</div>`;
+}
+function skeletonForm(rows=5){
+  return `<div class="sk-stack" role="status" aria-busy="true" aria-label="表单加载中"><span class="sr-only">表单加载中</span>`
+    + Array.from({length:rows},(_,i)=>`<div class="sk-row is-flat" style="border:none;background:none;padding:10px 0">`
+      + `<span class="sk-col">${skLine(26+((i*13)%18),'s')}`
+      + `<span class="skeleton" style="height:40px;width:100%;border-radius:var(--radius-tile)" aria-hidden="true"></span></span></div>`).join("") + `</div>`;
+}
+const SKEL = { list:skeletonList, cards:skeletonCards, table:skeletonTable, chat:skeletonChat, metrics:skeletonMetrics, form:skeletonForm, chart:chartSkeleton };
+// 统一入口：按形态名取骨架屏 HTML
+function skeleton(kind='list'){ const f = SKEL[kind] || skeletonList; return f(); }
+// 把骨架屏冻结为静态示意（用于「未连接」预览，避免误导为正在加载）
+function freezeSk(html){ return html.replace(/class="skeleton/g,'class="skeleton sk-static').replace(/class="sk-bar/g,'class="sk-bar sk-static'); }
+// 未连接时的预览区块：真实版式用静态骨架撑住，附「示意」标注
+function previewBlock(kind='list', label='示意预览 · 服务未连接'){
+  return `<div class="preview-wrap"><div class="preview-bar">${icon("eye",12)} ${esc(label)}</div>${freezeSk(skeleton(kind))}</div>`;
+}
 // 加载中占位（带旋转动画）
 function renderLoading(el, text='加载中…'){ if(!el) return; el.innerHTML = loadingState(text); }
 // 成功占位（可选文字）
@@ -1130,20 +1232,23 @@ function renderEmpty(el, { text='暂无数据', icon=icon("alert",24), action=''
   if(!el) return;
   el.innerHTML = `<div class="empty"><span class="e">${icon}</span><p>${text}</p>${action?`<div style="margin-top:10px">${action}</div>`:''}</div>`;
 }
-// 错误/失败态：默认「机器人服务未连接」，可传自定义 message
-function botFail(el, msg){
+// 错误/失败态：默认「机器人服务未连接」，可传自定义 message 与预览骨架类型 kind
+function botFail(el, msg, kind){
   if(!el) return;
   const txt = msg || '机器人服务未连接';
-  const icn = msg ? icon("alert",20) : icon("refresh",24);
-  el.innerHTML = `<div class="empty"><span class="e">${icn}</span><p>${txt}</p>
-    <div style="margin-top:10px"><button class="btn" data-retry style="max-width:120px">重试</button></div></div>`;
+  const icn = msg ? icon("alert",20) : icon("refresh",20);
+  const head = `<div class="fail-card"><span class="fail-ico">${icn}</span>
+    <div class="fail-txt"><p class="fail-msg">${esc(txt)}</p>
+    <p class="fail-hint">服务未连接，下方为页面示意预览</p></div>
+    <button class="btn ghost" data-retry style="max-width:auto">${icon("refresh",13)} 重试</button></div>`;
+  el.innerHTML = head + (kind ? previewBlock(kind) : `<div class="empty" style="border:none;padding:24px"><span class="e">${icon("alert",22)}</span><p>${txt}</p></div>`);
 }
 // 为容器内「[data-retry]」按钮统一绑定重试回调；无回调则把容器整体当作触发目标
 function wireRetry(el, retry){ if(!el) return; el.querySelectorAll("[data-retry]").forEach(b=>b.onclick=()=> (retry||render)()); }
 // 快捷：展示错误 + 绑定重试（兼容旧用法），附带全局错误提示
-function showError(el, err, retryF){
+function showError(el, err, retryF, kind){
   const msg = err?.message || err || '加载失败';
-  botFail(el, msg);
+  botFail(el, msg, kind);
   wireRetry(el, retryF);
   if(!window._lastErrMsg || window._lastErrMsg !== msg){
     window._lastErrMsg = msg;
@@ -1603,7 +1708,7 @@ function renderBotConfig(m){
           load();
         });
       };
-    }catch(e){ showError(box, e, load); }
+    }catch(e){ showError(box, e, load, 'form'); }
   };
   load();
 }
@@ -1688,7 +1793,7 @@ function renderBotUsage(){
       const d = await api.usageDaily(rangeDays); const arr=(d.data||[]);
       tel.innerHTML = arr.length ? botTrendSVG(arr) : `<div class="dl-empty">暂无用量数据</div>`;
       wireTrendHover(tel, arr);
-    }catch(e){ showError(tel, e, retry); }
+    }catch(e){ showError(tel, e, retry, 'chart'); }
   };
 
   $("#range-seg").addEventListener("click", (e)=>{
@@ -1713,7 +1818,7 @@ function renderBotUsage(){
       const C = 2*Math.PI*40;
       $("#usage-arc").style.strokeDasharray = `${(C*outRatio).toFixed(1)} 999`;
       $("#usage-out-ratio").textContent = `${Math.round(outRatio*100)}%`;
-    }catch(e){ showError($("#usage-calls").closest(".dash-stats")||$("#w-trend"), e, retry); }
+    }catch(e){ showError($("#usage-calls").closest(".dash-stats")||$("#w-trend"), e, retry, 'metrics'); }
     loadTrend();
     const rel=$("#w-rank");
     try{ const list = await api.usageByContact();
@@ -1725,7 +1830,7 @@ function renderBotUsage(){
         <div class="r-bar"><div class="r-fill" style="width:${Math.round((u.totalTokens||0)/maxTok*100)}%"></div></div>
         <span class="r-tok">${fmtT(u.totalTokens||0)}</span></div>`).join("");
       rel.querySelectorAll(".rank-row").forEach(row=>{ row.onclick=()=>openConv(row.dataset.c, null); });
-    }catch(e){ showError(rel, e, retry); }
+    }catch(e){ showError(rel, e, retry, 'list'); }
   })();
   $("#bot-back").onclick = ()=>go('bot');
 
@@ -1773,7 +1878,7 @@ function renderBotConvs(title, sub, filter, extra){
           };
         }
       });
-    }catch(e){ showError(el, e, load); }
+    }catch(e){ showError(el, e, load, 'list'); }
   };
   load();
   $("#bot-refer").onclick = load;
@@ -1837,7 +1942,7 @@ function renderBotMsg(){
           };
         }
       });
-    }catch(e){ showError(el, e, retry); }
+    }catch(e){ showError(el, e, retry, 'list'); }
   };
   load();
   $("#bot-back").onclick = ()=>go('bot');
@@ -1962,7 +2067,7 @@ function renderBotMem(){
         finally{ btn.disabled=false; btn.innerHTML = icon("check",14); };
       }; });
       el.querySelectorAll(".js-mem-cancel").forEach(btn=>{ btn.onclick=(e)=>{ e.stopPropagation(); cancelEdit(); }; });
-    }catch(e){ showError(el, e, retry); }
+    }catch(e){ showError(el, e, retry, 'cards'); }
   };
 
   const syncBulk = ()=>{
@@ -2112,7 +2217,7 @@ function renderBotRecall(){
           };
         }
       });
-    }catch(e){ showError(el, e, retry); }
+    }catch(e){ showError(el, e, retry, 'list'); }
   };
   const loadSrc = async ()=>{
     const el=$("#w-recall-src");
@@ -2135,7 +2240,7 @@ function renderBotRecall(){
           };
         }
       });
-    }catch(e){ showError(el, e, retry); }
+    }catch(e){ showError(el, e, retry, 'list'); }
   };
   loadHits();
   loadSrc();
@@ -2190,7 +2295,7 @@ function renderBotSys(m){
 
   const refresh = async ()=>{
     try{ render(await api.systemStats()); }
-    catch(e){ showError($("#sys-hero"), e, refresh); }
+    catch(e){ showError($("#sys-hero"), e, refresh, 'metrics'); }
   };
   refresh();
   pollTimer = setInterval(refresh, 2000);
@@ -2246,7 +2351,7 @@ function renderBotLogs(m){
       const list = await api.logs(300);
       all = (list||[]).slice().reverse(); // 倒序 → 正序（老 → 新）
       paint();
-    }catch(e){ showError(body, e, refresh); }
+    }catch(e){ showError(body, e, refresh, 'table'); }
   };
   refresh();
   pollTimer = setInterval(refresh, 3000);
@@ -2335,7 +2440,7 @@ function renderBotContacts(m){
       cache = await api.contacts();
       if(!Array.isArray(cache)) cache = [];
       paint($("#cnt-search").value);
-    }catch(e){ showError($("#cnt-list"), e, refresh); }
+    }catch(e){ showError($("#cnt-list"), e, refresh, 'list'); }
   };
   refresh();
 }
@@ -2364,7 +2469,7 @@ function renderBotRooms(m){
       el.querySelectorAll(".cnt-row").forEach(row=>{
         row.onclick = ()=>showRoomDetail(row.dataset.id, row.dataset.topic);
       });
-    }catch(e){ showError(el, e, refresh); }
+    }catch(e){ showError(el, e, refresh, 'list'); }
   };
   refresh();
 
@@ -2432,7 +2537,7 @@ function renderBotRooms(m){
       members = await api.roomMembers(roomId);
       if(!Array.isArray(members)) members = [];
       paintMembers("");
-    }catch(e){ showError(box, e, ()=>showRoomDetail(roomId, topic)); }
+    }catch(e){ showError(box, e, ()=>showRoomDetail(roomId, topic), 'list'); }
   };
 }
 
@@ -2508,7 +2613,7 @@ function renderBotSend(m){
       const sync = ()=>{ const o = sel.options[sel.selectedIndex]; selected = o ? { id:o.value, name:o.textContent } : { id:"", name:"" }; renderPreview(); };
       sel.onchange = sync;
       sync();
-    }catch(e){ showError($picker, e, loadPicker); }
+    }catch(e){ showError($picker, e, loadPicker, 'list'); }
   };
 
   const renderPreview = ()=>{
@@ -2807,7 +2912,7 @@ function openConv(contactId, roomId){
   mask.onclick=(e)=>{ if(e.target===mask) mask.remove(); };
   const box=sheet.querySelector(".sh-b");
 
-  const retry = async()=>{ try{ await load(); }catch(e){ showError(box, e, retry); } };
+  const retry = async()=>{ try{ await load(); }catch(e){ showError(box, e, retry, 'chat'); } };
   const load = async()=>{
     try{
       const list = await api.conversations(contactId, roomId || null);
@@ -2829,7 +2934,7 @@ function openConv(contactId, roomId){
           });
         };
       });
-    }catch(e){ showError(box, e, retry); }
+    }catch(e){ showError(box, e, retry, 'chat'); }
   };
 
   // 辅助：格式化消息内容（文本直接字，其他带图标）
