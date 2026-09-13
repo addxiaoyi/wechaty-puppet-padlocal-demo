@@ -544,13 +544,20 @@
   border-top-color:currentColor; border-radius:50%; animation:spin .7s linear infinite; }
 .skeleton { background: var(--surface-card);
   animation: shimmer 1.5s ease-in-out infinite; border-radius: var(--radius-control); }
+.skeleton-lg { height:24px; width:140px; }
+.skeleton-md { height:20px; width:96px; }
+.skeleton-sm { height:18px; width:64px; }
 @keyframes shimmer { 0%, 100% { opacity: 1 } 50% { opacity: .55 } }
-/* unified loading placeholder — one component for every "加载中" slot */
+/* progress-dash 替代 spinner */
+.progress-dash { display:inline-block; width:22px; height:22px; border:3px solid var(--border);
+  border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle; }
+@keyframes spin { to { transform:rotate(360deg); } }
+/* unified loading placeholder */
 .loading-state { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
   min-height:96px; padding:28px 20px; color:var(--text-secondary); font-size:14px; }
-.loading-state .spinner { margin-right:0; width:22px; height:22px; }
+.loading-state .progress-dash { margin-right:0; }
 .loading-state.mini { flex-direction:row; min-height:0; padding:14px 16px; gap:8px; }
-.loading-state.mini .spinner { width:16px; height:16px; }
+.loading-state.mini .progress-dash { width:16px; height:16px; }
 
 /* ---------- toast notifications ---------- */
 .toast-container { position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index:100; display:flex; flex-direction:column; gap:8px; pointer-events:none; }
@@ -624,6 +631,13 @@
 .ring .ring-val { fill:none; stroke:var(--ring-color); stroke-width:6; stroke-linecap:round; stroke-dasharray:0 999;
   transition:stroke-dasharray .8s cubic-bezier(.4,0,.2,1), stroke .4s; }
 .ring .ring-ico { position:absolute; inset:0; display:grid; place-items:center; color:var(--ring-color); }
+.ring .ring-monogram { position:absolute; inset:0; display:grid; place-items:center; font-family:var(--font-mono);
+  font-weight:700; font-size:24px; letter-spacing:.02em; color:var(--ring-color); }
+.ring.branding .ring-pulse { position:absolute; left:50%; top:50%; width:18px; height:18px; margin:0;
+  border:1.5px solid color-mix(in oklab, var(--ring-color) 65%, transparent); border-radius:50%;
+  transform:translate(-50%,-50%); opacity:0; animation:ringPulse 2.6s ease-out infinite; pointer-events:none; }
+.ring.branding .ring-pulse.d2 { animation-delay:.85s; border-color:color-mix(in oklab, var(--ring-color) 38%, transparent); }
+@keyframes ringPulse { 0%{opacity:0;transform:translate(-50%,-50%) scale(.6)} 45%{opacity:.85} 100%{opacity:0;transform:translate(-50%,-50%) scale(1.75)} }
 .ring.breath::before { content:""; position:absolute; inset:26px; border-radius:50%;
   background:color-mix(in oklab, var(--ring-color) 20%, transparent); animation:bbreath 2.4s ease-in-out infinite; pointer-events:none; }
 @keyframes bbreath { 50% { transform:scale(1.25); opacity:.3 } }
@@ -1050,7 +1064,7 @@ document.querySelectorAll('#nav .n').forEach(n=>{
 /* ---------- BOT VIEW 统一渲染状态组件 ---------- */
 // 统一加载态组件：任一“加载中”槽位都走这里
 function loadingState(text='加载中…', mini=false){
-  return `<div class="loading-state${mini?' mini':''}" role="status" aria-live="polite"><span class="spinner"></span><span>${text}</span></div>`;
+  return `<div class="loading-state${mini?' mini':''}" role="status" aria-live="polite"><span class="progress-dash"></span><span>${text}</span></div>`;
 }
 // 加载中占位（带旋转动画）
 function renderLoading(el, text='加载中…'){ if(!el) return; el.innerHTML = loadingState(text); }
@@ -1248,20 +1262,24 @@ function statusRing(state, name){
   const cs = { 'logged-in':['var(--module-1)','activity',100,'在线'], scanning:['var(--module-3)','camera',55,'等待扫码'], idle:['var(--module-4)','refresh',22,'初始化'], 'logged-out':['var(--danger)','power',8,'离线'] };
   const [color, ico, pct, lab] = cs[state] || cs['logged-out'];
   const breath = state==='scanning' ? 'breath' : '';
-  const pill = state==='logged-in' ? 'on' : (state==='scanning' ? 'scan' : 'off');
+  const brand  = (state==='idle' || state==='logged-out') ? 'branding' : '';
+  const pill   = state==='logged-in' ? 'on' : (state==='scanning' ? 'scan' : 'off');
   const R = 40;
+  const inner = brand
+    ? `<span class="ring-pulse"></span><span class="ring-pulse d2"></span><div class="ring-monogram">N</div>`
+    : `<div class="ring-ico">${icon(ico,30,1.8)}</div>`;
   return `<div class="dash-hero ${state==='scanning'?'scan':(state==='logged-in'?'':'off')}">
-    <div class="ring ${breath}" style="--ring-pct:${pct};--ring-color:${color}">
+    <div class="ring ${breath} ${brand}" style="--ring-pct:${pct};--ring-color:${color}">
       <svg viewBox="0 0 100 100">
         <circle class="ring-bg" cx="50" cy="50" r="${R}"/>
         <circle class="ring-val" cx="50" cy="50" r="${R}" style="stroke-dasharray:${(RING_C*pct/100).toFixed(1)} 999"/>
       </svg>
-      <div class="ring-ico">${icon(ico,30,1.8)}</div>
+      ${inner}
     </div>
     <div class="hero-meta">
       <span class="hero-pill ${pill}">${lab}</span>
       <h2 class="hm-name">${name ? esc(name) : "微信机器人"}</h2>
-      <p class="hm-sub" id="hero-sub">连接中…</p>
+      <p class="hm-sub" id="hero-sub">连接中<span class="loading-dots">···</span></p>
     </div>
   </div>`;
 }
