@@ -533,8 +533,8 @@
   .btn-refresh{opacity:.7;transition:.2s}
   .btn-refresh:hover{opacity:1}
   .mrow-msg .btn-refresh{color:var(--accent);background:var(--surface-nested);border:1px solid var(--border);min-width:32px;width:32px}
-  .loading-dots{animation:dots 1s infinite;opacity:.7}
-  @keyframes dots{0%{content:"·"}25%{content:"··"}50%{content:"···"}75%{content:"··"}}
+  .loading-dots::after { content:"···"; animation:dots 1s infinite; opacity:.7 }
+  @keyframes dots{0%{content:"·"}25%{content:"··"}50%{content:"···"}75%{content:"··"}100%{content:"·"}}
   /* ---------- loading states ---------- */
 .spinner { display:inline-block; width:18px; height:18px; border:2px solid var(--border); border-top-color:var(--accent);
   border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle; margin-right:8px; }
@@ -542,12 +542,18 @@
 .btn-loading { position:relative; color:transparent!important; pointer-events:none; }
 .btn-loading::after { content:""; position:absolute; inset:0; margin:auto; width:18px; height:18px; border:2px solid transparent;
   border-top-color:currentColor; border-radius:50%; animation:spin .7s linear infinite; }
-.skeleton { background: var(--surface-card);
-  animation: shimmer 1.5s ease-in-out infinite; border-radius: var(--radius-control); }
-.skeleton-lg { height:24px; width:140px; }
+.skeleton {
+  position:relative;
+  overflow:hidden;
+  background:linear-gradient(90deg, var(--surface-nested) 0%, color-mix(in oklab, var(--surface-nested) 55%, var(--surface-card) 45%) 50%, var(--surface-nested) 100%);
+  background-size:200% 100%;
+  border-radius:var(--radius-control);
+  animation: shimmer 1.6s infinite linear;
+}
+@keyframes shimmer { to { background-position:-200% 0 } }
+.skeleton-lg { height:26px; width:132px; }
 .skeleton-md { height:20px; width:96px; }
 .skeleton-sm { height:18px; width:64px; }
-@keyframes shimmer { 0%, 100% { opacity: 1 } 50% { opacity: .55 } }
 /* progress-dash 替代 spinner */
 .progress-dash { display:inline-block; width:22px; height:22px; border:3px solid var(--border);
   border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle; }
@@ -656,6 +662,7 @@
 .dstat::after { content:""; position:absolute; left:0; right:0; bottom:0; height:2px; background:var(--ds-c,var(--accent));
   opacity:.85; }
 .dstat strong.dv { font-family:var(--font-mono); font-size:18px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--text); line-height:1.1; display:block; }
+.dstat strong.dv .skeleton { display:inline-block; vertical-align:middle; }
 .dstat .dl { font-size:10px; color:var(--text-tertiary); margin-top:3px; letter-spacing:.02em; display:block; }
 .dstat .du { font-size:9px; color:var(--text-tertiary); opacity:.75; margin-top:1px; display:block; }
 .sec-title .sec-badge { font-size:10px; font-weight:600; letter-spacing:.06em; color:var(--accent-muted);
@@ -1292,10 +1299,10 @@ function renderBotHome(m){
       <div class="dash-top">
         <div id="bot-hero">${statusRing('idle', m.name)}</div>
         <div class="dash-stats" id="bot-stats">
-          <div class="dstat" style="--ds-c:var(--module-1)"><strong class="dv" id="st-calls">—</strong><span class="dl">调用次数</span><span class="du">累计</span></div>
-          <div class="dstat" style="--ds-c:var(--module-3)"><strong class="dv" id="st-tokens">—</strong><span class="dl">Token 消耗</span><span class="du">输入 + 输出</span></div>
-          <div class="dstat" style="--ds-c:var(--module-5)"><strong class="dv" id="st-recall">—</strong><span class="dl">召回命中</span><span class="du">命中率</span></div>
-          <div class="dstat" style="--ds-c:var(--module-2)"><strong class="dv" id="st-msgs">—</strong><span class="dl">消息总数</span><span class="du">近 50 条</span></div>
+          <div class="dstat" style="--ds-c:var(--module-1)"><strong class="dv" id="st-calls"><span class="skeleton skeleton-md"></span></strong><span class="dl">调用次数</span><span class="du">累计</span></div>
+          <div class="dstat" style="--ds-c:var(--module-3)"><strong class="dv" id="st-tokens"><span class="skeleton skeleton-md"></span></strong><span class="dl">Token 消耗</span><span class="du">输入 + 输出</span></div>
+          <div class="dstat" style="--ds-c:var(--module-5)"><strong class="dv" id="st-recall"><span class="skeleton skeleton-sm"></span></strong><span class="dl">召回命中</span><span class="du">命中率</span></div>
+          <div class="dstat" style="--ds-c:var(--module-2)"><strong class="dv" id="st-msgs"><span class="skeleton skeleton-sm"></span></strong><span class="dl">消息总数</span><span class="du">近 50 条</span></div>
         </div>
       </div>
 
