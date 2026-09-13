@@ -1071,7 +1071,7 @@ document.querySelectorAll('#nav .n').forEach(n=>{
 /* ---------- BOT VIEW 统一渲染状态组件 ---------- */
 // 统一加载态组件：任一“加载中”槽位都走这里
 function loadingState(text='加载中…', mini=false){
-  return `<div class="loading-state${mini?' mini':''}" role="status" aria-live="polite"><span class="progress-dash"></span><span>${text}</span></div>`;
+  return `<div class="loading-state${mini?' mini':''}" role="status" aria-live="polite" aria-busy="true" aria-label="${text}"><span class="progress-dash" aria-hidden="true"></span><span>${text}</span></div>`;
 }
 // 加载中占位（带旋转动画）
 function renderLoading(el, text='加载中…'){ if(!el) return; el.innerHTML = loadingState(text); }
@@ -1273,11 +1273,11 @@ function statusRing(state, name){
   const pill   = state==='logged-in' ? 'on' : (state==='scanning' ? 'scan' : 'off');
   const R = 40;
   const inner = brand
-    ? `<span class="ring-pulse"></span><span class="ring-pulse d2"></span><div class="ring-monogram">N</div>`
-    : `<div class="ring-ico">${icon(ico,30,1.8)}</div>`;
+    ? `<span class="ring-pulse" aria-hidden="true"></span><span class="ring-pulse d2" aria-hidden="true"></span><div class="ring-monogram" aria-hidden="true">N</div>`
+    : `<div class="ring-ico" aria-hidden="true">${icon(ico,30,1.8)}</div>`;
   return `<div class="dash-hero ${state==='scanning'?'scan':(state==='logged-in'?'':'off')}">
-    <div class="ring ${breath} ${brand}" style="--ring-pct:${pct};--ring-color:${color}">
-      <svg viewBox="0 0 100 100">
+    <div class="ring ${breath} ${brand}" style="--ring-pct:${pct};--ring-color:${color}" role="img" aria-label="${lab}，当前进度 ${pct}%">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
         <circle class="ring-bg" cx="50" cy="50" r="${R}"/>
         <circle class="ring-val" cx="50" cy="50" r="${R}" style="stroke-dasharray:${(RING_C*pct/100).toFixed(1)} 999"/>
       </svg>
@@ -1286,7 +1286,7 @@ function statusRing(state, name){
     <div class="hero-meta">
       <span class="hero-pill ${pill}">${lab}</span>
       <h2 class="hm-name">${name ? esc(name) : "微信机器人"}</h2>
-      <p class="hm-sub" id="hero-sub">连接中<span class="loading-dots">···</span></p>
+      <p class="hm-sub" id="hero-sub" aria-live="polite">连接中<span class="loading-dots" aria-hidden="true"></span></p>
     </div>
   </div>`;
 }
@@ -1299,10 +1299,10 @@ function renderBotHome(m){
       <div class="dash-top">
         <div id="bot-hero">${statusRing('idle', m.name)}</div>
         <div class="dash-stats" id="bot-stats">
-          <div class="dstat" style="--ds-c:var(--module-1)"><strong class="dv" id="st-calls"><span class="skeleton skeleton-md"></span></strong><span class="dl">调用次数</span><span class="du">累计</span></div>
-          <div class="dstat" style="--ds-c:var(--module-3)"><strong class="dv" id="st-tokens"><span class="skeleton skeleton-md"></span></strong><span class="dl">Token 消耗</span><span class="du">输入 + 输出</span></div>
-          <div class="dstat" style="--ds-c:var(--module-5)"><strong class="dv" id="st-recall"><span class="skeleton skeleton-sm"></span></strong><span class="dl">召回命中</span><span class="du">命中率</span></div>
-          <div class="dstat" style="--ds-c:var(--module-2)"><strong class="dv" id="st-msgs"><span class="skeleton skeleton-sm"></span></strong><span class="dl">消息总数</span><span class="du">近 50 条</span></div>
+          <div class="dstat" style="--ds-c:var(--module-1)"><strong class="dv" id="st-calls"><span class="skeleton skeleton-md" aria-hidden="true"></span></strong><span class="dl">调用次数</span><span class="du">累计</span></div>
+          <div class="dstat" style="--ds-c:var(--module-3)"><strong class="dv" id="st-tokens"><span class="skeleton skeleton-md" aria-hidden="true"></span></strong><span class="dl">Token 消耗</span><span class="du">输入 + 输出</span></div>
+          <div class="dstat" style="--ds-c:var(--module-5)"><strong class="dv" id="st-recall"><span class="skeleton skeleton-sm" aria-hidden="true"></span></strong><span class="dl">召回命中</span><span class="du">命中率</span></div>
+          <div class="dstat" style="--ds-c:var(--module-2)"><strong class="dv" id="st-msgs"><span class="skeleton skeleton-sm" aria-hidden="true"></span></strong><span class="dl">消息总数</span><span class="du">近 50 条</span></div>
         </div>
       </div>
 
