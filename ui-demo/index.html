@@ -3050,12 +3050,17 @@ function openDrawer(){
   if(isDesktop()) return;                 // 桌面侧边栏常驻，无需抽屉交互
   syncDrawerActive();
   drawerOpen = true;
+  // GSAP 只驱动 transform/opacity；可用性靠 .show，否则 :not(.show) 会掐掉 pointer-events
+  $("#drawer").classList.add("show");
+  $("#scrim").classList.add("show");
   drawerTl.play(0);
   lockScroll();
 }
 function closeDrawer(){
   if(!drawerOpen) return;
   drawerOpen = false;
+  $("#drawer").classList.remove("show");
+  $("#scrim").classList.remove("show");
   drawerTl.reverse();
   unlockScroll();
 }
