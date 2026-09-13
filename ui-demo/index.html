@@ -1219,6 +1219,8 @@ function skeletonForm(rows=5){
 const SKEL = { list:skeletonList, cards:skeletonCards, table:skeletonTable, chat:skeletonChat, metrics:skeletonMetrics, form:skeletonForm, chart:chartSkeleton };
 // 统一入口：按形态名取骨架屏 HTML
 function skeleton(kind='list'){ const f = SKEL[kind] || skeletonList; return f(); }
+// 失败收敛：把容器内残留的骨架屏占位替换为「—」，避免变成永远呼吸的假的加载中
+function settleSkeleton(sels){ sels.forEach(s=>{ const el=$(s); if(!el) return; el.querySelectorAll(".skeleton").forEach(x=>x.replaceWith("—")); }); }
 // 把骨架屏冻结为静态示意（用于「未连接」预览，避免误导为正在加载）
 function freezeSk(html){ return html.replace(/class="skeleton/g,'class="skeleton sk-static').replace(/class="sk-bar/g,'class="sk-bar sk-static'); }
 // 未连接时的预览区块：真实版式用静态骨架撑住，附「示意」标注
@@ -1476,7 +1478,7 @@ function renderBotHome(m){
       <h2 class="sec-title">实时事件 <span class="stip">最近消息与召回</span></h2>
       <div class="dash-log">
         <div class="dl-h"><h3><i></i>事件日志</h3><span class="stip" id="dl-count">0 条</span></div>
-        <div class="dl-body" id="bot-log"><div class="dl-empty">暂无事件，机器人收到消息后会实时刷新</div></div>
+        <div class="dl-body" id="bot-log">${skeleton('list')}</div>
       </div>
 
       <h2 class="sec-title">机器人能力 <span class="stip">点卡片进入对应功能页</span></h2>
@@ -1567,7 +1569,7 @@ function renderBotHome(m){
 
       renderLog([...msgs.map(mm=>({t:mm.createdAt, kind:"in", msg:`${mm.type||"msg"} · ${mm.contactId||""}`} )),
                  ...rec.map(rr=>({t:rr.createdAt, kind:"recall", msg:`命中 ${rr.hitCount} 条 · ${rr.query||""}`}))]);
-    }catch(e){ if(!failed){ failed=true; toast.error("数据加载失败："+(e.message||"未知错误")); } }
+    }catch(e){ if(!failed){ failed=true; settleSkeleton(["#bot-stats","#bot-trend"]); toast.error("数据加载失败："+(e.message||"未知错误")); } }
   };
 
   const renderLog = (events)=>{
@@ -1746,27 +1748,28 @@ function renderBotUsage(){
 
   $("#screen").innerHTML = botPageHead("Token 用量","用量总览 · 趋势 · 每用户排行")
     + `<div style="margin-top:16px">
-      <div class="usage-hero">
+      <div class="usage-hero" id="usage-hero" aria-busy="true">
         <div class="usage-ring">
           <svg viewBox="0 0 100 100">
             <circle class="ur-bg" cx="50" cy="50" r="40"/>
             <circle class="ur-val" id="usage-arc" cx="50" cy="50" r="40"/>
           </svg>
-          <div class="ur-core" id="usage-out-ratio">—</div>
+          <div class="ur-core" id="usage-out-ratio"><span class="skeleton skeleton-md" aria-hidden="true"></span></div>
         </div>
         <div class="usage-meta">
-          <div class="um-total" id="usage-total">—</div>
+          <div class="um-total" id="usage-total"><span class="skeleton skeleton-lg" aria-hidden="true"></span></div>
           <div class="um-sub">累计 Token 消耗</div>
           <span class="um-pill">${icon("activity",12,2)} 输入 / 输出占比</span>
           <button class="btn danger ghost" id="usage-clear" style="margin-top:10px;align-self:flex-start">${icon("trash",14,1.8)} 清空用量记录</button>
         </div>
       </div>
-      <div class="dash-stats">
+      <div class="dash-stats" id="usage-stats" role="group" aria-label="用量指标" aria-busy="true">
+        <span class="sr-only" id="usage-live" role="status" aria-live="polite">指标加载中</span>
         ${[["usage-calls","累计调用","--ds-c:var(--module-1)","API 调用次数"],
            ["usage-in","输入 Token","--ds-c:var(--module-2)","发送给模型"],
            ["usage-out","输出 Token","--ds-c:var(--module-3)","模型生成"],
            ["usage-avg","单次均值","--ds-c:var(--module-4)","每次调用平均"]]
-          .map(x=>`<div class="dstat" style="${x[2]}"><div class="dv" id="${x[0]}">–</div><div class="dl">${x[1]}</div><div class="du">${x[3]||''}</div></div>`).join("")}
+          .map(x=>`<div class="dstat" style="${x[2]}"><div class="dv" id="${x[0]}"><span class="skeleton skeleton-md" aria-hidden="true"></span></div><div class="dl">${x[1]}</div><div class="du">${x[3]||''}</div></div>`).join("")}
       </div>
       <h2 class="sec-title" style="margin-top:18px">用量趋势
         <span class="seg" id="range-seg">
@@ -1822,7 +1825,9 @@ function renderBotUsage(){
       const C = 2*Math.PI*40;
       $("#usage-arc").style.strokeDasharray = `${(C*outRatio).toFixed(1)} 999`;
       $("#usage-out-ratio").textContent = `${Math.round(outRatio*100)}%`;
-    }catch(e){ showError($("#usage-calls").closest(".dash-stats")||$("#w-trend"), e, retry, 'metrics'); }
+      $("#usage-live").textContent = `调用 ${(d.totalCalls??0).toLocaleString()} 次 · 累计 ${fmtT(tin+tout)}`;
+      $("#usage-stats").removeAttribute("aria-busy");
+    }catch(e){ settleSkeleton(["#usage-hero","#usage-stats"]); showError($("#usage-stats"), e, retry, 'metrics'); }
     loadTrend();
     const rel=$("#w-rank");
     try{ const list = await api.usageByContact();
@@ -1834,7 +1839,7 @@ function renderBotUsage(){
         <div class="r-bar"><div class="r-fill" style="width:${Math.round((u.totalTokens||0)/maxTok*100)}%"></div></div>
         <span class="r-tok">${fmtT(u.totalTokens||0)}</span></div>`).join("");
       rel.querySelectorAll(".rank-row").forEach(row=>{ row.onclick=()=>openConv(row.dataset.c, null); });
-    }catch(e){ showError(rel, e, retry, 'list'); }
+    }catch(e){ settleSkeleton(["#w-rank"]); showError(rel, e, retry, 'cards'); }
   })();
   $("#bot-back").onclick = ()=>go('bot');
 
@@ -1946,7 +1951,7 @@ function renderBotMsg(){
           };
         }
       });
-    }catch(e){ showError(el, e, retry, 'list'); }
+    }catch(e){ showError(el, e, retry, 'chat'); }
   };
   load();
   $("#bot-back").onclick = ()=>go('bot');
@@ -1987,12 +1992,13 @@ function renderBotMem(){
 
   $("#screen").innerHTML = botPageHead("记忆学习","发『记住 事项』即写入长期记忆")
     + `<div style="margin-top:16px">
-      <div class="dash-stats">
+      <div class="dash-stats" id="mem-stats" role="group" aria-label="记忆统计" aria-busy="true">
+        <span class="sr-only" id="mem-live" role="status" aria-live="polite">统计加载中</span>
         ${[["mem-total","记忆总数","--ds-c:var(--module-1)","长期记忆库"],
            ["mem-users","覆盖用户","--ds-c:var(--module-2)","去重后联系人数"],
            ["mem-vec","向量覆盖","--ds-c:var(--module-3)","已向量化比例"],
            ["mem-source","私聊记忆","--ds-c:var(--module-4)","私聊记忆条数"]]
-          .map(x=>`<div class="dstat" style="${x[2]}"><div class="dv" id="${x[0]}">–</div><div class="dl">${x[1]}</div><div class="du">${x[3]||''}</div></div>`).join("")}
+          .map(x=>`<div class="dstat" style="${x[2]}"><div class="dv" id="${x[0]}"><span class="skeleton skeleton-md" aria-hidden="true"></span></div><div class="dl">${x[1]}</div><div class="du">${x[3]||''}</div></div>`).join("")}
       </div>
       <div class="mem-form-card" style="margin-top:14px">
         <h2 class="sec-title">手动新增记忆 <span class="stip">填用户标识与内容，保存后同步向量化</span></h2>
@@ -2041,6 +2047,8 @@ function renderBotMem(){
       const users = new Set(list.map(mm=>mm.contactId)).size;
       $("#mem-users").textContent = users;
       $("#mem-source").textContent = list.filter(mm=>!mm.roomId).length + " 私";
+      $("#mem-live").textContent = `共 ${list.length} 条 · 覆盖 ${users} 人 · 向量 ${$("#mem-vec").textContent}`;
+      $("#mem-stats").removeAttribute("aria-busy");
 
       if(!filtered.length){ el.innerHTML=`<div class="empty" style="padding:20px 0"><span class="e">${icon("leaf",24)}</span><p>${searchKey?'没有匹配『'+searchKey+'』的记忆，清除搜索词或再试':list.length?'暂无记忆，填写上方表单或在聊天里说『记住 事项』':'暂无记忆'}</p></div>`; return; }
       el.innerHTML = filtered.map(mm=>`<div class="mem-card ${selected.has(mm.id)?'sel':''}" data-id="${mm.id}">
@@ -2071,7 +2079,7 @@ function renderBotMem(){
         finally{ btn.disabled=false; btn.innerHTML = icon("check",14); };
       }; });
       el.querySelectorAll(".js-mem-cancel").forEach(btn=>{ btn.onclick=(e)=>{ e.stopPropagation(); cancelEdit(); }; });
-    }catch(e){ showError(el, e, retry, 'cards'); }
+    }catch(e){ settleSkeleton(["#mem-stats"]); showError(el, e, retry, 'list'); }
   };
 
   const syncBulk = ()=>{
@@ -2222,7 +2230,7 @@ function renderBotRecall(){
           };
         }
       });
-    }catch(e){ showError(el, e, retry, 'list'); }
+    }catch(e){ showError(el, e, retry, 'table'); }
   };
   const loadSrc = async ()=>{
     const el=$("#w-recall-src");
@@ -2301,7 +2309,11 @@ function renderBotSys(m){
 
   const refresh = async ()=>{
     try{ render(await api.systemStats()); }
-    catch(e){ showError($("#sys-hero"), e, refresh, 'metrics'); }
+    catch(e){
+      settleSkeleton(["#sys-hero","#sys-env"]);
+      showError($("#sys-hero"), e, refresh, 'metrics');
+      showError($("#sys-env"), e, refresh, 'table');
+    }
   };
   refresh();
   pollTimer = setInterval(refresh, 2000);
@@ -2358,7 +2370,7 @@ function renderBotLogs(m){
       const list = await api.logs(300);
       all = (list||[]).slice().reverse(); // 倒序 → 正序（老 → 新）
       paint();
-    }catch(e){ showError(body, e, refresh, 'table'); }
+    }catch(e){ showError(body, e, refresh, 'list'); }
   };
   refresh();
   pollTimer = setInterval(refresh, 3000);
@@ -2371,7 +2383,7 @@ function renderBotContacts(m){
   $("#screen").innerHTML = botPageHead("好友管理","联系人列表 · 备注 · 点击私聊")
     + `<div style="margin-top:16px">
       <input class="cnt-search" id="cnt-search" placeholder="搜索昵称或备注…"/>
-      <div class="cnt-meta" id="cnt-meta"></div>
+      <div class="cnt-meta" id="cnt-meta"><span class="skeleton skeleton-sm" aria-hidden="true" style="display:inline-block;width:120px"></span></div>
       <ul class="cnt-list" id="cnt-list">${skeleton('list')}</ul>
     </div>`;
 
@@ -2447,7 +2459,7 @@ function renderBotContacts(m){
       cache = await api.contacts();
       if(!Array.isArray(cache)) cache = [];
       paint($("#cnt-search").value);
-    }catch(e){ showError($("#cnt-list"), e, refresh, 'list'); }
+    }catch(e){ settleSkeleton(["#cnt-meta"]); showError($("#cnt-list"), e, refresh, 'list'); }
   };
   refresh();
 }
@@ -2487,7 +2499,7 @@ function renderBotRooms(m){
       <div class="grab"></div><h2>${esc(topic||'群成员')}</h2>
       <div class="sub" style="margin-bottom:12px"><span class="tag mem">${icon("msg",12,1.8)} ${esc(roomId.slice(-12))}</span></div>
       <input class="cnt-search" id="rm-search" placeholder="搜索成员昵称或备注…" style="margin-bottom:8px"/>
-      <div class="cnt-meta" id="rm-meta"></div>
+      <div class="cnt-meta" id="rm-meta"><span class="skeleton skeleton-sm" aria-hidden="true" style="display:inline-block;width:120px"></span></div>
       <ul id="rm-members" style="overflow-y:auto;flex:1;border:1px solid var(--border);border-radius:var(--radius-tile)">${skeleton('list')}</ul>
       <div class="modal-actions"><button class="btn ghost" id="rm-close">关闭</button>
         <button class="btn ghost" id="rm-rename">${icon("edit",14,2)} 改名</button>
@@ -2544,7 +2556,7 @@ function renderBotRooms(m){
       members = await api.roomMembers(roomId);
       if(!Array.isArray(members)) members = [];
       paintMembers("");
-    }catch(e){ showError(box, e, ()=>showRoomDetail(roomId, topic), 'list'); }
+    }catch(e){ settleSkeleton(["#rm-meta"]); showError(box, e, ()=>showRoomDetail(roomId, topic), 'list'); }
   };
 }
 
@@ -2720,6 +2732,7 @@ function renderDebugHttp(){
       if(raw){ try{ JSON.parse(raw); payload = raw; }catch(e){ toast.error("请求体不是合法 JSON"); return; } }
     }
     $send.disabled = true; $send.innerHTML = `<span class="spinner"></span> 请求中`;
+    $r.innerHTML = loadingState('请求中…', true);
     const t0 = performance.now();
     try{
       const res = await fetch(url, {
@@ -2966,6 +2979,7 @@ function openConv(contactId, roomId){
 
 /* ---------- router / nav ---------- */
 let route = 'dashboard';
+let notFoundPath = '';
 let botView = 'home';
 let drawerOpen = false;
 let scrollLock = false;
@@ -3008,7 +3022,11 @@ const NAPCAT_ROUTE_BY_SUB = {
 };
 function routeFor(v){
   if(typeof v==='string' && VALID_ROUTES.indexOf(v)>=0) return v;
-  if(typeof v==='string' && v.indexOf('bot-')===0) return NAPCAT_ROUTE_BY_SUB[v.slice(4)] || 'dashboard';
+  if(typeof v==='string' && v.indexOf('bot-')===0){
+    const sub = NAPCAT_ROUTE_BY_SUB[v.slice(4)];
+    return sub || '404';
+  }
+  if(typeof v==='string' && v) return '404';
   return 'dashboard';
 }
 function go(v){
@@ -3016,6 +3034,8 @@ function go(v){
   stopPoll();  // 切页先停轮询，再重渲染
   stopHomeTimers(); // 停止 home 页的 statsTimer
   route = routeFor(v);
+  if(route === '404') notFoundPath = v;
+  else notFoundPath = '';
   botView = NAPCAT_TO_SUB[route] || 'home';
   syncDrawerActive();
   syncNavActive();
@@ -3038,7 +3058,7 @@ const NAPCAT_TITLES = {
   about:['关于','NapCat 机器人工作台'],
 };
 function syncDrawerActive(){
-  const key = route;
+  const key = route==='404' ? 'dashboard' : route;
   $("#drawerList").querySelectorAll(".ditem").forEach(el=>{
     const on = el.dataset.go === key;
     el.classList.toggle("active", on);
@@ -3047,7 +3067,8 @@ function syncDrawerActive(){
 }
 function syncNavActive(){
   // 底部导航隐藏后仍保留高亮逻辑：一律以当前侧边栏项为高亮
-  $("#nav").querySelectorAll(".n").forEach(n=>n.classList.toggle("active", n.dataset.nav === route));
+  const navRoute = route==='404' ? 'dashboard' : route;
+  $("#nav").querySelectorAll(".n").forEach(n=>n.classList.toggle("active", n.dataset.nav === navRoute));
 }
 function render(){
   const screen = $("#screen");
@@ -3058,6 +3079,25 @@ function render(){
   if(routeSwapTimer) clearTimeout(routeSwapTimer);
   screen.style.opacity = '0';
   routeSwapTimer = setTimeout(()=>{ doRender(); screen.style.opacity = '1'; }, 180);
+}
+function renderNotFound(){
+  const path = typeof notFoundPath==='string' ? notFoundPath : '';
+  $("#screen").innerHTML = `<div class="page" style="padding:4px 2px">
+    <div class="card" style="padding:26px 22px">
+      <h1 style="font-family:var(--font-heading);font-size:32px;font-weight:600;margin-bottom:6px">404 <span style="font-size:18px;font-weight:500;color:var(--text-secondary)">页面未找到</span></h1>
+      <p style="color:var(--text-secondary);font-size:13px;margin:0 0 18px">请求的页面不存在或服务已迁移${path?`：<code>${esc(path)}</code>`:''}</p>
+      <div class="prow" style="display:flex;flex-direction:column;gap:12px;font-size:14px">
+        <div style="display:flex;gap:12px;align-items:center"><span style="min-width:84px;color:var(--text-tertiary)">建议操作</span><span>返回仪表盘查看机器人状态 · 用量 · 会话</span></div>
+      </div>
+      <div style="margin-top:16px;display:flex;gap:10px;align-items:center">
+        <button class="btn" id="notfound-back">${icon("chevron",15,2)} 返回仪表盘</button>
+      </div>
+    </div>
+    <div class="card" style="padding:16px 22px;margin-top:12px">
+      <div class="preview-wrap"><div class="preview-bar">${icon("eye",12)} 仪表盘示意预览</div>${freezeSk(skeleton('metrics'))}</div>
+    </div>
+  </div>`;
+  $("#notfound-back").onclick = ()=>go('dashboard');
 }
 function doRender(){
   // 根据 NapCat 侧边栏路由分发
@@ -3102,12 +3142,12 @@ function doRender(){
     renderBot(botView);
     return;
   }
-  // 未知路由回退到仪表盘
-  route = 'dashboard';
+  // 未知路由：显示 404 占位
+  route = '404';
   botView = 'home';
-  $("#topTitle").textContent = '仪表盘';
-  $("#crumb").title = '状态 · 用量 · 记忆 · 会话';
-  renderBot('home');
+  $("#topTitle").textContent = '页面未找到';
+  $("#crumb").title = '404 · 页面不存在';
+  renderNotFound();
 }
 
 /* ---------- drawer ---------- */
