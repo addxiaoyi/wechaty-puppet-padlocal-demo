@@ -1445,6 +1445,7 @@ function statusRing(state, name){
 }
 
 function renderBotHome(m){
+  stopHomeTimers();
   $("#screen").innerHTML = `
     <div class="greet"><h1>${m.name}</h1><p>${m.desc}</p>
       <button class="add" id="bot-refresh">${icon("bolt",16,2)}刷新</button></div>
@@ -1601,14 +1602,15 @@ function renderBotHome(m){
   ctl("stop",   api.botStop);
   ctl("start",  api.botStart);
 
-  const tracker = setInterval(()=>{ if(!$("#bot-stats")){ clearInterval(tracker); return; } refreshStats(); }, 8000);
+  const statsTimer = setInterval(()=>{ if(!$("#bot-stats")){ clearInterval(statsTimer); return; } refreshStats(); }, 8000);
+  homeTimers.push(statsTimer);
 }
 
 /* 在线配置页：系统提示词 / 模型 / 回复开关 / 记忆条数（实时生效 + 持久化） */
 function renderBotConfig(m){
   $("#screen").innerHTML = botPageHead("在线配置","改完点保存，即时生效并写入数据库")
     + `<div style="margin-top:16px">
-      <div class="panel" id="cfg-box">${loadingState("加载中…")}</div>
+      <div class="panel" id="cfg-box">${skeleton('form')}</div>
     </div>`;
 
   $("#bot-back").onclick = ()=>go('bot');
@@ -1779,7 +1781,7 @@ function renderBotUsage(){
       </div>
       <h2 class="sec-title" style="margin-top:18px"><span class="sec-badge">每用户排行</span></h2>
       <div class="dash-chart" style="padding:8px 14px">
-        <div class="rank-list" id="w-rank">${loadingState("加载中…")}</div>
+        <div class="rank-list" id="w-rank">${skeleton('cards')}</div>
       </div>
     </div>`;
 
@@ -1847,7 +1849,7 @@ function renderBotUsage(){
 /* 对话类独立页：filter = 'p'私聊 / 'g'群聊 / null全部，每张能力卡一个页面 */
 function renderBotConvs(title, sub, filter, extra){
   $("#screen").innerHTML = botPageHead(title, sub)
-    + `<div style="margin-top:16px">${extra||""}<div class="panel" id="w-conv">${loadingState("加载中…")}</div></div>`;
+    + `<div style="margin-top:16px">${extra||""}<div class="panel" id="w-conv">${skeleton('list')}</div></div>`;
 
   const load = async ()=>{
     const el=$("#w-conv");
@@ -1894,7 +1896,7 @@ function renderBotMsg(){
   $("#screen").innerHTML = botPageHead("多类型消息","识别文本/图片/语音/视频/表情/链接/小程序/文件")
     + `<div style="margin-top:16px">
       <div class="msg-types" id="msg-types-bar">${types.map(t=>`<span class="${t==='全部'?'active':''}" data-type="${t}">${t}</span>`).join("")}</div>
-      <div class="panel" id="w-msg">${loadingState("加载中…")}</div>
+      <div class="panel" id="w-msg">${skeleton('chat')}</div>
     </div>`;
 
   let activeType = null;
@@ -2011,7 +2013,7 @@ function renderBotMem(){
         <button class="btn ghost" id="mem-bulk-clear">取消选择</button>
       </div>
       <div class="dash-chart" style="padding:0 10px">
-        <div id="w-mem">${loadingState("加载中…")}</div>
+        <div id="w-mem">${skeleton('list')}</div>
       </div>
     </div>`;
 
@@ -2114,6 +2116,7 @@ function renderBotMem(){
       $("#mem-contact").value=""; 
       $("#mem-content").value=""; 
       msg("已保存",true);
+      toast.success("记忆已添加");
       load();
     }catch(e){ 
       const errTip = (e && e.message) || e || '保存失败';
@@ -2167,9 +2170,9 @@ function renderBotRecall(){
     + `<div style="margin-top:16px">
       <div class="panel"><div class="mrow mrow-inf">${icon("target",15)} 机器人提问时会把临近相关记忆当作上下文一并交给模型，让回答「记得你」。以下为真实召回命中记录。</div></div>
       <h2 class="sec-title">召回命中记录 <span class="stip">点行查看命中的记忆详情</span></h2>
-      <div class="panel" id="w-recall">${loadingState("加载中…")}</div>
+      <div class="panel" id="w-recall">${skeleton('table')}</div>
       <h2 class="sec-title">记忆库（召回来源）</h2>
-      <div class="panel" id="w-recall-src">${loadingState("加载中…")}</div>
+      <div class="panel" id="w-recall-src">${skeleton('list')}</div>
     </div>`;
 
   const retry = ()=>{ renderBotRecall(); };
@@ -2191,7 +2194,7 @@ function renderBotRecall(){
       el.querySelectorAll(".recall-hit").forEach(row=>{
         row.onclick = async ()=>{
           const ids = (row.dataset.ids||"").split(",").map(Number).filter(n=>!Number.isNaN(n));
-          if(!ids.length){ alert("未记录命中的记忆 ID"); return; }
+          if(!ids.length){ toast.error("未记录命中的记忆 ID"); return; }
           row.style.pointerEvents="none"; row.style.opacity=".7";
           try{
             const mems = await api.memoriesByIds(ids);
@@ -2202,7 +2205,7 @@ function renderBotRecall(){
                   `<div style="font-size:11px;color:var(--text-tertiary)">${esc(m.contactId||'')} · ${new Date(m.createdAt).toLocaleDateString("zh-CN")}</div>` +
                   `<div style="margin-top:4px">${esc(m.content)}</div></div>`).join("") : `<div style="margin-top:6px;color:var(--text-secondary)">记忆源记录缺失</div>`);
             }
-          }catch(e){ alert("加载失败："+(e&&e.message||e)); }
+          }catch(e){ toast.error("加载失败："+(e&&e.message||e)); }
           finally { row.style.pointerEvents=""; row.style.opacity=""; }
         };
         const delBtn = row.querySelector(".mc-del");
@@ -2212,7 +2215,7 @@ function renderBotRecall(){
             const rid = Number(row.dataset.id);
             const q = (row.querySelector(".txt b")?.textContent||"").slice(0,30);
             apiConfirm("删除召回记录", `删除后该条命中记录将无法恢复。<br/>查询词：${esc(q)}`, async ()=>{
-              await api.deleteRecall(rid);
+              await api.deleteRecall(rid); toast.success("召回记录已删除");
             });
           };
         }
@@ -2235,7 +2238,7 @@ function renderBotRecall(){
             const mid = Number(row.dataset.id);
             const c = (row.querySelector(".txt")?.textContent||"").slice(0,30);
             apiConfirm("删除记忆", `此操作会从记忆库中永久移除该条记忆。<br/>内容：${esc(c)}`, async ()=>{
-              await api.deleteMemory(mid);
+              await api.deleteMemory(mid); toast.success("记忆已删除");
             });
           };
         }
@@ -2254,11 +2257,12 @@ const fmtSec = s => { if(s==null) return "—"; const d=Math.floor(s/86400), h=M
 const fmtNet = n => { if(n==null) return "—"; if(n<1024) return n.toFixed(0)+" B/s"; if(n<1048576) return (n/1024).toFixed(1)+" KB/s"; return (n/1048576).toFixed(2)+" MB/s"; };
 
 function renderBotSys(m){
+  stopPoll();
   $("#screen").innerHTML = botPageHead("系统监控","CPU · 内存 · 网络 · 负载 实时采样")
     + `<div style="margin-top:16px">
-      <div class="sys-hero" id="sys-hero">${loadingState("采样中…")}</div>
+      <div class="sys-hero" id="sys-hero">${skeleton('metrics')}</div>
       <h2 class="sec-title" style="margin-top:16px">运行环境</h2>
-      <div class="panel" id="sys-env">${loadingState("加载中…")}</div>
+      <div class="panel" id="sys-env">${skeleton('table')}</div>
     </div>`;
 
   $("#bot-back").onclick = ()=>go('bot');
@@ -2302,6 +2306,7 @@ function renderBotSys(m){
 }
 
 function renderBotLogs(m){
+  stopPoll();
   const LEVELS = [["all","全部"],["info","info"],["warn","warn"],["error","error"]];
   $("#screen").innerHTML = botPageHead("运行日志","实时拦截 console 输出的环形日志")
     + `<div style="margin-top:16px">
@@ -2310,7 +2315,7 @@ function renderBotLogs(m){
           <div class="lv-t"><span class="lv-live"></span>实时日志<span class="stip" id="lv-count">0 条</span></div>
           <div class="lv-filters" id="lv-filters">${LEVELS.map(([k,lab])=>`<button class="lv-f ${k==='all'?'active':''}" data-lv="${k}">${lab}</button>`).join("")}</div>
         </div>
-        <div class="lv-body" id="lv-body">${loadingState("加载中…")}</div>
+        <div class="lv-body" id="lv-body">${skeleton('list')}</div>
       </div>
     </div>`;
 
@@ -2365,7 +2370,7 @@ function renderBotContacts(m){
     + `<div style="margin-top:16px">
       <input class="cnt-search" id="cnt-search" placeholder="搜索昵称或备注…"/>
       <div class="cnt-meta" id="cnt-meta"></div>
-      <ul class="cnt-list" id="cnt-list">${loadingState("加载中…")}</ul>
+      <ul class="cnt-list" id="cnt-list">${skeleton('list')}</ul>
     </div>`;
 
   $("#bot-back").onclick = ()=>go('bot');
@@ -2448,7 +2453,7 @@ function renderBotContacts(m){
 function renderBotRooms(m){
   $("#screen").innerHTML = botPageHead("群聊管理","群列表 · 成员 · 群发")
     + `<div style="margin-top:16px">
-      <ul class="cnt-list" id="rm-list">${loadingState("加载中…")}</ul>
+      <ul class="cnt-list" id="rm-list">${skeleton('list')}</ul>
     </div>`;
 
   $("#bot-back").onclick = ()=>go('bot');
@@ -2481,7 +2486,7 @@ function renderBotRooms(m){
       <div class="sub" style="margin-bottom:12px"><span class="tag mem">${icon("msg",12,1.8)} ${esc(roomId.slice(-12))}</span></div>
       <input class="cnt-search" id="rm-search" placeholder="搜索成员昵称或备注…" style="margin-bottom:8px"/>
       <div class="cnt-meta" id="rm-meta"></div>
-      <ul id="rm-members" style="overflow-y:auto;flex:1;border:1px solid var(--border);border-radius:var(--radius-tile)">${loadingState("加载成员…")}</ul>
+      <ul id="rm-members" style="overflow-y:auto;flex:1;border:1px solid var(--border);border-radius:var(--radius-tile)">${skeleton('list')}</ul>
       <div class="modal-actions"><button class="btn ghost" id="rm-close">关闭</button>
         <button class="btn ghost" id="rm-rename">${icon("edit",14,2)} 改名</button>
         <button class="btn" id="rm-send">${icon("bolt",14,2)} 群发消息</button></div></div>`;
@@ -2556,7 +2561,7 @@ function renderBotSend(m){
           <div class="send-tab" data-type="room">${icon("msg",14,1.8)} 群发消息</div>
         </div>
         <div class="send-field"><div class="lab">选择目标</div>
-          <div id="send-picker">${loadingState("加载目标…")}</div></div>
+          <div id="send-picker">${skeleton('list')}</div></div>
         <div class="send-field"><div class="lab">消息内容</div>
           <textarea id="send-text" placeholder="输入要发送的消息…（Ctrl + Enter 发送）"></textarea>
           <div class="send-count" id="send-count">0 字</div></div>
@@ -2604,7 +2609,7 @@ function renderBotSend(m){
       }
       const list = cache[key];
       const prior = selected.id;
-      if(!list.length){ $picker.innerHTML = `<div class="empty" style="padding:20px"><div>暂无${key==='contact'?'联系人':'群聊'}</div></div>`; return; }
+      if(!list.length){ $picker.innerHTML = `<div class="empty"><span class="e">${icon(key==='contact'?'user':'msg',24)}</span><p>暂无${key==='contact'?'联系人':'群聊'}</p></div>`; return; }
       $picker.innerHTML = `<select id="send-select">` + list.map(x=>{
         const label = key==='contact' ? (x.alias ? x.name+' · '+x.alias : x.name) : (x.topic||'未命名群聊');
         return `<option value="${attr(x.id)}" ${x.id===prior?'selected':''}>${esc(label)}</option>`;
@@ -2734,6 +2739,12 @@ function renderDebugHttp(){
 }
 
 let debugSocket = null;
+function closeDebugSocket(){
+  if(!debugSocket) return;
+  debugSocket.onopen = debugSocket.onmessage = debugSocket.onerror = debugSocket.onclose = null;
+  try{ debugSocket.close(); }catch(e){}
+  debugSocket = null;
+}
 function renderDebugWs(){
   const box = $("#db-box");
   box.innerHTML = `
@@ -2768,13 +2779,7 @@ function renderDebugWs(){
     $log.scrollTop = $log.scrollHeight;
   };
 
-  const close = ()=>{
-    if(debugSocket){
-      debugSocket.onopen = debugSocket.onmessage = debugSocket.onerror = debugSocket.onclose = null;
-      try{ debugSocket.close(); }catch(e){}
-      debugSocket = null;
-    }
-  };
+  const close = ()=>{ closeDebugSocket(); };
   close();
   setState('未连接', 'off');
   $conn.disabled = false; $disc.disabled = true; $send.disabled = true;
@@ -2968,6 +2973,8 @@ let lastRenderedRoute = route;
 let routeTween = null;
 // 页面级轮询句柄集中管理：离开页面即清，防止后台定时器泄漏
 let pollTimer = null;
+const homeTimers = [];
+function stopHomeTimers(){ while(homeTimers.length){ clearInterval(homeTimers.pop()); } }
 function stopPoll(){ if(pollTimer){ clearInterval(pollTimer); pollTimer=null; } }
 function lockScroll(){ scrollLock = true; document.body.style.overflow = 'hidden'; }
 function unlockScroll(){ scrollLock = false; document.body.style.overflow = ''; }
@@ -3005,6 +3012,7 @@ function routeFor(v){
 function go(v){
   closeDrawer();
   stopPoll();  // 切页先停轮询，再重渲染
+  stopHomeTimers(); // 停止 home 页的 statsTimer
   route = routeFor(v);
   botView = NAPCAT_TO_SUB[route] || 'home';
   syncDrawerActive();
