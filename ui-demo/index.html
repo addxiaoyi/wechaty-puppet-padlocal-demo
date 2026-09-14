@@ -137,10 +137,8 @@
   .card { background: var(--surface-card); border: 1px solid var(--border-strong); border-radius: var(--radius-card); box-shadow: var(--shadow-card); }
   .sec-title { display:flex; align-items:center; gap:9px; font-family: var(--font-mono); font-size: 11.5px; font-weight: 700; margin: 26px 2px 12px; letter-spacing: .16em; text-transform: uppercase; }
   .sec-title::before { content:""; width: 9px; height: 9px; border-radius: var(--radius-tile); background: var(--accent); flex:0 0 auto; }
-  .sec-title .more { margin-left:auto; font-size: 11px; color: var(--text-secondary); font-weight: 500; cursor: pointer; display:inline-flex; align-items:center; gap:2px; text-transform: none; letter-spacing: .02em; }
-  .sec-title .more svg { color: var(--accent); }
 
-  /* ---------- greeting（图签首页：顶部刻度尺） ---------- */
+/* ---------- greeting（图签首页：顶部刻度尺） ---------- */
   .greet { position: relative; overflow: hidden; margin-top: 10px; padding: 30px 20px 24px; border-radius: var(--radius-card);
     border: 1.5px solid var(--text); box-shadow: var(--shadow-lift); min-height: 138px;
     background: var(--surface-card);
@@ -1166,7 +1164,7 @@ function chartSkeleton(bars=7){
     const h = 26 + ((i*37)%54);            // 稳定的伪随机高度，避免每帧跳动
     return `<span class="sk-bar" style="height:${h}%;animation-delay:${(i*0.12).toFixed(2)}s" aria-hidden="true"></span>`;
   }).join("");
-  return `<div class="sk-chart" role="status" aria-busy="true" aria-label="图表数据加载中"><span class="sr-only">图表数据加载中</span><div class="sk-bars">${cols}</div><div class="sk-axis" aria-hidden="true"></div></div>`;
+  return `<div class="sk-chart" role="status" aria-busy="true" aria-label="图表数据加载中…"><span class="sr-only">图表数据加载中…</span><div class="sk-bars">${cols}</div><div class="sk-axis" aria-hidden="true"></div></div>`;
 }
 /* ---------- 骨架屏组件库：列表 / 卡片 / 表格 / 气泡 / 指标 / 表单 ---------- */
 const skLine = (w, tone='') => `<span class="skeleton sk-line${tone?' '+tone:''}" style="width:${w}%" aria-hidden="true"></span>`;
@@ -1179,18 +1177,18 @@ function skRow(lines=2){
 }
 function skeletonList(rows=5){
   const pattern = [2,2,1,2,1,2];
-  return `<div class="sk-stack" role="status" aria-busy="true" aria-label="内容加载中"><span class="sr-only">内容加载中</span>`
+  return `<div class="sk-stack" role="status" aria-busy="true" aria-label="内容加载中…"><span class="sr-only">内容加载中…</span>`
     + Array.from({length:rows},(_,i)=>skRow(pattern[i%pattern.length])).join("") + `</div>`;
 }
 function skeletonCards(n=6){
-  return `<div class="sk-grid" role="status" aria-busy="true" aria-label="卡片加载中"><span class="sr-only">卡片加载中</span>`
+  return `<div class="sk-grid" role="status" aria-busy="true" aria-label="卡片加载中…"><span class="sr-only">卡片加载中…</span>`
     + Array.from({length:n},()=>`<div class="sk-card"><span class="skeleton sk-ico" aria-hidden="true"></span>${skLine(56,'t')}${skLine(92,'s')}${skLine(44,'s')}</div>`).join("") + `</div>`;
 }
 function skeletonTable(rows=6, cols=4){
   const wts = [[30,22,28,18],[24,20,32,22]];
   const cells = w => w.map((x,i)=>skLine(x, i===0?'t':'')).join("");
   const head = Array.from({length:cols},()=>42);
-  return `<div class="sk-table" role="status" aria-busy="true" aria-label="表格加载中"><span class="sr-only">表格加载中</span>`
+  return `<div class="sk-table" role="status" aria-busy="true" aria-label="表格加载中…"><span class="sr-only">表格加载中…</span>`
     + `<div class="sk-tr head" style="grid-template-columns:repeat(${cols},1fr)">${cells(head)}</div>`
     + Array.from({length:rows},(_,i)=>`<div class="sk-tr" style="grid-template-columns:repeat(${cols},1fr)">${cells(wts[i%2])}</div>`).join("") + `</div>`;
 }
@@ -1201,17 +1199,17 @@ function skeletonChat(n=4){
       + (me?``:`<span class="skeleton sk-ava" aria-hidden="true"></span>`)
       + `<div class="sk-body"><span class="sk-col">${widths.map((x,i)=>skLine(x,i===0?'t':'')).join("")}</span></div></div>`;
   };
-  return `<div class="sk-chat" role="status" aria-busy="true" aria-label="消息加载中"><span class="sr-only">消息加载中</span>`
+  return `<div class="sk-chat" role="status" aria-busy="true" aria-label="消息加载中…"><span class="sr-only">消息加载中…</span>`
     + Array.from({length:n},(_,i)=>bubble(i%2===1)).join("") + `</div>`;
 }
 function skeletonMetrics(n=4){
   const nums = [112,92,74,88];
-  return `<div class="sk-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))" role="status" aria-busy="true" aria-label="指标加载中"><span class="sr-only">指标加载中</span>`
+  return `<div class="sk-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))" role="status" aria-busy="true" aria-label="指标加载中…"><span class="sr-only">指标加载中…</span>`
     + Array.from({length:n},(_,i)=>`<div class="sk-card">${skLine(46,'s')}`
       + `<div class="sk-metric"><span class="skeleton sk-num" style="width:${nums[i%4]}px" aria-hidden="true"></span><span class="skeleton sk-unit" aria-hidden="true"></span></div></div>`).join("") + `</div>`;
 }
 function skeletonForm(rows=5){
-  return `<div class="sk-stack" role="status" aria-busy="true" aria-label="表单加载中"><span class="sr-only">表单加载中</span>`
+  return `<div class="sk-stack" role="status" aria-busy="true" aria-label="表单加载中…"><span class="sr-only">表单加载中…</span>`
     + Array.from({length:rows},(_,i)=>`<div class="sk-row is-flat" style="border:none;background:none;padding:10px 0">`
       + `<span class="sk-col">${skLine(26+((i*13)%18),'s')}`
       + `<span class="skeleton" style="height:40px;width:100%;border-radius:var(--radius-tile)" aria-hidden="true"></span></span></div>`).join("") + `</div>`;
@@ -1273,11 +1271,12 @@ function toast(msg, type='info'){
   }
   const el = document.createElement('div');
   el.className = `toast ${type}`;
+  // 异步反馈需被辅助技术播报：alert 抢占、status 排队，二者不叠加容器 aria-live 以免重复朗读
+  el.setAttribute('role', type === 'error' ? 'alert' : 'status');
   const iconMap = { success:'check', error:'alert', info:'msg', warning:'alert' };
   el.innerHTML = `${icon(iconMap[type]||'msg',15)}<span>${esc(txt)}</span>`;
   container.appendChild(el);
   const remove = ()=>{ el.remove(); if(!container.children.length) container.remove(); };
-  el.querySelector('.toast');
   setTimeout(remove, 3200);
 }
 toast.success = (msg)=>toast(msg, 'success');
@@ -1457,7 +1456,7 @@ function renderBotHome(m){
       <div class="dash-top">
         <div id="bot-hero">${statusRing('idle', m.name)}</div>
         <div class="dash-stats" id="bot-stats" role="group" aria-label="运行数据统计" aria-busy="true">
-          <span class="sr-only" id="stats-live" role="status" aria-live="polite">统计数据加载中</span>
+          <span class="sr-only" id="stats-live" role="status" aria-live="polite">统计数据加载中…</span>
           <div class="dstat" style="--ds-c:var(--module-1)"><strong class="dv" id="st-calls"><span class="skeleton skeleton-md" aria-hidden="true"></span></strong><span class="dl">调用次数</span><span class="du">累计</span></div>
           <div class="dstat" style="--ds-c:var(--module-3)"><strong class="dv" id="st-tokens"><span class="skeleton skeleton-md" aria-hidden="true"></span></strong><span class="dl">Token 消耗</span><span class="du">输入 + 输出</span></div>
           <div class="dstat" style="--ds-c:var(--module-5)"><strong class="dv" id="st-recall"><span class="skeleton skeleton-sm" aria-hidden="true"></span></strong><span class="dl">召回命中</span><span class="du">命中率</span></div>
@@ -1764,7 +1763,7 @@ function renderBotUsage(){
         </div>
       </div>
       <div class="dash-stats" id="usage-stats" role="group" aria-label="用量指标" aria-busy="true">
-        <span class="sr-only" id="usage-live" role="status" aria-live="polite">指标加载中</span>
+        <span class="sr-only" id="usage-live" role="status" aria-live="polite">指标加载中…</span>
         ${[["usage-calls","累计调用","--ds-c:var(--module-1)","API 调用次数"],
            ["usage-in","输入 Token","--ds-c:var(--module-2)","发送给模型"],
            ["usage-out","输出 Token","--ds-c:var(--module-3)","模型生成"],
@@ -1993,7 +1992,7 @@ function renderBotMem(){
   $("#screen").innerHTML = botPageHead("记忆学习","发『记住 事项』即写入长期记忆")
     + `<div style="margin-top:16px">
       <div class="dash-stats" id="mem-stats" role="group" aria-label="记忆统计" aria-busy="true">
-        <span class="sr-only" id="mem-live" role="status" aria-live="polite">统计加载中</span>
+        <span class="sr-only" id="mem-live" role="status" aria-live="polite">统计加载中…</span>
         ${[["mem-total","记忆总数","--ds-c:var(--module-1)","长期记忆库"],
            ["mem-users","覆盖用户","--ds-c:var(--module-2)","去重后联系人数"],
            ["mem-vec","向量覆盖","--ds-c:var(--module-3)","已向量化比例"],
